@@ -7,7 +7,7 @@ import {
   CHART_FLINT_SELF_CHECK,
   CHART_FLINT_SYSTEM_PROMPT
 } from '../prompts/chartFlintSystemPrompt.js';
-import { isFlintChartAuthoringEnabled } from '../tools/chartFlintAuthoring.js';
+import { chartSourceForModel, isFlintChartAuthoringEnabled } from '../tools/chartFlintAuthoring.js';
 import { appendLanguageInstruction, appendProseLanguageInstruction } from '@archislop/shared';
 import {
   buildChartRepairInstruction,
@@ -148,6 +148,28 @@ export function buildChartAnalyzeUserContent({
   );
 }
 
+/** Style intent for a Flint-sourced chart: theme + `vegaConfig` overrides only. */
+function buildFlintStyleUserContent({ prompt, currentDsl }) {
+  return [
+    'Apply a visual styling update to the current chart.',
+    '',
+    'Bounded scope — change only these things:',
+    '- "theme" (whiteboard | noir | arcade | blueprint) on the wrapper',
+    '- "vegaConfig": a Vega-Lite config override object — range.category (palette array), axis (gridlines, label/title color), legend (orient, label/title color), title (font size, weight, color), background, font',
+    '',
+    'Hard requirements:',
+    '- Send "flint" back exactly as it is.',
+    '- Keep existing "vegaConfig" keys the request does not mention.',
+    '- Output the FULL wrapper JSON via apply_chart_patch, without "spec".',
+    '',
+    `Current chart DSL:\n\n\`\`\`json\n${currentDsl}\n\`\`\``,
+    '',
+    `User style request:\n${prompt}`,
+    '',
+    'Call apply_chart_patch with the full JSON wrapper.'
+  ].join('\n');
+}
+
 /** Style intent for chart — bounded vocabulary (theme swap, color scheme, axis gridlines,
  *  legend position). The agent must keep data and encodings intact. */
 function buildStyleUserContent({ prompt, currentDsl }) {
@@ -186,6 +208,9 @@ export function createChartLangChainAgent({
   const flintAuthoring = isFlintChartAuthoringEnabled(env);
   const tools = createChartTools({ stateStore, authoring: flintAuthoring ? 'flint' : 'vegalite' });
   const systemPrompt = flintAuthoring ? CHART_FLINT_SYSTEM_PROMPT : CHART_SYSTEM_PROMPT;
+  // A Flint-sourced chart is shown as Flint; its derived Vega-Lite is not the model's to edit.
+  const modelView = (source) => (flintAuthoring ? chartSourceForModel(source) : source);
+  const buildStyleContent = flintAuthoring ? buildFlintStyleUserContent : buildStyleUserContent;
   const buildRepairInstruction = flintAuthoring
     ? (args) =>
         buildChartRepairInstruction(args, {
@@ -293,7 +318,7 @@ export function createChartLangChainAgent({
           role: 'user',
           content: buildIntentUserContent({
             prompt,
-            currentDsl: slot.diagramSource,
+            currentDsl: modelView(slot.diagramSource),
             peerContext,
             focusScope,
             uiLocale
@@ -337,7 +362,7 @@ export function createChartLangChainAgent({
           content: appendLanguageInstruction(
             buildChartTransformUserContent({
               mode,
-              currentDsl: slot.diagramSource,
+              currentDsl: modelView(slot.diagramSource),
               russDepth,
               advisorPrompt,
               focusScope
@@ -373,7 +398,7 @@ export function createChartLangChainAgent({
       const userMessages = [
         {
           role: 'user',
-          content: buildStyleUserContent({ prompt, currentDsl: slot.diagramSource })
+          content: buildStyleContent({ prompt, currentDsl: modelView(slot.diagramSource) })
         }
       ];
 
@@ -405,7 +430,7 @@ export function createChartLangChainAgent({
         new HumanMessage(
           buildChartAnalyzeUserContent({
             kind,
-            currentDsl: slot.diagramSource,
+            currentDsl: modelView(slot.diagramSource),
             focusScope,
             advisorPrompt,
             lastUserPrompt: slot.lastUserPrompt,

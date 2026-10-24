@@ -76,11 +76,11 @@ Rules:
 - When fabricating data, make the numbers proportionally plausible so the story reads (do not generate uniform or random-looking rows).
 - Do not set colors; the archislop theme supplies the palette at render time unless the user explicitly asks for color choices.
 
-Existing charts: the stored chart is shown to you as compiled Vega-Lite ({"spec": {...}}). To change it, write a fresh Flint wrapper that keeps its data values and field names unless asked otherwise. Style requests are the one exception — see below.
+Existing charts: the stored chart is shown to you as its Flint wrapper (plus "vegaConfig" when it has been restyled). Edit that Flint and send the wrapper back without "vegaConfig" — the chart keeps its style. Only Style requests write "vegaConfig". If it is shown as plain Vega-Lite ({"spec": {...}}) instead, rebuild it as a fresh Flint wrapper that keeps its data values and field names unless asked otherwise.
 
 Mode notes:
 - Gilfoyle / Erlich / Russ: rework chart type + encodings + data ordering in Flint. Keep data unless the user asks otherwise. Erlich may swap chart types; Russ may facet aggressively (column / row channels).
-- Style: edit the stored Vega-Lite wrapper directly — change ONLY theme, spec.config.range.category (palette), spec.config.axis, spec.config.legend, spec.config.title, spec.config.background, or spec.config.font, and send the full Vega-Lite wrapper back with "spec" (not "flint").
+- Style: change ONLY "theme" and "vegaConfig" — a Vega-Lite config override object with keys range.category (palette array), axis, legend, title, background, font. Send the full wrapper back with "flint" unchanged.
 - Critique / Explain: respond in prose; do NOT call apply_chart_patch.
 - Fix: rewrite the chart as a fresh Flint wrapper that preserves the user's data story.
 
@@ -93,7 +93,7 @@ Always call apply_chart_patch with the full wrapper JSON as a string (except for
 
 export const CHART_FLINT_SELF_CHECK = `Self-check before calling apply_chart_patch:
 - Valid JSON object (no trailing commas, double-quoted keys/strings).
-- Top-level keys: "archislopVersion": 1, "theme", and "flint" (or "spec" for a Style edit — never both).
+- Top-level keys: "archislopVersion": 1, "theme", "flint" ("vegaConfig" only for a Style request). Never "spec" — the server derives it.
 - flint.chart_spec.chartType is spelled exactly as in the chart-type list.
 - Every channel in flint.chart_spec.encodings is one the chart type accepts.
 - Every field referenced in encodings exists in every row of flint.data.values.

@@ -1,6 +1,6 @@
 import { compile } from 'vega-lite';
 import { DiagramPatchSchema, parseChartDsl } from '@archislop/shared';
-import { compileFlintChartWrapper, isFlintChartAuthoringEnabled } from './chartFlintAuthoring.js';
+import { compileFlintChartWrapper } from './chartFlintAuthoring.js';
 
 function describeCompileError(err) {
   if (!err) return 'Vega-Lite compile() rejected the spec.';
@@ -22,28 +22,26 @@ function compileSpec(spec) {
 }
 
 /**
- * Under `CHART_AUTHORING=flint`, compile a Flint-authored wrapper to a Vega-Lite one before
- * the usual ladder runs. Anything that is not a Flint wrapper passes through unchanged.
+ * Compile a Flint-sourced wrapper (see chartFlintAuthoring.js) to the stored shape before
+ * the Vega-Lite ladder runs. Anything that is not a Flint wrapper passes through unchanged.
  */
-function resolveAuthoredSource(source, env) {
-  if (!isFlintChartAuthoringEnabled(env)) return { ok: true, source, flint: null };
-  const flint = compileFlintChartWrapper(source);
+function resolveAuthoredSource(source, previousSource) {
+  const flint = compileFlintChartWrapper(source, { previousSource });
   if (!flint.handled) return { ok: true, source, flint: null };
   if (!flint.ok) return { ok: false, error: flint.error };
-  return { ok: true, source: flint.text, flint };
+  return { ok: true, source: flint.text, flint: flint.droppedFlint ? null : flint };
 }
 
 export async function validateAndPrepareChartPatch({
   currentState,
   proposedDiagramSource,
-  reason,
-  env = process.env
+  reason
 }) {
   if (typeof proposedDiagramSource !== 'string') {
     return { accepted: false, error: 'Chart DSL must be a string of JSON.' };
   }
 
-  const authored = resolveAuthoredSource(proposedDiagramSource, env);
+  const authored = resolveAuthoredSource(proposedDiagramSource, currentState?.diagramSource);
   if (!authored.ok) {
     return { accepted: false, error: authored.error };
   }
@@ -82,11 +80,11 @@ export async function validateAndPrepareChartPatch({
   };
 }
 
-export function validateChartStrict(source, env = process.env) {
+export function validateChartStrict(source) {
   if (typeof source !== 'string') {
     return { valid: false, error: 'Chart DSL must be a string.', validator: 'chart-type' };
   }
-  const authored = resolveAuthoredSource(source, env);
+  const authored = resolveAuthoredSource(source, null);
   if (!authored.ok) {
     return { valid: false, error: authored.error, validator: 'chart-flint' };
   }

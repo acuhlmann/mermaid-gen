@@ -9,7 +9,6 @@ import {
   CHART_FLINT_SELF_CHECK,
   CHART_FLINT_SYSTEM_PROMPT
 } from '../prompts/chartFlintSystemPrompt.js';
-import { isFlintChartAuthoringEnabled } from '../tools/chartFlintAuthoring.js';
 
 const SYSTEM_PROMPT = `You are a Chart DSL JSON syntax repair function. Given broken JSON (an archislop chart wrapper containing a Vega-Lite spec) and a validation error, output the smallest fix that yields a valid wrapper + spec for the same intent.
 
@@ -30,9 +29,9 @@ CRITICAL output rules:
 - Preserve the chart type, data values, and encodings wherever possible.
 - Never call tools; never wrap output in a JSON envelope; never explain.`;
 
-/** Under the Flint trial a broken Flint wrapper is repaired as Flint, so the trial's arms stay apart. */
-function resolveFixerRules(brokenSource, env) {
-  if (isFlintChartAuthoringEnabled(env) && /"flint"\s*:/.test(brokenSource)) {
+/** A broken Flint wrapper is repaired as Flint, so the chart keeps its Flint source. */
+function resolveFixerRules(brokenSource) {
+  if (/"flint"\s*:/.test(brokenSource)) {
     return {
       systemPrompt: FLINT_SYSTEM_PROMPT,
       rulePack: CHART_FLINT_SYSTEM_PROMPT,
@@ -55,23 +54,16 @@ function extractJsonFromResponse(text) {
 }
 
 /**
- * @param {{ brokenSource: string, parseError?: string | null, originalRequest?: string | null, model: unknown, abortSignal?: AbortSignal | null, env?: NodeJS.ProcessEnv }} args
+ * @param {{ brokenSource: string, parseError?: string | null, originalRequest?: string | null, model: unknown, abortSignal?: AbortSignal | null }} args
  */
-async function repairChartOnce({
-  brokenSource,
-  parseError,
-  originalRequest,
-  model,
-  abortSignal,
-  env
-}) {
+async function repairChartOnce({ brokenSource, parseError, originalRequest, model, abortSignal }) {
   if (!model) {
     return { accepted: false, error: 'Syntax fixer model is not configured.' };
   }
 
   const errorText = (parseError ?? '').toString().trim() || 'Chart DSL did not pass validation.';
 
-  const rules = resolveFixerRules(brokenSource, env);
+  const rules = resolveFixerRules(brokenSource);
   const userContent = `${rules.rulePack}
 
 ${rules.selfCheck}
@@ -108,7 +100,7 @@ Output the corrected JSON between a single \`\`\`json fenced block. No prose.`;
     );
   }
 
-  const validation = validateChartStrict(candidate, env);
+  const validation = validateChartStrict(candidate);
   if (!validation.valid) {
     return withLlmUsage(
       {
@@ -162,8 +154,7 @@ export async function repairChartWithFixer({
         parseError,
         originalRequest,
         model,
-        abortSignal,
-        env: env ?? process.env
+        abortSignal
       })
   });
 }

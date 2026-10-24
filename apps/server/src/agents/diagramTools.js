@@ -106,7 +106,7 @@ const CHART_PATCH_TOOL_DESCRIPTIONS = {
   flint:
     'Validate and apply a complete chart DSL update. The DSL is a JSON wrapper: ' +
     '{"archislopVersion":1,"theme":"whiteboard|noir|arcade|blueprint","flint":{"data":{"values":[...]},"semantic_types":{...},"chart_spec":{"chartType":...,"title":...,"encodings":{...}}}}. ' +
-    'The server compiles Flint to Vega-Lite. A Style edit may instead send the stored Vega-Lite wrapper with "spec". ' +
+    'Optional "vegaConfig" holds Vega-Lite config overrides (Style edits). Never send "spec": the server compiles it from "flint". ' +
     'Returns {accepted, revisionId} or {accepted: false, error}.'
 };
 

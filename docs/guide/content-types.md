@@ -115,7 +115,7 @@ The Composite JSON remains the canonical semantic document. `fusedCompositePlann
 
 ## chart
 
-The `chart` slot stores a Vega-Lite-compatible DSL. The agent writes valid Vega-Lite JSON with a `chart <type>` header processed by `parseChartDsl` in `packages/shared`. The renderer (`apps/web/src/components/ChartRenderer.jsx`) lazy-loads `vega-embed` and uses `vega-interpreter` to satisfy the CSP `unsafe-eval` restriction.
+The `chart` slot stores a JSON wrapper `{ archislopVersion, theme, flint?, vegaConfig?, spec }` parsed by `parseChartDsl` in `packages/shared`. By default the agent writes [Flint](https://github.com/microsoft/flint-chart) (`flint`: data, semantic types, chart type, field mappings) and the server compiles it to the Vega-Lite `spec` every client renders; `flint` stays as the source of truth so other Flint backends (exports) can be compiled from it, and `vegaConfig` carries Style overrides across recompiles. A chart without `flint` is plain Vega-Lite, as before. The renderer (`apps/web/src/components/ChartRenderer.jsx`) lazy-loads `vega-embed` and uses `vega-interpreter` to satisfy the CSP `unsafe-eval` restriction.
 
 - Validation: `validateAndPrepareChartPatch` in `apps/server/src/tools/chartDslTool.js`.
 - Agent service: `ChartAgentService` (`apps/server/src/agents/chartLangChainAgent.js`).

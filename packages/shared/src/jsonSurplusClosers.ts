@@ -1,12 +1,19 @@
 /**
- * Deterministic rescue for one recurring model mistake: a complete JSON object followed by
- * one or more surplus closing brackets (`{...}}`). Measured on the chart generation bench
- * (2026-10-24), every "Unexpected non-whitespace character after JSON" rejection was this
- * shape, and repair turns tend to reproduce the same miscount rather than fix it.
+ * Deterministic rescue for one recurring model mistake: one or more surplus `}` that close
+ * the top-level object early. Measured on the chart generation bench (2026-10-24), every
+ * "Unexpected non-whitespace character after JSON" rejection was this shape, and repair
+ * turns tend to reproduce the same miscount rather than fix it. Two forms:
  *
- * Only trailing `}` / `]` (and whitespace) are dropped. Anything else after the first
- * complete value is left alone, so a genuinely malformed document still fails as before.
+ * - trailing: `{...}}` — the surplus closers are all that follows the first value;
+ * - early:    `{"a":{...}}},"b":1}` — a run of `}` closes the root and a `,` follows.
+ *   Closers in a run are interchangeable, so dropping one from the run is unambiguous;
+ *   the result must still parse, and the caller's schema still checks the nesting.
+ *
+ * Anything else after the first complete value is left alone, so a genuinely malformed
+ * document still fails as before.
  */
+
+const MAX_EARLY_CLOSER_FIXES = 3;
 
 /** Advance the in-string state by one character; returns whether we are still in a string. */
 function stepInString(ch: string, state: { escaped: boolean }): boolean {
@@ -42,23 +49,46 @@ function endOfFirstValue(text: string): number {
   return -1;
 }
 
+/** Drop one `}` from the run that closed the root object early, or null if that is not the shape. */
+function dropEarlyRootCloser(text: string): string | null {
+  const end = endOfFirstValue(text);
+  if (end === -1 || end === text.length || text[end - 1] !== '}') return null;
+  if (!text.slice(end).trimStart().startsWith(',')) return null;
+  if (text[end - 2] !== '}') return null; // a lone `}` is not a run; nothing to spare
+  return text.slice(0, end - 1) + text.slice(end);
+}
+
+/** Drop surplus closers when they are all that follows the first value, or null. */
+function dropTrailingClosers(text: string): string | null {
+  const end = endOfFirstValue(text);
+  if (end === -1 || end === text.length) return null;
+  return /^[\s}\]]+$/.test(text.slice(end)) ? text.slice(0, end) : null;
+}
+
+const parses = (text: string): boolean => {
+  try {
+    JSON.parse(text);
+    return true;
+  } catch {
+    return false;
+  }
+};
+
 /**
- * Return `text` with surplus trailing closing brackets removed when that is the only
- * thing wrong with it, else `null`. Callers parse the result themselves.
+ * Return `text` with surplus closing brackets removed when that is the only thing wrong
+ * with it, else `null`. Callers parse the result themselves.
  */
 export function trimSurplusJsonClosers(text: string): string | null {
-  const trimmed = text.trim();
-  if (!trimmed.startsWith('{') && !trimmed.startsWith('[')) return null;
-  const end = endOfFirstValue(trimmed);
-  if (end === -1 || end === trimmed.length) return null;
-  if (!/^[\s}\]]+$/.test(trimmed.slice(end))) return null;
-  const candidate = trimmed.slice(0, end);
-  try {
-    JSON.parse(candidate);
-    return candidate;
-  } catch {
-    return null;
+  let candidate = text.trim();
+  if (!candidate.startsWith('{') && !candidate.startsWith('[')) return null;
+  for (let i = 0; i < MAX_EARLY_CLOSER_FIXES; i += 1) {
+    const next = dropEarlyRootCloser(candidate);
+    if (next === null) break;
+    candidate = next;
+    if (parses(candidate)) return candidate;
   }
+  const trailing = dropTrailingClosers(candidate);
+  return trailing !== null && parses(trailing) ? trailing : null;
 }
 
 /** `JSON.parse`, retrying once with {@link trimSurplusJsonClosers} on failure. */

@@ -11,6 +11,17 @@ test('trimSurplusJsonClosers drops surplus trailing closers', () => {
   assert.equal(trimSurplusJsonClosers('{"a":[1]}]}\n }'), '{"a":[1]}');
 });
 
+test('trimSurplusJsonClosers drops a surplus closer that ended the root early', () => {
+  assert.equal(
+    trimSurplusJsonClosers('{"flint":{"chart_spec":{"x":1}}},"vegaConfig":{"a":1}}'),
+    '{"flint":{"chart_spec":{"x":1}},"vegaConfig":{"a":1}}'
+  );
+  // Two surplus closers, one early and one trailing.
+  assert.equal(trimSurplusJsonClosers('{"a":{"b":1}},"c":2}}'), '{"a":{"b":1},"c":2}');
+  // A lone `}` before the comma is not a run — nothing safe to drop.
+  assert.equal(trimSurplusJsonClosers('{"a":1},"c":2}'), null);
+});
+
 test('trimSurplusJsonClosers ignores braces inside strings', () => {
   assert.equal(trimSurplusJsonClosers('{"a":"}}{"}}'), '{"a":"}}{"}');
   assert.equal(trimSurplusJsonClosers('{"a":"say \\"}\\""}}'), '{"a":"say \\"}\\""}');

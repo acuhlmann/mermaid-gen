@@ -4,16 +4,26 @@ import { parseJsonTrimmingSurplusClosers } from '@archislop/shared';
 import { listFlintChartTypes } from '../prompts/chartFlintSystemPrompt.js';
 
 /**
- * Flint authoring trial for chart mode (flag: `CHART_AUTHORING=flint`).
+ * Flint as the chart slot's source format.
  *
  * The model writes a compact Flint spec (data + semantic types + chart type + field
- * mappings) inside the usual archislop wrapper, under `flint` instead of `spec`. This
- * module validates it with Flint's own validator and compiles it to Vega-Lite, so the
- * slot still stores a plain `{archislopVersion, theme, spec}` wrapper and nothing past
- * the server tool — renderer, themes, hit-testing, canvas edits, MCP Apps — changes.
+ * mappings). The stored wrapper keeps that spec as the source of truth and carries the
+ * compiled Vega-Lite beside it, so the renderer, themes, hit-testing, canvas edits and MCP
+ * Apps keep reading `spec` unchanged while exports can compile `flint` to other backends:
  *
- * A Vega-Lite wrapper is still accepted while the flag is on, because Style mode edits the
- * stored spec's `config` directly.
+ *   { archislopVersion, theme, flint, vegaConfig?, spec }
+ *
+ * - `flint`      — the Flint input (`data`, `semantic_types`, `chart_spec`). Source of truth.
+ * - `vegaConfig` — Vega-Lite `config` overrides from Style edits, merged over Flint's own
+ *                  config on every compile, so a restyle survives the next content edit.
+ * - `spec`       — derived. Recompiled from `flint` on every write; never edited directly.
+ *
+ * One exception keeps hand edits honest: when `spec` changed but `flint` and `vegaConfig`
+ * did not, someone edited the Vega-Lite itself (the source editor), so the chart becomes a
+ * plain Vega-Lite chart rather than having their edit silently recompiled away.
+ *
+ * `CHART_AUTHORING` only chooses which format the agent is prompted to write (Flint unless
+ * set to `vegalite`); the validator always understands both.
  */
 
 export const CHART_VEGA_LITE_SCHEMA_URL = 'https://vega.github.io/schema/vega-lite/v5.json';
@@ -22,7 +32,7 @@ export const CHART_VEGA_LITE_SCHEMA_URL = 'https://vega.github.io/schema/vega-li
 const DEFAULT_FLINT_BASE_SIZE = { width: 720, height: 440 };
 
 export function isFlintChartAuthoringEnabled(env = process.env) {
-  return String(env?.CHART_AUTHORING ?? '').toLowerCase() === 'flint';
+  return String(env?.CHART_AUTHORING ?? '').toLowerCase() !== 'vegalite';
 }
 
 function stripJsonCodeFence(raw) {
@@ -79,16 +89,22 @@ function keepDataOrderForLocalizedCalendarNames(spec) {
   const rows = spec?.data?.values;
   if (!Array.isArray(rows) || !spec.encoding) return;
   for (const channel of Object.values(spec.encoding)) {
-    if (!channel || !Array.isArray(channel.sort) || typeof channel.field !== 'string') continue;
-    if (channel.sort.every(isEnglishCalendarName)) continue;
-    if (!channel.sort.some(isEnglishCalendarName)) continue;
-    const seen = [];
-    for (const row of rows) {
-      const value = row?.[channel.field];
-      if (value !== undefined && !seen.includes(value)) seen.push(value);
-    }
-    if (seen.length === channel.sort.length) channel.sort = seen;
+    const order = dataOrderForLocalizedSort(channel, rows);
+    if (order) channel.sort = order;
   }
+}
+
+/** First-appearance order of `channel.field`, when its computed sort mixes in unknown names. */
+function dataOrderForLocalizedSort(channel, rows) {
+  if (!channel || !Array.isArray(channel.sort) || typeof channel.field !== 'string') return null;
+  const known = channel.sort.filter(isEnglishCalendarName).length;
+  if (known === 0 || known === channel.sort.length) return null;
+  const seen = [];
+  for (const row of rows) {
+    const value = row?.[channel.field];
+    if (value !== undefined && !seen.includes(value)) seen.push(value);
+  }
+  return seen.length === channel.sort.length ? seen : null;
 }
 
 function describeErrors(errors, chartType) {
@@ -115,9 +131,26 @@ function parseFlintWrapper(source) {
   return raw;
 }
 
+const isPlainObject = (value) =>
+  Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+
+/** JSON with sorted keys, so two parses of the same document compare equal. */
+function stableStringify(value) {
+  if (Array.isArray(value)) return `[${value.map(stableStringify).join(',')}]`;
+  if (isPlainObject(value)) {
+    const keys = Object.keys(value).sort();
+    return `{${keys.map((k) => `${JSON.stringify(k)}:${stableStringify(value[k])}`).join(',')}}`;
+  }
+  return JSON.stringify(value) ?? 'null';
+}
+
+const sameJson = (a, b) => stableStringify(a ?? null) === stableStringify(b ?? null);
+
 /** Shape errors Flint's validator would report less helpfully, or null when the shape is fine. */
 function checkWrapperShape(raw) {
-  if ('spec' in raw) return 'Chart DSL must carry either "flint" or "spec", not both.';
+  if (raw.vegaConfig !== undefined && !isPlainObject(raw.vegaConfig)) {
+    return 'Chart DSL "vegaConfig" must be an object of Vega-Lite config overrides.';
+  }
   const flint = raw.flint;
   if (!flint || typeof flint !== 'object' || Array.isArray(flint)) {
     return 'Chart DSL "flint" must be an object.';
@@ -158,35 +191,99 @@ function assembleFlint(input) {
   }
 }
 
+/** One level deep: `{ axis: { gridColor } }` over `{ axis: { labelFontSize } }` keeps both. */
+function mergeVegaConfig(base, overrides) {
+  if (!isPlainObject(overrides)) return base;
+  const merged = { ...(isPlainObject(base) ? base : {}) };
+  for (const [key, value] of Object.entries(overrides)) {
+    merged[key] =
+      isPlainObject(value) && isPlainObject(merged[key]) ? { ...merged[key], ...value } : value;
+  }
+  return merged;
+}
+
+/** The Flint input as stored: only the parts this slot uses, in a fixed shape. */
+function normalizeFlintInput(flint) {
+  return {
+    data: { values: flint.data.values },
+    ...(flint.semantic_types ? { semantic_types: flint.semantic_types } : {}),
+    chart_spec: flint.chart_spec
+  };
+}
+
+/** The stored Flint wrapper this write replaces, or null. */
+function parsePrevious(previousSource) {
+  if (typeof previousSource !== 'string' || !previousSource.trim()) return null;
+  const previous = parseFlintWrapper(previousSource);
+  return previous && isPlainObject(previous.flint) ? previous : null;
+}
+
 /**
- * Turn a Flint-authored wrapper into a Vega-Lite wrapper.
- *
- * Returns `{ handled: false }` when the source is not a Flint wrapper (let the normal
- * Vega-Lite ladder see it untouched, including its own JSON errors), `{ handled: true,
- * ok: true, text }` with the compiled wrapper JSON, or `{ handled: true, ok: false,
- * error }` with a message a repair turn can act on.
+ * True when the incoming wrapper changed only its Vega-Lite `spec` relative to the stored
+ * one — a hand edit of the derived spec, which must win over recompiling.
  */
-export function compileFlintChartWrapper(source) {
+function isHandEditedSpec(raw, previous) {
+  if (!previous || !('spec' in raw)) return false;
+  return (
+    sameJson(normalizeFlintInput(previous.flint), normalizeFlintInput(raw.flint)) &&
+    sameJson(previous.vegaConfig, raw.vegaConfig) &&
+    !sameJson(previous.spec, raw.spec)
+  );
+}
+
+/**
+ * The stored `{ archislopVersion, theme, flint, vegaConfig?, spec }`. A content edit that
+ * leaves `vegaConfig` out keeps the chart's style; `"vegaConfig": {}` is how a restyle
+ * clears it.
+ */
+function buildStoredWrapper(raw, flint, assembledSpec, previous) {
+  const vegaConfig = 'vegaConfig' in raw ? raw.vegaConfig : previous?.vegaConfig;
+  const keepStyle = isPlainObject(vegaConfig) && Object.keys(vegaConfig).length > 0;
+  const spec = { $schema: CHART_VEGA_LITE_SCHEMA_URL, ...assembledSpec };
+  if (keepStyle) spec.config = mergeVegaConfig(spec.config, vegaConfig);
+  return {
+    archislopVersion: raw.archislopVersion ?? 1,
+    ...(raw.theme !== undefined ? { theme: raw.theme } : {}),
+    flint,
+    ...(keepStyle ? { vegaConfig } : {}),
+    spec
+  };
+}
+
+/**
+ * Compile a Flint-sourced wrapper into the stored shape.
+ *
+ * Returns `{ handled: false }` when the source is not a Flint wrapper (the Vega-Lite ladder
+ * sees it untouched, including its own JSON errors). Returns `{ handled: true, ok: true,
+ * text }` with the stored wrapper JSON — or, for a hand edit of the derived spec, the plain
+ * Vega-Lite wrapper with `flint` dropped — else `{ handled: true, ok: false, error }` with a
+ * message a repair turn can act on.
+ *
+ * @param {string} source
+ * @param {{ previousSource?: string }} [options] the slot's current source, to detect hand edits
+ */
+export function compileFlintChartWrapper(source, { previousSource } = {}) {
   const raw = parseFlintWrapper(source);
   if (!raw) return { handled: false };
   const shapeError = checkWrapperShape(raw);
   if (shapeError) return { handled: true, ok: false, error: shapeError };
 
+  const previous = parsePrevious(previousSource);
+  if (isHandEditedSpec(raw, previous)) {
+    const { flint: _flint, vegaConfig: _vegaConfig, ...vegaLiteWrapper } = raw;
+    return { handled: true, ok: true, text: JSON.stringify(vegaLiteWrapper), droppedFlint: true };
+  }
+
   // Inline data only: a `url` would make the compiler (and later the renderer) fetch.
-  const { flint } = raw;
+  const flint = normalizeFlintInput(raw.flint);
   const input = {
-    data: { values: flint.data.values },
-    ...(flint.semantic_types ? { semantic_types: flint.semantic_types } : {}),
+    ...flint,
     chart_spec: { baseSize: DEFAULT_FLINT_BASE_SIZE, ...flint.chart_spec }
   };
   const assembled = assembleFlint(input);
   if (assembled.error) return { handled: true, ok: false, error: assembled.error };
 
-  const wrapper = {
-    archislopVersion: raw.archislopVersion ?? 1,
-    ...(raw.theme !== undefined ? { theme: raw.theme } : {}),
-    spec: { $schema: CHART_VEGA_LITE_SCHEMA_URL, ...assembled.spec }
-  };
+  const wrapper = buildStoredWrapper(raw, flint, assembled.spec, previous);
   const warnings = (assembled.validation.warnings ?? [])
     .filter((w) => w.severity === 'warning')
     .map((w) => w.message);
@@ -198,4 +295,16 @@ export function compileFlintChartWrapper(source) {
     chartType: assembled.validation.chartType,
     warnings
   };
+}
+
+/**
+ * What the model is shown of a stored chart: the Flint source and style overrides without
+ * the derived Vega-Lite, which it must not edit (and which is several times larger).
+ * A plain Vega-Lite chart is returned unchanged.
+ */
+export function chartSourceForModel(source) {
+  const raw = parseFlintWrapper(source);
+  if (!raw || !isPlainObject(raw.flint)) return source;
+  const { spec: _spec, ...rest } = raw;
+  return JSON.stringify(rest, null, 2);
 }

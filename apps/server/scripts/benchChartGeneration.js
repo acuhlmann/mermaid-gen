@@ -8,10 +8,10 @@
 //   - output tokens and wall time per case
 //   - what the model wrote vs what the slot stored (Flint compiles small specs to large ones)
 //
-// Arms: `vegalite` (today's agent, the model writes Vega-Lite) and `flint` (the
-// CHART_AUTHORING=flint trial, the model writes Flint and the server compiles it). Each
-// arm gets its own env object, threaded through agent, store and fixer, so both arms can
-// run in one process without sharing state.
+// Arms: `vegalite` (CHART_AUTHORING=vegalite, the model writes Vega-Lite) and `flint`
+// (the default, the model writes Flint and the server compiles it). The arm only picks the
+// agent's prompt — the validator understands both — so each arm gets its own env object
+// and both run in one process without sharing state.
 //
 // This is deliberately NOT benchChart.js, which replays fixed specs through the gate
 // and measures the gate. This one measures the model.
@@ -54,7 +54,7 @@ const ARM_ENV = {
 };
 
 /** A chart-only store mirroring `applyToChartSlot`, which also records every attempt. */
-function createBenchChartStore(env) {
+function createBenchChartStore() {
   let slot = {
     revisionId: 0,
     diagramSource: '',
@@ -73,8 +73,7 @@ function createBenchChartStore(env) {
       const prepared = await validateAndPrepareChartPatch({
         currentState: slot,
         proposedDiagramSource: diagramSource,
-        reason: reason ?? 'bench',
-        env
+        reason: reason ?? 'bench'
       });
       attempts.push({
         accepted: Boolean(prepared.accepted),
@@ -137,7 +136,7 @@ function classifyFailure({ accepted, attempts, message, threw }) {
 
 async function runCase({ arm, sample, sampleIndex, profile }) {
   const env = { ...process.env, ...ARM_ENV[arm] };
-  const store = createBenchChartStore(env);
+  const store = createBenchChartStore();
   const capture = createCapture();
   const agent = createChartLangChainAgent({ stateStore: store, env });
 

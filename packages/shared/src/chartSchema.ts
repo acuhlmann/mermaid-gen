@@ -12,9 +12,20 @@ export const ChartThemeSchema = z.enum(CHART_THEMES).default('whiteboard');
  */
 export const VegaLiteSpecSchema = z.record(z.string(), z.unknown());
 
+/**
+ * Flint chart input (`data`, `semantic_types`, `chart_spec`) — the source of truth when
+ * present; `spec` is then compiled from it by the server. Loosely typed here for the same
+ * reason as the Vega-Lite spec: Flint's own validator is the real check
+ * (`apps/server/src/tools/chartFlintAuthoring.js`).
+ */
+export const FlintChartInputSchema = z.record(z.string(), z.unknown());
+
 export const ChartDslSchema = z.object({
   archislopVersion: z.literal(1).default(1),
   theme: ChartThemeSchema,
+  flint: FlintChartInputSchema.optional(),
+  /** Vega-Lite `config` overrides from Style edits, merged over Flint's config on compile. */
+  vegaConfig: z.record(z.string(), z.unknown()).optional(),
   spec: VegaLiteSpecSchema
 });
 

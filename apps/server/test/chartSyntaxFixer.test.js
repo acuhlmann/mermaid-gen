@@ -91,7 +91,7 @@ test('repairChartWithFixer includes rule pack and validation error in the prompt
   assert.match(content, /Self-check before calling apply_chart_patch/);
 });
 
-test('repairChartWithFixer repairs a broken Flint wrapper as Flint under the trial flag', async () => {
+test('repairChartWithFixer repairs a broken Flint wrapper as Flint', async () => {
   const fixed = JSON.stringify({
     theme: 'whiteboard',
     flint: {
@@ -103,7 +103,6 @@ test('repairChartWithFixer repairs a broken Flint wrapper as Flint under the tri
   const result = await repairChartWithFixer({
     brokenSource: '{"theme":"whiteboard","flint":{"chart_spec":{"chartType":"Bar Graph"}}}',
     parseError: 'Flint rejected the chart: Unknown chart type: Bar Graph',
-    env: { CHART_AUTHORING: 'flint' },
     modelOverride: fakeModelFromMessages(spy)
   });
   const [system, human] = spy.lastMessages;
