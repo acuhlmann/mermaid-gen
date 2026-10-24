@@ -16,7 +16,7 @@ export const OFFICE_EN_AU = {
       blurb:
         'Everything is a ceremony. Will time-box your smoko. Facilitates your existential dread with great energy.',
       introLine:
-        "G'day!! I'm Pam — CSM, CSPO, SAFe 6.0, and emotionally fluent in parking lots. This introduction is time-boxed for forty-five seconds of synergy. Amazing energy already. Love that for us. Let's circle back — and thank you so much for being here!!"
+        "G'day!! I'm Pam — CSM, CSPO, SAFe 6.0, and emotionally fluent in parking lots. This introduction is time-boxed for forty-five seconds of synergy; I've story-pointed it and it came out a 3, which is the most honest thing I'll say all quarter. Let's circle back — and thank you so much for being here!!"
     },
     helpdesk: {
       blurb: 'Closes tickets as duplicates of themselves. Works on his machine. DNS was involved.',
@@ -308,12 +308,12 @@ export const OFFICE_EN_AU = {
     {
       id: 'im-scrum-standup',
       colleagueId: 'scrumMaster',
-      body: "Friendly ping! You've been heads-down for a while — should we time-box this, mate? 🙂"
+      body: "Friendly ping! You've been heads-down for a while — should we time-box this into a smaller existential crisis? I've booked the smaller one, mate. It's on your calendar as 'sync'. 🙂"
     },
     {
       id: 'im-scrum-retro',
       colleagueId: 'scrumMaster',
-      body: 'Chucking "{label}" on the retro board as a discussion topic. Great energy!'
+      body: 'Chucking "{label}" on the retro board as a topic. Great energy! Filed it under "things we knew in July" — that column is new. I made it for this.'
     },
     {
       id: 'im-helpdesk-restart',
@@ -420,7 +420,7 @@ export const OFFICE_EN_AU = {
     {
       id: 'walkby-scrum',
       colleagueId: 'scrumMaster',
-      body: "Ooh, is that {label}? Wasn't on the sprint board — I've added it retroactively as a spike."
+      body: "Ooh, is that {label}? Wasn't on the sprint board — I've chucked it on retroactively as a spike so the velocity chart keeps its shape. Great energy. Some of it."
     },
     {
       id: 'walkby-intern',

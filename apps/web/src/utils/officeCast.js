@@ -97,7 +97,7 @@ export const OFFICE_COLLEAGUES = {
     blurb:
       'Everything is a ceremony. Will time-box your lunch. Facilitates your existential dread with great energy.',
     introLine:
-      "Hi!! I'm Pam — CSM, CSPO, SAFe 6.0, and emotionally fluent in parking lots. This introduction is time-boxed for forty-five seconds of synergy. Amazing energy already. Love that for us. Let's circle back — and thank you so much for being here!!",
+      "Hi!! I'm Pam — CSM, CSPO, SAFe 6.0, and emotionally fluent in parking lots. This introduction is time-boxed for forty-five seconds of synergy; I've story-pointed it and it came out a 3, which is the most honest thing I'll say all quarter. Let's circle back — and thank you so much for being here!!",
     avatarEmoji: '📅',
     accentColor: '#0ea5e9',
     emailFrom: 'pam.agile@archislop.corp',
@@ -876,12 +876,12 @@ export const OFFICE_IM_TEMPLATES = [
   {
     id: 'im-scrum-standup',
     colleagueId: 'scrumMaster',
-    body: "Friendly ping!! You've been heads-down for a while — should we time-box this into a smaller existential crisis? Amazing energy either way 🙂 Love that for us!!"
+    body: "Friendly ping!! You've been heads-down for a while — should we time-box this into a smaller existential crisis? I've already scheduled the smaller one 🙂 It's on your calendar as 'sync', which is how I keep a thing this size from becoming anybody's fault."
   },
   {
     id: 'im-scrum-retro',
     colleagueId: 'scrumMaster',
-    body: 'Adding "{label}" to the retro board as a discussion topic. Great energy!! Parking-lotting the feelings with so much care. Thank you for sharing!!'
+    body: 'Adding "{label}" to the retro board as a discussion topic. Great energy!! I put it under "things we knew in July", which is a new column, and I made the column for it. Thank you for sharing!!'
   },
   {
     id: 'im-helpdesk-restart',

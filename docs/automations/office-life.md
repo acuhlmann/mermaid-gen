@@ -575,6 +575,35 @@ need no such clause; the register already holds.** The transferable rule: score 
 with the judge, never with a phrase regex — a regex stays trustworthy only for what it can literally
 see, which is why the exclamation-mark and emoji counts in this section are still worth quoting.
 
+**The follow-through, same day: the card was fixed and the copy under it was not.** The voice cards
+permit bite; the canned banks — what a user reads when no backend resolves — still said _"Amazing
+energy. Parking lot pending. Thank you so much for the visibility!!"_ That is a card promising aim over
+a line delivering none, and it is the version a reviewer **without an API key sees every single time**,
+which is the audience this repo demos to. Fourteen lines sharpened across the five banks
+(`officeWalkbyFallbacks`, `officeImReplyFallbacks` × 2, `officeDwellFallbacks`,
+`officeEmailReplyFallbacks`) plus the ambient Pam lines and her `introLine`. Two things came out of it
+that are worth more than the copy:
+
+- **It was prompt work, not cosmetics.** A canned reply is written into working memory and comes back
+  as `they wrote back: …` inside the _next_ `/moment` request for that same speaker, so a flat fallback
+  teaches the model to be flat for the rest of the visit, in the one channel where the user typed
+  something personally. The place-count asymmetry (only the walk-by and ambient banks are mirrored into
+  the locale bundles; the four provoked banks are English-only, which is also why a zh-CN user gets an
+  English answer when they talk to somebody — an i18n gap, not a register one, and deliberately not
+  fixed here) is in [`docs/agents/domains/office.md`](../agents/domains/office.md).
+- **The cut is aimed, not louder.** Every edit moved the cheer onto a target — the ceremony, the
+  calendar, the process, whoever called a three-hour meeting quick — and left both floors standing:
+  never cruel to the user, never blocking their work. Chad was the check on this: his card says he
+  _genuinely likes the user's diagram_, so the line of his that mocked it contradicted its own speaker
+  and became a doubt about himself instead. And one tell of the old register survived by being aimed —
+  Pam's meeting cap still ends "Amazing energy." because there it sits on top of "We're at time", which
+  is a shutdown, not a compliment. `officeCannedBanks.test.js` pins only what is mechanical — casting,
+  slot names against the four `fillOfficeSlots` actually replaces, the retired strings, the shape of a
+  refusal. The tone itself stays a reader's judgment, for the reason two paragraphs up.
+
+The ambient email and senior-email banks were **not** touched: they are four-place changes across the
+locale bundles and most of their lines already bite. That is the remaining tail for a future rung.
+
 ### 15. The whiteboard's own record — build spec
 
 The how for § 6a's ruling; read § 6a first for why. **This is the slice to take next** — it is the

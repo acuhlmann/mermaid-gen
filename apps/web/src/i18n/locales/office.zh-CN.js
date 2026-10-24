@@ -18,7 +18,7 @@ export const OFFICE_ZH_CN = {
       title: '敏捷教练 — CSM、CSPO、SAFe 6.0',
       blurb: '万事皆仪式。气氛好得过分。连午饭都要设时间盒。',
       introLine:
-        '嗨！！我是 Pam——CSM、CSPO、SAFe 6.0，对停车场话术情感流利。这次自我介绍限时四十五秒协同能量。气氛已经很好了。太爱我们了。咱们回头再对齐——非常感谢你在这里！！'
+        '嗨！！我是 Pam——CSM、CSPO、SAFe 6.0，对停车场话术情感流利。这次自我介绍限时四十五秒协同能量；我给它估了 3 点，这是我这季度说过最诚实的一句话。咱们回头再对齐——非常感谢你在这里！！'
     },
     helpdesk: {
       name: '工单机器人 Dave',
@@ -327,12 +327,12 @@ export const OFFICE_ZH_CN = {
     {
       id: 'im-scrum-standup',
       colleagueId: 'scrumMaster',
-      body: '友情 ping 一下！你已经埋头很久了 — 要不要设个时间盒？🙂'
+      body: '友情 ping 一下！你已经埋头很久了 — 要不要把这事设个时间盒，压缩成小一点的生存危机？🙂 小的那个我已经排进你的日历了，标题写的是「同步」。'
     },
     {
       id: 'im-scrum-retro',
       colleagueId: 'scrumMaster',
-      body: '正在把“{label}”加到回顾板上作为讨论话题。能量满满！'
+      body: '正在把“{label}”加到回顾板上作为讨论话题。能量满满！！我把它归在“我们七月就知道了的事”下面 — 这一列是新开的，就是为它开的。'
     },
     {
       id: 'im-helpdesk-restart',
@@ -439,7 +439,7 @@ export const OFFICE_ZH_CN = {
     {
       id: 'walkby-scrum',
       colleagueId: 'scrumMaster',
-      body: '哦，这是 {label} 吗？冲刺看板上可没有它 — 我已经把它追溯性地加成一个探针任务了。'
+      body: '哦，这是 {label} 吗？冲刺看板上可没有它 — 我追溯性地把它加成了一个探针任务，好让速率图保住它的形状。能量不错。也就一部分吧。'
     },
     {
       id: 'walkby-intern',

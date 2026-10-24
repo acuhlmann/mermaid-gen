@@ -16,7 +16,7 @@ export const OFFICE_EMAIL_REPLY_TEMPLATES = [
     id: 'email-reply-scrum',
     colleagueId: 'scrumMaster',
     subject: 'Re: following up',
-    body: 'Love the energy in "{snippet}"! Quick glance at {label} on the canvas — shall we time-box a follow-up? 🙂'
+    body: 'Re: "{snippet}" — love the energy. I glanced at {label} on the canvas and put it on the board as a spike, which is how we track the things nobody scoped. That isn’t criticism, it’s the board. 🙂'
   },
   {
     id: 'email-reply-greybeard',
@@ -28,7 +28,7 @@ export const OFFICE_EMAIL_REPLY_TEMPLATES = [
     id: 'email-reply-hr',
     colleagueId: 'hr',
     subject: 'Re: thanks for reaching out',
-    body: 'Thanks for "{snippet}", {userName}! I peeked at {label} on the canvas — great wellness energy 😊'
+    body: 'Thanks for "{snippet}", {userName}! I peeked at {label} on the canvas and filed it under Wellness Wins 😊 That is a real folder. It sits inside the folder called Evidence, and both are due Friday.'
   },
   {
     id: 'email-reply-helpdesk',

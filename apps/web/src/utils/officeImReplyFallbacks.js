@@ -19,7 +19,7 @@ export const OFFICE_IM_REPLY_TEMPLATES = [
   {
     id: 'im-reply-scrum-ack',
     colleagueId: 'scrumMaster',
-    body: 'Noted on "{snippet}" — love the energy! Let\'s time-box a follow-up after standup 🙂'
+    body: 'Noted on "{snippet}" — great energy. I\'ve time-boxed a follow-up for after standup, and story-pointed the follow-up itself so the conversation also counts as delivery 🙂'
   },
   {
     id: 'im-reply-greybeard-ack',
@@ -39,7 +39,7 @@ export const OFFICE_IM_REPLY_TEMPLATES = [
   {
     id: 'im-reply-hr-ack',
     colleagueId: 'hr',
-    body: 'Thanks for "{snippet}", {userName}! Logging this as a wellness win 😊'
+    body: 'Just a friendly nudge! Logged "{snippet}" as a wellness win 😊 Your security training is 41 days overdue, but that is between you and the learning platform.'
   },
   {
     id: 'im-reply-generic-ack',
@@ -57,7 +57,7 @@ export const OFFICE_IM_REPLY_TEMPLATES = [
   {
     id: 'im-reply-scrum-parking',
     colleagueId: 'scrumMaster',
-    body: 'Capturing "{snippet}" in the parking lot!! We\'ll circle back with so much care. Thank you!!'
+    body: 'Capturing "{snippet}" in the parking lot!! It\'s in excellent company — six others from the last three re-orgs, all still parked, all still loved. Thank you!!'
   },
   {
     id: 'im-reply-greybeard-sigh',
@@ -76,12 +76,12 @@ export const OFFICE_TALK_REPLY_FALLBACKS = [
   {
     id: 'talk-reply-intern',
     colleagueId: 'intern',
-    body: 'Oh — you asked "{snippet}"? {label} on your screen looks way too official for that question.'
+    body: 'Oh — you asked "{snippet}"? I have no idea, honestly. But {label} looks incredible, so I am going to say yes with confidence and then go ask somebody older.'
   },
   {
     id: 'talk-reply-scrum',
     colleagueId: 'scrumMaster',
-    body: 'Heard you on "{snippet}"!! {label} has great energy — let\'s time-box a follow-up after standup!!'
+    body: 'Heard you on "{snippet}"!! {label} has great energy — I genuinely cannot tell if it is a vision or a blocker, so I logged it as both, which is what the board wants from me!!'
   },
   {
     id: 'talk-reply-greybeard',
@@ -101,7 +101,7 @@ export const OFFICE_TALK_REPLY_FALLBACKS = [
   {
     id: 'talk-reply-hr',
     colleagueId: 'hr',
-    body: 'Thanks for "{snippet}", {userName}! I peeked at {label} — love the wellness energy 😊'
+    body: 'Heard you on "{snippet}", {userName}! I peeked at {label} — that is wellness energy 😊 I am putting it in the Friday note. The Friday note goes to the whole building. Gary will reply to it.'
   },
   {
     id: 'talk-reply-jared',

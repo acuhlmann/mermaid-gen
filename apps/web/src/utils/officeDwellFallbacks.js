@@ -9,12 +9,12 @@ export const OFFICE_DWELL_FALLBACKS = [
   {
     id: 'dwell-intern',
     colleagueId: 'intern',
-    body: 'oh — hi {userName}. did you need something on {label}? i can pull it up if you want'
+    body: 'oh — hi {userName}. were you looking at {label}, or just thinking really loudly? because i stared at that thing for an hour yesterday and i still cannot work out which arrow is supposed to be the boss'
   },
   {
     id: 'dwell-scrum',
     colleagueId: 'scrumMaster',
-    body: 'Love that you’re here!! Quick pulse on {label} — blocking anything I should capture??'
+    body: 'Love that you’re here!! Quick pulse on {label} — I’ve started a doc, so anything you don’t say becomes a risk I own, and I’d genuinely rather not own it!!'
   },
   {
     id: 'dwell-greybeard',

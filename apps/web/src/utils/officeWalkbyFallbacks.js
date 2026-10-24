@@ -9,7 +9,7 @@ export const OFFICE_WALKBY_FALLBACKS = [
   {
     id: 'walkby-scrum',
     colleagueId: 'scrumMaster',
-    body: "Ooh, is that {label}?! This wasn't on the sprint board — I've added it retroactively as a spike. Amazing energy. Parking lot pending. Thank you so much for the visibility!!"
+    body: "Ooh, is that {label}?! It wasn't on the sprint board — I've added it retroactively as a spike so the velocity chart keeps its shape. Great energy. Some of it."
   },
   {
     id: 'walkby-intern',

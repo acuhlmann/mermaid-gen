@@ -127,6 +127,20 @@ it names. Merging the two into a single pass is worth doing and is not urgent �
   side; re-led with the register and cut to one guard it went 0 of 12 → 6 of 12, at shorter mean
   length. Treat this as a property of these prompts, not a one-fixture artefact, and audition
   every new block against a control before believing it does anything.
+- **A canned provoked reply is not dead copy — it is fed back into the next prompt.** A fallback line
+  is written into working memory (`recordWorkingMemoryIfAsked(..., { theirs: body })`) and
+  `workingMemoryPromptLines(colleagueId)` returns it as `they wrote back: …` inside the _next_ `/moment`
+  request for that speaker. So flat fallback copy does not merely read flat once: it teaches the model
+  to be flat for the rest of the visit, in the one channel where the user typed something personally.
+  Sharpening the banks is prompt work, not cosmetics. Pins for it: `officeCannedBanks.test.js`
+  (mechanical only — casting, slot names, retired strings, refusal shape; never a tone regex, see the
+  entry below on why). **Which bank costs how many places** is the other half of this: only
+  `OFFICE_WALKBY_FALLBACKS` and the ambient `OFFICE_IM_TEMPLATES` are mirrored into the three locale
+  bundles, so a walk-by or ambient email line is a **four-place** change, while the four _provoked_
+  banks (`OFFICE_IM_REPLY_TEMPLATES`, `OFFICE_TALK_REPLY_FALLBACKS`, `OFFICE_DWELL_FALLBACKS`,
+  `OFFICE_EMAIL_REPLY_TEMPLATES`) have no bundle wiring at all and cost **one** place — which also
+  means a zh-CN user is answered in English when they talk to somebody. Not fixed here; it is an i18n
+  gap, not a register one.
 - **A blanket cap on tone flattens the cast — cap the _target_ of the bite, never its presence.**
   `OFFICE_COLLEAGUES` (`apps/server/src/agents/officePersonas.js`) is pinned by
   `officePersonas.test.js` against bans like "never sarcastic" / "never mean" / "never cynical", while
