@@ -575,6 +575,58 @@ need no such clause; the register already holds.** The transferable rule: score 
 with the judge, never with a phrase regex — a regex stays trustworthy only for what it can literally
 see, which is why the exclamation-mark and emoji counts in this section are still worth quoting.
 
+### 15. The whiteboard's own record — build spec
+
+The how for § 6a's ruling; read § 6a first for why. **This is the slice to take next** — it is the
+only verified-open item that answers "interactive **and** helpful", and it hands queue 11 a boundary it
+cannot invent (a note on a board is public by definition, so entitlement becomes a thing you point at
+rather than a schema change).
+
+**One new pure module, no new state.** Create `officeFloorNotes.js` under `apps/web/src/utils/`,
+DOM-free like its sibling `officeFloorBoard.js`, exporting `boardNotesFor({ officeLog, dayPhase, cast })`
+→ at most **three** short notes, each carrying its **author `colleagueId`** (so a note is attributable
+and quotable) and a **kind**: `stale` (the re-org nobody undid), `open` (the migration nobody approved,
+Pam's parked item, Linda's training deadline), `heard-about-yours` (your churn problem sketched by
+somebody who only heard about it, therefore slightly wrong). Inputs are `officeLogStore.js`,
+`deskDoingFor(id)` and the stale bank — nothing new is written, so the slice stays record-not-trigger
+(ADR-0010) and needs no second renderer (ADR-0011 rule 1). **The board must lag reality**; a live board
+is a dashboard, and a stale one is a whiteboard.
+
+**One switch, not a rewrite.** `boardFrom` keeps feeding the player's monitor and the glass-room table
+exactly as today. Only `isoArt.jsx:479`'s `whiteboard` case changes source. `officeFloorBoard.js`'s
+header then narrows from "the one derivation all three surfaces read" to two — update it in the same
+commit, or the next reader trusts a false claim about fan-out.
+
+**Two tests decide whether this was done correctly.**
+
+- `officeFloorProps.test.jsx:480` ("inks the whiteboard, connectors and all") pins the **mirror** and
+  must be **rewritten to the new contract**, not deleted: the board carries the room's notes while the
+  monitor and the table still ink your work. A deleted test is indistinguishable from a lost invariant.
+- `officeFloorProps.test.jsx:467` ("never puts your work on a colleague's screen", ADR-0010) must stay
+  green **untouched**. The board is not a colleague's screen — that distinction is the whole design, and
+  if the rewrite needs this test loosened, the design is wrong, not the test.
+
+**Quotable both ways — ruled 2026-10-24, no further decision needed.** The owner's own word was
+"discuss". So a colleague standing at the board can say what is on it (this is the same fact-gated
+conversion queue 2 and queue 4 bought: a dwell or walk-by speaks from a fact when it has one), and the
+user can read the board and answer out loud through the existing talk channel, which is already
+LLM-first because the user spoke first. The notes must therefore be **text the prompt can carry**, not
+pixels — that is what separates a conversation partner from scenery.
+
+**Copy cost is bounded, and only for the card.** The art stays shapes (62px is not a document); the
+readable words live on the **Look closer** card via `lineYours`, so `officeCast.js:2286/2321` plus
+`office.en-AU.js`, `office.zh-CN.js` and `office.zh-TW.js` move together — four places, not a bank.
+
+**Not in this slice.** No user-pinned notes: those are genuinely new office state and rule 1 then
+demands a desk-world renderer for the same notes; build that once the derived board proves the surface is
+worth reading. The infra wall stays parked (§ 6) — and note the free alternative already in the room:
+`officeFloorPlan.js:465` has a `serverRack` prop as pure scenery, so a rack that hums and confidently
+lies is funnier than a dashboard telling the truth and crosses no ADR-0019 boundary.
+
+**Evidence rule applies.** New visual surface on a 62px panel: render it and carry the evidence —
+`apps/web/test/officeVisitTrace.mjs`, or the browser recipe in `docs/office-isometric-mode.md` § 8.
+jsdom's stubbed `getBBox` cannot adjudicate whether a note is legible.
+
 ## 4. Rules this domain already paid for
 
 [`docs/agents/domains/office.md`](../agents/domains/office.md) is the domain's own findings file —
