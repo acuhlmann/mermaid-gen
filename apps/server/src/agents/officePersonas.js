@@ -1225,7 +1225,8 @@ function pairTurnRules(attendee, cue) {
       shapeRule: `- EXACTLY 1 beat from "${attendee}": the next thing they say. This is a reply to the user's
   last line, not a fresh opening — pick up the thread they left you, do not restart the tour.`,
       moveRule: `- Answer what they actually said. If they asked a question, the beat is the answer; if they
-  pushed back, the beat is your position — held, softened, or conceded, in character.`
+  pushed back, the beat is your position — held, softened, or conceded, in character. When their
+  line ends "(about your point: …)", that is the one of your points they picked: stay on it.`
     };
   }
   return {

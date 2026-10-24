@@ -1007,6 +1007,10 @@ test('pair prompt answers a question raised mid-stand-up, and notices a taken su
     cue: 'edit'
   });
   assert.match(edit, /pleased if they took it, a raised eyebrow if they went another way/);
+
+  // A reply can name which of several points it picked; the partner stays on it.
+  const reply = buildPairSystemPrompt({ attendee: 'gilfoyle', turns, cue: 'reply' });
+  assert.match(reply, /\(about your point: …\)", that is the one of your points they picked/);
 });
 
 test('parsePairScript keeps a focusId the client can resolve and drops one it cannot', () => {

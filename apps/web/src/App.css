@@ -21417,6 +21417,48 @@ body.slopitect-rainbow-tint::before {
 .office-floor-card .office-pair-reply {
   width: 100%;
 }
+/* One chip per point they made: pick one and everything else in the strip is
+ * about it. Quieter than the reply chips — these choose, those answer. */
+.office-pair-reply-topics {
+  flex: 1 1 100%;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+}
+.office-pair-reply-topics-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted, var(--text));
+  opacity: 0.75;
+}
+.office-pair-reply-topic {
+  appearance: none;
+  cursor: pointer;
+  max-width: 14rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 0.2rem 0.65rem;
+  border-radius: 999px;
+  color: var(--text);
+  background: color-mix(in srgb, var(--office-surface-bg) 80%, transparent);
+  border: 1px dashed var(--control-border);
+}
+.office-pair-reply-topic.is-active {
+  border-style: solid;
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 14%, var(--office-surface-bg));
+}
+.office-pair-reply-topic:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
 .office-pair-reply-input {
   flex: 1 1 160px;
   min-width: 0;

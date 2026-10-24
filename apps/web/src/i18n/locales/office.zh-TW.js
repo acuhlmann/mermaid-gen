@@ -1371,6 +1371,7 @@ export const OFFICE_ZH_TW = {
       pairEnd: '謝了 — 我懂了',
       pairEndTitle: '{name} 回自己座位',
       pairListening: '{name} 在等你怎麼看',
+      pairTopicsLabel: '剛才提到的幾點',
       pairReplyLabel: '回應 {name}',
       pairReplyPlaceholder: '說點什麼回應一下…',
       pairReplySend: '說',

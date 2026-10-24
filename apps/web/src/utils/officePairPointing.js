@@ -280,3 +280,55 @@ export function beatFocusIds(beat) {
   );
   return ids.filter((id, index) => ids.indexOf(id) === index);
 }
+
+/** Topic chips stay chip-sized; the full line rides in the tooltip. */
+const TOPIC_LABEL_MAX = 28;
+const TOPIC_FALLBACK_WORDS = 4;
+/** How much of the picked point a reply carries, so "Why that?" says which "that". */
+const TOPIC_CONTEXT_MAX = 160;
+
+function nodeLabel(root, id) {
+  const text = resolvePointTarget(root, id)?.textContent ?? '';
+  return text.replace(/\s+/g, ' ').trim();
+}
+
+function clampLabel(text) {
+  return text.length > TOPIC_LABEL_MAX ? `${text.slice(0, TOPIC_LABEL_MAX - 1).trimEnd()}…` : text;
+}
+
+/**
+ * A short name for one of the pair's points, for its topic chip: the box (or
+ * the two boxes) it pointed at when it pointed, else its first few words.
+ *
+ * @param {{ text?: string, focusId?: string, alsoFocusId?: string } | null | undefined} beat
+ * @param {ParentNode | null | undefined} [root]
+ * @returns {string}
+ */
+export function pairTopicLabel(beat, root) {
+  const boxes = beatFocusIds(beat)
+    .map((id) => nodeLabel(root, id))
+    .filter(Boolean);
+  if (boxes.length > 0) return clampLabel(boxes.join(' ↔ '));
+  const words = String(beat?.text ?? '')
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+  const head = words.slice(0, TOPIC_FALLBACK_WORDS).join(' ');
+  return clampLabel(words.length > TOPIC_FALLBACK_WORDS ? `${head}…` : head);
+}
+
+/**
+ * Your reply, with the point it answers attached when they made more than
+ * one. Without it, "Why that?" after four points reached the model as a
+ * question about whichever one it guessed.
+ *
+ * @param {string} text what you said
+ * @param {{ text?: string } | null | undefined} topic the point in play
+ * @param {number} topicCount how many points they made this turn
+ * @returns {string}
+ */
+export function pairReplyAbout(text, topic, topicCount) {
+  const point = typeof topic?.text === 'string' ? topic.text.trim() : '';
+  if (topicCount < 2 || !point) return text;
+  return `${text} (about your point: "${point.slice(0, TOPIC_CONTEXT_MAX)}")`;
+}

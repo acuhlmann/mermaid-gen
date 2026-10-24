@@ -9,6 +9,7 @@ import { formatLocale } from '../i18n/formatLocale.js';
 import { useHuddleStaging } from '../hooks/useHuddleStaging.js';
 import { usePairGesture } from '../hooks/usePairGesture.js';
 import { huddleLookTargets } from '../utils/officeHuddleGaze.js';
+import { pairReplyAbout, pairTopicLabel } from '../utils/officePairPointing.js';
 import OfficePairReply from './OfficePairReply.jsx';
 import { PersonaFace } from './personaFaces/index.jsx';
 
@@ -108,6 +109,9 @@ export default function HuddleOverlay({
     askingSpeakerId = null,
     canRaiseHandFor = null,
     showPinnedText = false,
+    topics = EMPTY_FOCUS_IDS,
+    topicIndex = -1,
+    selectTopic = null,
     raiseHand,
     askSpeaker,
     unpin,
@@ -327,10 +331,13 @@ export default function HuddleOverlay({
             partnerName={partner?.name ?? ''}
             copy={copy}
             busy={awaitingReply}
-            onReply={onPairReply}
+            onReply={(text) => onPairReply(pairReplyAbout(text, activeBeat, topics.length))}
             onDoIt={pairDoItPrompt ? () => handleDoIt(pairDoItSpeakerId, pairDoItPrompt) : null}
             doItLabel={copy.delegate ?? officeChromeCopy().doIt}
             doItTitle={copy.delegateTitle}
+            topics={topics.map((beat) => ({ label: pairTopicLabel(beat), title: beat.text }))}
+            topicIndex={topicIndex}
+            onSelectTopic={selectTopic}
           />
         ) : null}
         {askingSpeakerId && typeof askSpeaker === 'function' ? (

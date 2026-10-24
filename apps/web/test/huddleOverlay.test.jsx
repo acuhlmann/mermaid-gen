@@ -473,7 +473,58 @@ describe('HuddleOverlay in pair mode', () => {
       target: { value: 'Why does Billing read it?' }
     });
     fireEvent.click(screen.getByTestId('office-pair-reply-send'));
-    expect(onPairReply).toHaveBeenCalledWith('Why does Billing read it?');
+    // Three points were made, so the reply says which one it answers.
+    expect(onPairReply).toHaveBeenCalledWith(
+      'Why does Billing read it? (about your point: "Which is why Billing reads it.")'
+    );
+  });
+
+  it('lists their points as topics, and steers the strip and their face to the one you pick', async () => {
+    const onPairReply = vi.fn();
+    const onAdoptPrompt = vi.fn();
+    const narrateLine = vi.fn(async () => ({ spoken: false }));
+    setOfficeCaptions(true);
+    render(
+      <HuddleOverlay
+        huddle={pair({ phase: 'listening' })}
+        onPairReply={onPairReply}
+        onAdoptPrompt={onAdoptPrompt}
+        narrateLine={narrateLine}
+      />
+    );
+    const topics = screen.getByTestId('office-pair-reply-topics');
+    expect(topics.querySelectorAll('button')).toHaveLength(PAIR_BEATS.length);
+    // Their last point is the one in play until you pick another.
+    expect(screen.getByTestId('office-pair-reply-topic-2').getAttribute('aria-pressed')).toBe(
+      'true'
+    );
+    expect(screen.getByTestId('office-pair-reply-topic-0').textContent).toBe('The Auth box is…');
+
+    fireEvent.click(screen.getByTestId('office-pair-reply-topic-0'));
+    expect(screen.getByText(PAIR_BEATS[0].text)).toBeTruthy();
+    fireEvent.click(screen.getByTestId('office-pair-reply-chip-why'));
+    expect(onPairReply).toHaveBeenCalledWith(
+      `Why that? (about your point: "${PAIR_BEATS[0].text}")`
+    );
+    fireEvent.click(screen.getByTestId('office-pair-reply-do-it'));
+    expect(onAdoptPrompt).toHaveBeenCalledWith(PAIR_BEATS[0].text, 'gilfoyle');
+
+    // A click on their face repeats the picked point, not their first or last.
+    fireEvent.click(screen.getByTestId('office-pair-reply-topic-1'));
+    fireEvent.click(screen.getByRole('button', { name: /Pin .*Gilfoyle/i }));
+    expect(narrateLine).toHaveBeenLastCalledWith(
+      expect.objectContaining({ text: PAIR_BEATS[1].text })
+    );
+  });
+
+  it('offers no topics after a one-line turn, where there is nothing to choose between', () => {
+    render(
+      <HuddleOverlay
+        huddle={pair({ phase: 'listening', beats: PAIR_BEATS.slice(0, 1) })}
+        onPairReply={vi.fn()}
+      />
+    );
+    expect(screen.queryByTestId('office-pair-reply-topics')).toBeNull();
   });
 
   it('lets a chip answer without typing, and clears the box after sending', () => {
@@ -485,7 +536,7 @@ describe('HuddleOverlay in pair mode', () => {
     fireEvent.click(screen.getByTestId('office-pair-reply-chip-show'));
     // A chip is the faster route, so it sends its own words rather than
     // appending to whatever was already in the box.
-    expect(onPairReply).toHaveBeenCalledWith('Show me');
+    expect(onPairReply).toHaveBeenCalledWith(expect.stringMatching(/^Show me \(about your point/));
     expect(input.value).toBe('');
   });
 
@@ -519,7 +570,7 @@ describe('HuddleOverlay in pair mode', () => {
 
     // The same key once the candidate is committed does send.
     fireEvent.keyDown(input, { key: 'Enter' });
-    expect(onPairReply).toHaveBeenCalledWith('nizhe');
+    expect(onPairReply).toHaveBeenCalledWith(expect.stringMatching(/^nizhe \(about your point/));
   });
 
   // Do it used to ride the speech bubble, where it overlapped the canvas and

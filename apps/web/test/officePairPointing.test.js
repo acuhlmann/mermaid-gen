@@ -12,6 +12,8 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
   OFFICE_POINTED_CLASS,
   beatFocusIds,
+  pairReplyAbout,
+  pairTopicLabel,
   pointHandPlacement,
   POINT_HAND_SIZE_PX,
   pointSearchRoot,
@@ -175,5 +177,38 @@ describe('officePairPointing', () => {
     expect(beatFocusIds({ alsoFocusId: 'b' })).toEqual(['b']);
     expect(beatFocusIds({ text: 'nothing' })).toEqual([]);
     expect(beatFocusIds(null)).toEqual([]);
+  });
+});
+
+describe('pair topics', () => {
+  afterEach(() => {
+    document.body.innerHTML = '';
+  });
+
+  it('names a point by the boxes it pointed at, else by its first words', () => {
+    document.body.innerHTML = `
+      <div class="diagram-zoom-layer"><svg>
+        <g class="node" id="flowchart-Auth-0"><text>Auth</text></g>
+        <g class="node" id="flowchart-Billing-1"><text>Billing</text></g>
+      </svg></div>`;
+    expect(pairTopicLabel({ text: 'x', focusId: 'flowchart-Auth-0' })).toBe('Auth');
+    expect(
+      pairTopicLabel({
+        text: 'x',
+        focusId: 'flowchart-Auth-0',
+        alsoFocusId: 'flowchart-Billing-1'
+      })
+    ).toBe('Auth ↔ Billing');
+    expect(pairTopicLabel({ text: 'Caching is the real problem here' })).toBe(
+      'Caching is the real…'
+    );
+    expect(pairTopicLabel({ text: 'Too many hops' })).toBe('Too many hops');
+  });
+
+  it('ties a reply to the point it answers only when there was more than one', () => {
+    const topic = { text: 'Billing reads Auth.' };
+    expect(pairReplyAbout('Why?', topic, 3)).toBe('Why? (about your point: "Billing reads Auth.")');
+    expect(pairReplyAbout('Why?', topic, 1)).toBe('Why?');
+    expect(pairReplyAbout('Why?', null, 3)).toBe('Why?');
   });
 });

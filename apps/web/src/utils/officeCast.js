@@ -2052,6 +2052,7 @@ export const OFFICE_CHROME_COPY = {
      * somebody at your shoulder — show me, why, agreed.
      */
     pairListening: '{name} is waiting to hear what you make of it',
+    pairTopicsLabel: 'Their points',
     pairReplyLabel: 'Answer {name}',
     pairReplyPlaceholder: 'Say something back…',
     pairReplySend: 'Say it',

@@ -850,6 +850,14 @@ rather than six people facing your monitor.
   person and it is the same conversation, and a canned line from them would be the loudest "nobody
   is home" in the office — so it is held to the hard cap instead. Both only ever **speak**: nothing
   here runs the agent or touches the diagram (ADR-0010).
+- **Their points are topics you can steer by.** An opening raises several points in a row, and
+  the strip's Do it and chips used to mean only the last one with nothing saying so (and a click
+  on their face repeated the first). When a turn made more than one point, the strip now leads with
+  one chip per point actually said, named by the box(es) it pointed at or its first words
+  (`pairTopicLabel`). Picking one moves the hand and bubble to it, aims Do it at it, makes a click
+  on their face repeat it, and tags what you send with it (`pairReplyAbout` → `… (about your point:
+"…")`, which the reply rule tells them to stay on). The pick is per turn: their next line starts
+  from what they just said. No request is spent on picking.
 - **Small edits get a nod, not a line.** `describePairEdit` reports a `kind`: `boxes` (one came or
   went) is worth words; `rename` and `source` (an arrow, a label on one) are the tweaks a person at
   your shoulder nods at. A nod is `setOfficeHuddleGesture({ kind: 'nod' })` — the face bobs and a 👍

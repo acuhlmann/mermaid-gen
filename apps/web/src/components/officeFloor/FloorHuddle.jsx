@@ -10,6 +10,7 @@
 import FloorBubble from './FloorBubble.jsx';
 import FloorFigure from './FloorFigure.jsx';
 import OfficePairReply from '../OfficePairReply.jsx';
+import { pairReplyAbout, pairTopicLabel } from '../../utils/officePairPointing.js';
 import {
   HUDDLE_SEAT_STAGGER_MS,
   adoptPromptFor,
@@ -195,7 +196,10 @@ export function FloorHuddleCard({
     activeSpeakerId = null,
     pinnedSpeakerId = null,
     pinnedPrompt = null,
-    handleDoIt = null
+    handleDoIt = null,
+    topics = [],
+    topicIndex = -1,
+    selectTopic = null
   } = ringControls ?? {};
   const delegateSpeakerId = watching ? null : (pinnedSpeakerId ?? activeSpeakerId);
   const delegatePrompt = watching
@@ -251,8 +255,11 @@ export function FloorHuddleCard({
           partnerName={partnerName ?? ''}
           copy={huddleCopy}
           busy={awaitingReply}
-          onReply={onPairReply}
+          onReply={(text) => onPairReply(pairReplyAbout(text, activeBeat, topics.length))}
           onDoIt={pairDoIt}
+          topics={topics.map((beat) => ({ label: pairTopicLabel(beat), title: beat.text }))}
+          topicIndex={topicIndex}
+          onSelectTopic={selectTopic}
           doItLabel={huddleCopy.delegate ?? officeChromeCopy().doIt}
           doItTitle={huddleCopy.delegateTitle}
           testIdPrefix="office-floor-pair-reply"

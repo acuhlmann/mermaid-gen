@@ -1371,6 +1371,7 @@ export const OFFICE_ZH_CN = {
       pairEnd: '谢了 — 我明白了',
       pairEndTitle: '{name} 回自己工位',
       pairListening: '{name} 在等你怎么看',
+      pairTopicsLabel: '刚才提到的几点',
       pairReplyLabel: '回应 {name}',
       pairReplyPlaceholder: '说点什么回应一下…',
       pairReplySend: '说',
