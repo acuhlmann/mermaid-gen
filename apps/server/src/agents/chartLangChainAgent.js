@@ -3,6 +3,11 @@ import { createAgent } from 'langchain';
 import { createChartTools } from './diagramTools.js';
 import { redactSecrets } from '../utils/redactSecrets.js';
 import { CHART_SYSTEM_PROMPT } from '../prompts/chartSystemPrompt.js';
+import {
+  CHART_FLINT_SELF_CHECK,
+  CHART_FLINT_SYSTEM_PROMPT
+} from '../prompts/chartFlintSystemPrompt.js';
+import { isFlintChartAuthoringEnabled } from '../tools/chartFlintAuthoring.js';
 import { appendLanguageInstruction, appendProseLanguageInstruction } from '@archislop/shared';
 import {
   buildChartRepairInstruction,
@@ -177,13 +182,23 @@ export function createChartLangChainAgent({
   createChatModel = defaultChatModelFactory,
   createAgentImpl = createAgent
 }) {
-  const tools = createChartTools({ stateStore });
+  // Flint authoring trial: the model writes Flint, the tool compiles it to Vega-Lite.
+  const flintAuthoring = isFlintChartAuthoringEnabled(env);
+  const tools = createChartTools({ stateStore, authoring: flintAuthoring ? 'flint' : 'vegalite' });
+  const systemPrompt = flintAuthoring ? CHART_FLINT_SYSTEM_PROMPT : CHART_SYSTEM_PROMPT;
+  const buildRepairInstruction = flintAuthoring
+    ? (args) =>
+        buildChartRepairInstruction(args, {
+          rulePack: CHART_FLINT_SYSTEM_PROMPT,
+          selfCheck: CHART_FLINT_SELF_CHECK
+        })
+    : buildChartRepairInstruction;
 
   function buildAgent(profile) {
     const backend = resolveLlmBackend(env, profile);
     const modelId = resolveModelId(env, profile, backend);
     const llm = createChatModel(env, { model: modelId, backend, modelProfile: profile });
-    return createAgentImpl({ model: llm, tools, systemPrompt: CHART_SYSTEM_PROMPT });
+    return createAgentImpl({ model: llm, tools, systemPrompt });
   }
 
   function buildAnalysisModel(profile) {
@@ -235,7 +250,7 @@ export function createChartLangChainAgent({
       buildAgent,
       invokeAgentStream,
       extractProseSource: extractChartDslFromAssistantResult,
-      buildRepairInstruction: buildChartRepairInstruction,
+      buildRepairInstruction,
       patchRequiredInstruction: CHART_PATCH_REQUIRED_INSTRUCTION,
       isSyntaxFixerAvailable: isChartSyntaxFixerAvailable,
       repairWithFixer: repairChartWithFixer,

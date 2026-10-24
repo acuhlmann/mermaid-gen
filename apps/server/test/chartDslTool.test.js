@@ -89,3 +89,36 @@ test('validateChartStrict reports zod failures', () => {
   assert.equal(result.valid, false);
   assert.equal(result.validator, 'chart-zod');
 });
+
+test('validateAndPrepareChartPatch compiles a Flint wrapper only under CHART_AUTHORING=flint', async () => {
+  const flintWrapper = JSON.stringify({
+    theme: 'whiteboard',
+    flint: {
+      data: {
+        values: [
+          { Quarter: 'Q1', Revenue: 12 },
+          { Quarter: 'Q2', Revenue: 18 }
+        ]
+      },
+      chart_spec: { chartType: 'Bar Chart', encodings: { x: 'Quarter', y: 'Revenue' } }
+    }
+  });
+  const run = (env) =>
+    validateAndPrepareChartPatch({
+      currentState,
+      proposedDiagramSource: flintWrapper,
+      reason: 'test',
+      env
+    });
+
+  const off = await run({});
+  assert.equal(off.accepted, false);
+
+  const on = await run({ CHART_AUTHORING: 'flint' });
+  assert.equal(on.accepted, true, on.error);
+  assert.equal(on.metadata.validator, 'chart-flint-vega-lite-compile');
+  // The slot stores Vega-Lite, never Flint.
+  const stored = JSON.parse(on.patch.diagramSource);
+  assert.equal(stored.flint, undefined);
+  assert.equal(stored.spec.mark, 'bar');
+});

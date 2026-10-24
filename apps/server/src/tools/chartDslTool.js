@@ -1,5 +1,6 @@
 import { compile } from 'vega-lite';
 import { DiagramPatchSchema, parseChartDsl } from '@archislop/shared';
+import { compileFlintChartWrapper, isFlintChartAuthoringEnabled } from './chartFlintAuthoring.js';
 
 function describeCompileError(err) {
   if (!err) return 'Vega-Lite compile() rejected the spec.';
@@ -20,16 +21,34 @@ function compileSpec(spec) {
   }
 }
 
+/**
+ * Under `CHART_AUTHORING=flint`, compile a Flint-authored wrapper to a Vega-Lite one before
+ * the usual ladder runs. Anything that is not a Flint wrapper passes through unchanged.
+ */
+function resolveAuthoredSource(source, env) {
+  if (!isFlintChartAuthoringEnabled(env)) return { ok: true, source, flint: null };
+  const flint = compileFlintChartWrapper(source);
+  if (!flint.handled) return { ok: true, source, flint: null };
+  if (!flint.ok) return { ok: false, error: flint.error };
+  return { ok: true, source: flint.text, flint };
+}
+
 export async function validateAndPrepareChartPatch({
   currentState,
   proposedDiagramSource,
-  reason
+  reason,
+  env = process.env
 }) {
   if (typeof proposedDiagramSource !== 'string') {
     return { accepted: false, error: 'Chart DSL must be a string of JSON.' };
   }
 
-  const parsed = parseChartDsl(proposedDiagramSource);
+  const authored = resolveAuthoredSource(proposedDiagramSource, env);
+  if (!authored.ok) {
+    return { accepted: false, error: authored.error };
+  }
+
+  const parsed = parseChartDsl(authored.source);
   if (!parsed.ok) {
     return { accepted: false, error: parsed.error };
   }
@@ -55,18 +74,23 @@ export async function validateAndPrepareChartPatch({
     accepted: true,
     patch,
     metadata: {
-      validator: 'chart-vega-lite-compile',
+      validator: authored.flint ? 'chart-flint-vega-lite-compile' : 'chart-vega-lite-compile',
       theme: parsed.dsl.theme,
-      warnings: []
+      warnings: authored.flint?.warnings ?? [],
+      ...(authored.flint ? { authoring: 'flint', flintChartType: authored.flint.chartType } : {})
     }
   };
 }
 
-export function validateChartStrict(source) {
+export function validateChartStrict(source, env = process.env) {
   if (typeof source !== 'string') {
     return { valid: false, error: 'Chart DSL must be a string.', validator: 'chart-type' };
   }
-  const parsed = parseChartDsl(source);
+  const authored = resolveAuthoredSource(source, env);
+  if (!authored.ok) {
+    return { valid: false, error: authored.error, validator: 'chart-flint' };
+  }
+  const parsed = parseChartDsl(authored.source);
   if (!parsed.ok) {
     return { valid: false, error: parsed.error, validator: 'chart-zod' };
   }

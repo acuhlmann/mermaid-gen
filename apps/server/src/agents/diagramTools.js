@@ -95,7 +95,22 @@ export function createInfographicTools({ stateStore }) {
   return [getInfographicDsl, applyInfographicPatch];
 }
 
-export function createChartTools({ stateStore }) {
+const CHART_PATCH_TOOL_DESCRIPTIONS = {
+  vegalite:
+    'Validate and apply a complete chart DSL update. The DSL is a JSON wrapper: ' +
+    '{"archislopVersion":1,"theme":"whiteboard|noir|arcade|blueprint","spec":{...Vega-Lite v5 spec...}}. ' +
+    'The inner spec must include $schema, and either (mark + encoding) or one of (layer, hconcat, vconcat, facet, repeat). ' +
+    'Every encoding channel needs both field and type (quantitative|ordinal|nominal|temporal). ' +
+    'Data lives inline as spec.data.values (an array of plain objects). ' +
+    'Returns {accepted, revisionId} or {accepted: false, error}.',
+  flint:
+    'Validate and apply a complete chart DSL update. The DSL is a JSON wrapper: ' +
+    '{"archislopVersion":1,"theme":"whiteboard|noir|arcade|blueprint","flint":{"data":{"values":[...]},"semantic_types":{...},"chart_spec":{"chartType":...,"title":...,"encodings":{...}}}}. ' +
+    'The server compiles Flint to Vega-Lite. A Style edit may instead send the stored Vega-Lite wrapper with "spec". ' +
+    'Returns {accepted, revisionId} or {accepted: false, error}.'
+};
+
+export function createChartTools({ stateStore, authoring = 'vegalite' }) {
   const getChartDsl = tool(
     async () => {
       const state = stateStore.getSlot('chart');
@@ -126,12 +141,7 @@ export function createChartTools({ stateStore }) {
     {
       name: 'apply_chart_patch',
       description:
-        'Validate and apply a complete chart DSL update. The DSL is a JSON wrapper: ' +
-        '{"archislopVersion":1,"theme":"whiteboard|noir|arcade|blueprint","spec":{...Vega-Lite v5 spec...}}. ' +
-        'The inner spec must include $schema, and either (mark + encoding) or one of (layer, hconcat, vconcat, facet, repeat). ' +
-        'Every encoding channel needs both field and type (quantitative|ordinal|nominal|temporal). ' +
-        'Data lives inline as spec.data.values (an array of plain objects). ' +
-        'Returns {accepted, revisionId} or {accepted: false, error}.',
+        CHART_PATCH_TOOL_DESCRIPTIONS[authoring] ?? CHART_PATCH_TOOL_DESCRIPTIONS.vegalite,
       schema: z.object({
         diagramSource: z.string().min(1).describe('The full chart DSL wrapper as a JSON string.'),
         reason: z.string().min(1).describe('Short reason for this chart update.')
