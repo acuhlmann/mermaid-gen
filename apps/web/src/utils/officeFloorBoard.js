@@ -25,7 +25,10 @@
  * the cast produced anything (ADR-0010) — the board is *your* content, rendered
  * in the room's own language. The whiteboard gains no `verb` from any of this:
  * it is a second **view** of the diagram, never a second editor (ADR-0011
- * rule 2 — the canvas keeps its conventional control).
+ * rule 3 — diegesis duplicates, and the canvas keeps its conventional control).
+ * (Cited as rule 2 until 2026-10-24; rule 2 of that ADR is "the floor is
+ * DOM/CSS + SVG". The mis-number is what let a future reader conclude the board
+ * may never hold anything of its own — it may not hold a second *editor*.)
  *
  * **What it deliberately does not do: reproduce your layout.** The whiteboard
  * panel is 62 px tall and the monitor's screen face is 19 px. At that size a

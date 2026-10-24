@@ -350,27 +350,98 @@ something you actually made — is the one slice here that answers "interactive 
 rather than only "interactive". It must compose through `floorActivityFor` (ADR-0011) and it must
 not add a floor subscription to the diagram store (§ 4).
 
-**The two shapes named above are not equally available — checked 2026-10-24, so the next run does not
-spend itself on the blocked one.**
+**The two shapes named above are not equally available — and the first verdict on this line was
+wrong, so it is retracted here rather than quietly corrected.** Checked 2026-10-24:
 
-- **The whiteboard half is blocked by an existing rule, not by effort.** `utils/officeFloorBoard.js`
-  opens by saying the board _"gains no `verb` from any of this: it is a second **view** of the diagram,
-  never a second editor (ADR-0011 rule 2 — the canvas keeps its conventional control)."_ A note you
-  leave on the board is authoring into the room, which that sentence exists to prevent. Doing it anyway
-  is an owner ruling on ADR-0011 rule 2, not a call a rung may make on its own.
-- **The printer half is unblocked, and cheaper to wire than this item's prose suggests.**
-  `FLOOR_PROP_USES` already grants it `hands: 'papers'`; `officeFloor/HeldItem.jsx` already draws the
-  `papers` case; and your own work already reaches the floor as the `board` **prop** (`OfficeFloor.jsx`
-  takes it as a prop and passes it to the monitor, the whiteboard and the glass-room table, all three
-  derived by the one pure `officeFloorBoard.js`). So the page is missing no data path and no
-  subscription — § 4's ban is already satisfied by the route the data takes — and it is missing only
-  content. Derive it from `board`; invent no second derivation, or the surfaces disagree about what is
-  on the page.
-- **What it does cost, and why this is not a copy-sized slice:** the printout is a new visual surface,
-  so the shelf's standing rule applies — render it, and carry the evidence in the PR. `jsdom` cannot
-  adjudicate this one: its stubbed `getBBox` is the reason geometry is measured in a real browser
-  (`docs/agents/domains/office.md`), and a sheet of paper is exactly a geometry question. Use
-  `apps/web/test/officeVisitTrace.mjs`, or the browser recipe in `docs/office-isometric-mode.md` § 8.
+- **Retracted: "the whiteboard half is blocked by an existing rule."** It is not, and the claim traced
+  to a mis-numbered citation in `utils/officeFloorBoard.js` itself, which credited "the canvas keeps
+  its conventional control" to ADR-0011 **rule 2**. Rule 2 is _"the floor is DOM/CSS + SVG."_ That
+  sentence is **rule 3 — "diegesis duplicates, never replaces"** — and rule 3 _permits_ a diegetic
+  object; it only requires the conventional control to survive. Notes on a whiteboard duplicate no
+  control of the canvas, so the owner's 2026-10-24 direction (a whiteboard is the room's own thing,
+  not a second monitor of your work) is allowed by the ADR as written. The header is fixed in the same
+  change. **The lesson is the audit's, restated: check a rule's text before citing it as a blocker.**
+- **The rule that does bite is ADR-0011 rule 1, and it decides the shape, not the permission.**
+  _"Anything that would fork office state per mode (a 'floor-only' event type, a screen-only moment
+  kind) is an architecture smell against rule 1; extend the store and render it in both worlds, or
+  don't build it."_ So a whiteboard whose notes are **stored** must also render in the desk world, or
+  it is a mode-exclusive surface and rule 1 refuses it. The way through is the trick this domain
+  already uses for `officeDeskWork` and `wanderHabitFor`: **derive, never store.** Notes computed as a
+  pure function of state that already exists — the office log, each colleague's `deskDoing`, the stale
+  re-org fiction — are a projection, not a second truth, and need no second renderer to be legal.
+  User-**pinned** notes are the other case: those are genuinely new state, and they owe a desk-world
+  view plus the ADR-0010 line that the cast never writes into them. That is a later slice, not this one.
+- **Why the flip is also funnier than the mirror.** The board's empty state already carries "the
+  architecture from two re-orgs ago, which is exactly what a whiteboard has on it before you draw
+  anything" — the repo already knows a whiteboard is a record of what the room wrote. Give it the
+  room's _whole_ memory and it stops duplicating your monitor and starts saying things nobody has
+  said aloud: Pam's parked item from a retro nobody attends, the migration Gilfoyle planned and
+  nobody approved, Linda's training deadline, your churn problem sketched badly by somebody who
+  only heard about it. A colleague can then quote the board, which is memory with an artifact behind
+  it. And your work keeps appearing where it belongs — the player's monitor, and the glass room's
+  table when a meeting is about it.
+- **Cost, honestly stated.** `board` (the your-work derivation) fans out to ~8 call sites —
+  `FloorProps.jsx:51`, `FloorSeat.jsx:33/126`, `FloorStage.jsx:166/187`, `FloorCardSlot.jsx:153`,
+  `OfficeFloor.jsx:748/821`, `isoArt.jsx:479` — so split the derivation rather than renaming it:
+  leave `boardFrom` feeding the monitor and the table, and add a second pure module for what the
+  board itself carries. Only `isoArt.jsx`'s `whiteboard` case switches source. The card copy follows
+  `lineYours` (`officeCast.js:2286/2321`), which is a 4-locale opt-in — the whiteboard's voice is
+  already a copy decision, not a structural one — and any new board line costs those same four
+  places. A test to keep whole: `officeFloorProps.test.jsx:467` "never puts your work on a
+  colleague's screen (ADR-0010)" — the whiteboard is not a colleague's screen, so flipping its
+  content does not weaken it, but the monitor and table must keep passing it.
+- **And the infra-wall idea, deferred with a reason.** A shared screen showing the _real_ deployed
+  estate would be the first prop whose content is true rather than fictional, which puts it on the
+  ADR-0019 signals/God boundary and makes it a second renderer of operational truth that can disagree
+  with `/god`. Keep it parked until the repo has a rule for what the office may say about real
+  infrastructure; it is not a copy problem.
+
+### 6a. The whiteboard is the room's own artifact, not a mirror of your canvas
+
+**Owner steer 2026-10-24, and it supersedes the whiteboard half of § 6.** _"Why do we have a
+whiteboard that shows my office screen? A whiteboard is something different. Office participants can
+look at my office screen if they want to see what I draw, or in meetings when I share."_ The player's
+monitor already shows your work and the glass room's table shows it during a meeting about it; the
+whiteboard as a **third** copy is redundant, and it is the one surface that should have had a life of
+its own all along. The stale-architecture empty state is the proof the repo already knew this.
+
+So the target is a board the cast has **written on**: the re-org nobody undid, Pam's parked item from a
+retro nobody attends, the migration Gilfoyle planned and nobody approved, Linda's training deadline, a
+bad secondhand sketch of your churn problem drawn by somebody who only heard about it — and colleagues
+able to quote it, because it is the one piece of office memory you can see from across the room.
+
+**Two rules decide how it gets built, and neither forbids it.**
+
+- **Rule 1 (`docs/decisions/0011-two-office-renderers.md`): derive, do not store.** Notes computed as a
+  pure function of state the office already keeps — `officeLogStore.js`, each colleague's
+  `deskDoingFor(id)`, the stale-fiction bank — are a projection, so they need no second renderer and
+  fork no state. Notes the _user_ pins are genuinely new office state, and rule 1 then demands a
+  desk-world view of the same notes: build that only once the derived version proves the board is
+  worth reading at all. ADR-0010 still holds either way — the cast may write on the room's board, and
+  never on your canvas.
+- **The mirror does not simply vanish.** `officeFloorBoard.js` is currently _"the one derivation all
+  three of those surfaces read"_. Splitting the whiteboard off narrows that contract to the monitor and
+  the table, so its header, `lineYours` in `officeCast.js:2286/2321` (plus the three `office.*`
+  bundles) and `isoArt.jsx:479`'s `whiteboard` case all move together. Keep
+  `officeFloorProps.test.jsx:467` green — it guards that your work never lands on a _colleague's_
+  screen, and the board is not a colleague's screen.
+
+**Why this is also the cheapest path to queue 11.** A note on the board is public by definition —
+anybody in the room can read it. Once the board holds derived facts, "who is entitled to know what"
+has a physical answer: what is on the board the whole room knows, and what is not is not. Do the board
+first and the scoping slice inherits a boundary instead of inventing one.
+
+### 6b. The printer half of § 6 stands as written
+
+The owner left the printout for the nightly run. Everything § 6 said about it still holds:
+`hands: 'papers'` and the `papers` case in `HeldItem.jsx` already exist, and `board` already arrives
+as a prop, so only content is missing.
+
+**What it does cost, and why this is not a copy-sized slice:** the printout is a new visual surface,
+so the shelf's standing rule applies — render it, and carry the evidence in the PR. `jsdom` cannot
+adjudicate this one: its stubbed `getBBox` is the reason geometry is measured in a real browser
+(`docs/agents/domains/office.md`), and a sheet of paper is exactly a geometry question. Use
+`apps/web/test/officeVisitTrace.mjs`, or the browser recipe in `docs/office-isometric-mode.md` § 8.
 
 ### 7. A provoked line that arrived prewritten
 
