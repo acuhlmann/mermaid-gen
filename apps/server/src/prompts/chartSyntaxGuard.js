@@ -19,7 +19,10 @@ export const CHART_SELF_CHECK = `Self-check before calling apply_chart_patch:
 /**
  * Build repair instructions after a failed chart patch tool call.
  */
-export function buildChartRepairInstruction({ errorMessage, brokenSource, originalRequest }) {
+export function buildChartRepairInstruction(
+  { errorMessage, brokenSource, originalRequest },
+  { rulePack = CHART_RULE_PACK, selfCheck = CHART_SELF_CHECK } = {}
+) {
   const previous =
     brokenSource && brokenSource.trim()
       ? `PREVIOUS ATTEMPT (failed)
@@ -42,9 +45,9 @@ ${intent}${previous}ERROR
 ${errorMessage}
 
 RULES
-${CHART_RULE_PACK}
+${rulePack}
 
-${CHART_SELF_CHECK}
+${selfCheck}
 
 Rewrite the full chart DSL JSON wrapper via apply_chart_patch. Do not narrate outside the tool call.`;
 }

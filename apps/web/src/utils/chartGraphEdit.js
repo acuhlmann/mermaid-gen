@@ -50,6 +50,12 @@ function parseChartValuesDoc(source) {
   const values = data.values;
   if (!Array.isArray(values) || values.length === 0) return null;
   if (!values.every((row) => row && typeof row === 'object' && !Array.isArray(row))) return null;
+  // A Flint-sourced chart compiles `spec` from `flint`, so a row edit must land in the Flint
+  // rows too or the server recompiles it away. Share the array while the rows still agree.
+  const flintData = parsed.dsl.flint?.data;
+  if (flintData && JSON.stringify(flintData.values) === JSON.stringify(values)) {
+    flintData.values = values;
+  }
   return { dsl: parsed.dsl, values };
 }
 

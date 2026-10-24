@@ -84,3 +84,31 @@ describe('chartGraphEdit verbs', () => {
     expect(connectChartRows()).toMatchObject({ ok: false, reason: 'no-link' });
   });
 });
+
+describe('Flint-sourced charts', () => {
+  const rows = () => [
+    { category: 'Widgets', amount: 42 },
+    { category: 'Gadgets', amount: 28 }
+  ];
+  const flintChart = (flintRows) => {
+    const doc = JSON.parse(BAR_CHART);
+    doc.flint = {
+      data: { values: flintRows },
+      chart_spec: { chartType: 'Bar Chart', encodings: { x: 'category', y: 'amount' } }
+    };
+    return JSON.stringify(doc, null, 2);
+  };
+
+  it('mirrors row edits into flint.data.values so the server recompile keeps them', () => {
+    const renamed = renameChartRow(flintChart(rows()), '0', 'Hardware');
+    const doc = JSON.parse(renamed.source);
+    expect(doc.spec.data.values[0].category).toBe('Hardware');
+    expect(doc.flint.data.values).toEqual(doc.spec.data.values);
+  });
+
+  it('leaves flint alone when its rows already differ from the spec', () => {
+    const flintRows = [{ category: 'Other', amount: 1 }];
+    const deleted = deleteChartRow(flintChart(flintRows), '1');
+    expect(JSON.parse(deleted.source).flint.data.values).toEqual(flintRows);
+  });
+});

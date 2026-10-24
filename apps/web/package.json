@@ -28,6 +28,8 @@
     "@react-three/drei": "^10.7.9",
     "@react-three/fiber": "^9.8.2",
     "canvas-confetti": "^1.9.4",
+    "fflate": "^0.8.3",
+    "flint-chart": "^1.0.1",
     "mermaid": "^12.2.0",
     "monaco-editor": "^0.57.0",
     "monaco-mermaid": "^1.1.0",

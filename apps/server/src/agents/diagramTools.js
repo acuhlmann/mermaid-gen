@@ -2,6 +2,7 @@ import { tool } from 'langchain';
 import { z } from 'zod';
 import { ToolApplyResultSchema } from '@archislop/shared';
 import { applySearchReplaceEdits } from './_lib/searchReplaceEdits.js';
+import { chartSourceForModel } from '../tools/chartFlintAuthoring.js';
 
 /**
  * Validate the state-store envelope before stringifying so a future shape drift
@@ -95,20 +96,40 @@ export function createInfographicTools({ stateStore }) {
   return [getInfographicDsl, applyInfographicPatch];
 }
 
-export function createChartTools({ stateStore }) {
+const CHART_PATCH_TOOL_DESCRIPTIONS = {
+  vegalite:
+    'Validate and apply a complete chart DSL update. The DSL is a JSON wrapper: ' +
+    '{"archislopVersion":1,"theme":"whiteboard|noir|arcade|blueprint","spec":{...Vega-Lite v5 spec...}}. ' +
+    'The inner spec must include $schema, and either (mark + encoding) or one of (layer, hconcat, vconcat, facet, repeat). ' +
+    'Every encoding channel needs both field and type (quantitative|ordinal|nominal|temporal). ' +
+    'Data lives inline as spec.data.values (an array of plain objects). ' +
+    'Returns {accepted, revisionId} or {accepted: false, error}.',
+  flint:
+    'Validate and apply a complete chart DSL update. The DSL is a JSON wrapper: ' +
+    '{"archislopVersion":1,"theme":"whiteboard|noir|arcade|blueprint","flint":{"data":{"values":[...]},"semantic_types":{...},"chart_spec":{"chartType":...,"title":...,"encodings":{...}}}}. ' +
+    'Optional "vegaConfig" holds Vega-Lite config overrides (Style edits). Never send "spec": the server compiles it from "flint". ' +
+    'Returns {accepted, revisionId} or {accepted: false, error}.'
+};
+
+export function createChartTools({ stateStore, authoring = 'vegalite' }) {
   const getChartDsl = tool(
     async () => {
       const state = stateStore.getSlot('chart');
       return JSON.stringify({
         revisionId: state.revisionId,
-        diagramSource: state.diagramSource,
+        // The Flint model view hides the derived `spec`: sending it back edited would read
+        // as a hand edit and drop `flint`.
+        diagramSource:
+          authoring === 'flint' ? chartSourceForModel(state.diagramSource) : state.diagramSource,
         updatedAt: state.updatedAt
       });
     },
     {
       name: 'get_chart_dsl',
       description:
-        'Read the current chart DSL (archislop wrapper around a Vega-Lite spec), including revision id and source.',
+        authoring === 'flint'
+          ? 'Read the current chart DSL (archislop wrapper around a Flint chart; the derived Vega-Lite is omitted), including revision id and source.'
+          : 'Read the current chart DSL (archislop wrapper around a Vega-Lite spec), including revision id and source.',
       schema: z.object({})
     }
   );
@@ -126,12 +147,7 @@ export function createChartTools({ stateStore }) {
     {
       name: 'apply_chart_patch',
       description:
-        'Validate and apply a complete chart DSL update. The DSL is a JSON wrapper: ' +
-        '{"archislopVersion":1,"theme":"whiteboard|noir|arcade|blueprint","spec":{...Vega-Lite v5 spec...}}. ' +
-        'The inner spec must include $schema, and either (mark + encoding) or one of (layer, hconcat, vconcat, facet, repeat). ' +
-        'Every encoding channel needs both field and type (quantitative|ordinal|nominal|temporal). ' +
-        'Data lives inline as spec.data.values (an array of plain objects). ' +
-        'Returns {accepted, revisionId} or {accepted: false, error}.',
+        CHART_PATCH_TOOL_DESCRIPTIONS[authoring] ?? CHART_PATCH_TOOL_DESCRIPTIONS.vegalite,
       schema: z.object({
         diagramSource: z.string().min(1).describe('The full chart DSL wrapper as a JSON string.'),
         reason: z.string().min(1).describe('Short reason for this chart update.')

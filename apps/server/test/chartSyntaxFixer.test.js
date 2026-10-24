@@ -90,3 +90,24 @@ test('repairChartWithFixer includes rule pack and validation error in the prompt
   assert.match(content, /Vega-Lite compile\(\) rejected the spec/);
   assert.match(content, /Self-check before calling apply_chart_patch/);
 });
+
+test('repairChartWithFixer repairs a broken Flint wrapper as Flint', async () => {
+  const fixed = JSON.stringify({
+    theme: 'whiteboard',
+    flint: {
+      data: { values: [{ Quarter: 'Q1', Revenue: 12 }] },
+      chart_spec: { chartType: 'Bar Chart', encodings: { x: 'Quarter', y: 'Revenue' } }
+    }
+  });
+  const spy = { responseText: '```json\n' + fixed + '\n```' };
+  const result = await repairChartWithFixer({
+    brokenSource: '{"theme":"whiteboard","flint":{"chart_spec":{"chartType":"Bar Graph"}}}',
+    parseError: 'Flint rejected the chart: Unknown chart type: Bar Graph',
+    modelOverride: fakeModelFromMessages(spy)
+  });
+  const [system, human] = spy.lastMessages;
+  assert.match(system.content, /Flint chart spec/);
+  assert.match(human.content, /chart_spec\.chartType/);
+  assert.equal(result.accepted, true);
+  assert.ok(JSON.parse(result.diagramSource).spec.mark);
+});

@@ -89,3 +89,25 @@ test('validateChartStrict reports zod failures', () => {
   assert.equal(result.valid, false);
   assert.equal(result.validator, 'chart-zod');
 });
+
+test('validateAndPrepareChartPatch compiles a Flint wrapper and stores both forms', async () => {
+  const flint = {
+    data: {
+      values: [
+        { Quarter: 'Q1', Revenue: 12 },
+        { Quarter: 'Q2', Revenue: 18 }
+      ]
+    },
+    chart_spec: { chartType: 'Bar Chart', encodings: { x: 'Quarter', y: 'Revenue' } }
+  };
+  const result = await validateAndPrepareChartPatch({
+    currentState,
+    proposedDiagramSource: JSON.stringify({ theme: 'whiteboard', flint }),
+    reason: 'test'
+  });
+  assert.equal(result.accepted, true, result.error);
+  assert.equal(result.metadata.validator, 'chart-flint-vega-lite-compile');
+  const stored = JSON.parse(result.patch.diagramSource);
+  assert.deepEqual(stored.flint, flint);
+  assert.equal(stored.spec.mark, 'bar');
+});

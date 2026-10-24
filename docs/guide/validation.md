@@ -109,9 +109,12 @@ Two entry points share the ladder and differ in one flag. `validateAndPrepareMet
 
 Chart validation runs through `validateAndPrepareChartPatch` (`apps/server/src/tools/chartDslTool.js`):
 
-1. **DSL parse** — `parseChartDsl` (shared package) strips the `chart <type>` header and parses JSON.
-2. **Vega-Lite schema check** — validates the extracted spec.
-3. **Repair** — syntax fixer ladder (`chartSyntaxFixer.js`, lite → flash → DeepSeek) then agent repair.
+1. **Flint compile** (when the wrapper carries `flint`) — `compileFlintChartWrapper` (`apps/server/src/tools/chartFlintAuthoring.js`) runs Flint's `validateChart` then `assembleVegaLite`, merges `vegaConfig` (Style overrides) over the result, and stores `{ theme, flint, vegaConfig?, spec }` with `spec` derived. A write that changed only `spec` (a hand edit in the source editor) stores plain Vega-Lite and drops `flint`, so the edit is never recompiled away.
+2. **DSL parse** — `parseChartDsl` (shared package) strips a code fence and parses JSON; a complete object followed only by surplus `}`/`]` is rescued deterministically (`jsonSurplusClosers.ts` — the dominant first-pass failure on the generation bench, in both formats).
+3. **Vega-Lite compile** — `vega-lite/compile()` on `spec`.
+4. **Repair** — syntax fixer ladder (`chartSyntaxFixer.js`, lite → flash → DeepSeek; a broken Flint wrapper is repaired as Flint) then agent repair.
+
+The agent writes Flint by default; `CHART_AUTHORING=vegalite` switches the prompt back to raw Vega-Lite (the validator accepts both either way). Generation bench: `benchChartGeneration.js` — two arms (`vegalite`, `flint`), spends tokens, `--samples 3` minimum.
 
 ## Forms validation pipeline
 

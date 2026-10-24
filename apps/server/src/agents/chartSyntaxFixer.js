@@ -5,6 +5,10 @@ import { validateChartStrict } from '../tools/chartDslTool.js';
 import { extractTextContent } from '../utils/extractTextContent.js';
 import { withLlmUsage } from './_lib/attachLlmUsage.js';
 import { CHART_RULE_PACK, CHART_SELF_CHECK } from '../prompts/chartSyntaxGuard.js';
+import {
+  CHART_FLINT_SELF_CHECK,
+  CHART_FLINT_SYSTEM_PROMPT
+} from '../prompts/chartFlintSystemPrompt.js';
 
 const SYSTEM_PROMPT = `You are a Chart DSL JSON syntax repair function. Given broken JSON (an archislop chart wrapper containing a Vega-Lite spec) and a validation error, output the smallest fix that yields a valid wrapper + spec for the same intent.
 
@@ -16,6 +20,26 @@ CRITICAL output rules:
 - Inside spec, keep "$schema" at "https://vega.github.io/schema/vega-lite/v5.json".
 - Every encoding must have both "field" and "type" ("quantitative" | "ordinal" | "nominal" | "temporal").
 - Never call tools; never wrap output in a JSON envelope; never explain.`;
+
+const FLINT_SYSTEM_PROMPT = `You are a Chart DSL JSON syntax repair function. Given broken JSON (an archislop chart wrapper containing a Flint chart spec under "flint") and a validation error, output the smallest fix that yields a valid Flint wrapper for the same intent.
+
+CRITICAL output rules:
+- Output ONLY the corrected JSON between a single \`\`\`json fenced block. No prose before or after.
+- Keep the wrapper in Flint form: "archislopVersion": 1, "theme", "flint" — do not convert it to Vega-Lite.
+- Preserve the chart type, data values, and encodings wherever possible.
+- Never call tools; never wrap output in a JSON envelope; never explain.`;
+
+/** A broken Flint wrapper is repaired as Flint, so the chart keeps its Flint source. */
+function resolveFixerRules(brokenSource) {
+  if (/"flint"\s*:/.test(brokenSource)) {
+    return {
+      systemPrompt: FLINT_SYSTEM_PROMPT,
+      rulePack: CHART_FLINT_SYSTEM_PROMPT,
+      selfCheck: CHART_FLINT_SELF_CHECK
+    };
+  }
+  return { systemPrompt: SYSTEM_PROMPT, rulePack: CHART_RULE_PACK, selfCheck: CHART_SELF_CHECK };
+}
 
 function extractJsonFromResponse(text) {
   if (typeof text !== 'string') return '';
@@ -39,9 +63,10 @@ async function repairChartOnce({ brokenSource, parseError, originalRequest, mode
 
   const errorText = (parseError ?? '').toString().trim() || 'Chart DSL did not pass validation.';
 
-  const userContent = `${CHART_RULE_PACK}
+  const rules = resolveFixerRules(brokenSource);
+  const userContent = `${rules.rulePack}
 
-${CHART_SELF_CHECK}
+${rules.selfCheck}
 
 Validation error:
 ${errorText}
@@ -56,7 +81,7 @@ Output the corrected JSON between a single \`\`\`json fenced block. No prose.`;
   let response;
   try {
     response = await model.invoke(
-      [new SystemMessage(SYSTEM_PROMPT), new HumanMessage(userContent)],
+      [new SystemMessage(rules.systemPrompt), new HumanMessage(userContent)],
       abortSignal ? { signal: abortSignal } : undefined
     );
   } catch (error) {

@@ -1,6 +1,14 @@
 import { parseChartDsl, sanitizeMetaphorDsl, authorMetaphorUsda } from '@archislop/shared';
 import { renderMermaidPreviewSvg } from './renderMermaidPreview.js';
 import { normalizeSvgMarkupForExport, svgMarkupToPngBlob } from './svgPngRaster.js';
+import {
+  buildEChartsHtml,
+  buildFlintSpecJson,
+  buildOfficeJsScript,
+  buildPlotlyHtml,
+  buildXlsxBlob,
+  hasChartFlintSource
+} from './chartFlintExports.js';
 
 export {
   MERMAID_EXPORT_MAX_WIDTH_PX,
@@ -18,7 +26,9 @@ export {
  * - infographic: AntV DSL text (SVG export needs renderer hooks; deferred)
  * - metaphor3d: PNG screenshot for sharing + scene JSON for authoring + USDA
  *   semantic interchange stub (ADR-0009 migration steps 1–2)
- * - chart: CSV when tabular data exists; full wrapper JSON; bare Vega-Lite
+ * - chart: CSV when tabular data exists; full wrapper JSON; bare Vega-Lite; and, for a
+ *   Flint-sourced chart, the other Flint backends: an .xlsx with a native Excel chart,
+ *   ECharts / Plotly pages, an Office.js script, and the Flint spec itself
  * - anything: standalone HTML with vendored libs inlined (not a PWA — a
  *   single file that opens offline in any browser is the right replay shape)
  * - forms: A2UI document JSON
@@ -164,6 +174,43 @@ export const EXPORT_FORMATS_BY_MODE = {
       ext: 'vl.json',
       mime: 'application/json;charset=utf-8',
       labelKey: 'exportChartVegaLite'
+    },
+    {
+      id: 'chart-xlsx',
+      ext: 'xlsx',
+      mime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      labelKey: 'exportChartXlsx',
+      delivery: 'file',
+      copyable: false,
+      isAvailable: hasChartFlintSource
+    },
+    {
+      id: 'chart-echarts-html',
+      ext: 'echarts.html',
+      mime: 'text/html;charset=utf-8',
+      labelKey: 'exportChartEChartsHtml',
+      isAvailable: hasChartFlintSource
+    },
+    {
+      id: 'chart-plotly-html',
+      ext: 'plotly.html',
+      mime: 'text/html;charset=utf-8',
+      labelKey: 'exportChartPlotlyHtml',
+      isAvailable: hasChartFlintSource
+    },
+    {
+      id: 'chart-officejs',
+      ext: 'officejs.js',
+      mime: 'text/javascript;charset=utf-8',
+      labelKey: 'exportChartOfficeJs',
+      isAvailable: hasChartFlintSource
+    },
+    {
+      id: 'chart-flint',
+      ext: 'flint.json',
+      mime: 'application/json;charset=utf-8',
+      labelKey: 'exportChartFlint',
+      isAvailable: hasChartFlintSource
     }
   ],
   anything: [
@@ -472,10 +519,38 @@ async function buildExportBody(contentType, formatId, source) {
       if (!rows) throw new Error('Chart has no tabular data.values to export');
       return { body: rowsToCsv(rows) };
     }
+    case 'chart-xlsx':
+    case 'chart-echarts-html':
+    case 'chart-plotly-html':
+    case 'chart-officejs':
+    case 'chart-flint':
+      return buildChartFlintExport(formatId, source);
     case 'anything-html':
       return { body: await expandAnythingStandaloneHtml(source) };
     default:
       throw new Error(`Unhandled export format: ${formatId}`);
+  }
+}
+
+/**
+ * Exports compiled from a chart's Flint source through Flint's other backends (each
+ * backend is a lazy import inside chartFlintExports.js).
+ * @param {string} formatId
+ * @param {string} source
+ * @returns {Promise<{ body?: string, blob?: Blob }>}
+ */
+async function buildChartFlintExport(formatId, source) {
+  switch (formatId) {
+    case 'chart-xlsx':
+      return { blob: await buildXlsxBlob(source) };
+    case 'chart-echarts-html':
+      return { body: await buildEChartsHtml(source) };
+    case 'chart-plotly-html':
+      return { body: await buildPlotlyHtml(source) };
+    case 'chart-officejs':
+      return { body: await buildOfficeJsScript(source) };
+    default:
+      return { body: buildFlintSpecJson(source) };
   }
 }
 

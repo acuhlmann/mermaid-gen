@@ -43,6 +43,24 @@ const CHART_SOURCE = JSON.stringify({
   }
 });
 
+const FLINT_VALUES = [
+  { region: 'North', sales: 97 },
+  { region: 'South', sales: 108 }
+];
+const FLINT_CHART_SOURCE = JSON.stringify({
+  archislopVersion: 1,
+  theme: 'whiteboard',
+  flint: {
+    data: { values: FLINT_VALUES },
+    chart_spec: {
+      chartType: 'Bar Chart',
+      encodings: { x: { field: 'region' }, y: { field: 'sales' } },
+      title: 'Sales by region'
+    }
+  },
+  spec: { mark: 'bar', data: { values: FLINT_VALUES } }
+});
+
 describe('listExportFormats', () => {
   it('returns mode-specific formats', () => {
     expect(listExportFormats('mermaid', 'flowchart TD\nA-->B').map((f) => f.id)).toEqual([
@@ -100,6 +118,24 @@ describe('listExportFormats', () => {
     ]);
   });
 
+  it('adds the Flint backends only for a Flint-sourced chart', () => {
+    const formats = listExportFormats('chart', FLINT_CHART_SOURCE);
+    expect(formats.map((f) => f.id)).toEqual([
+      'chart-png',
+      'chart-csv',
+      'chart-json',
+      'chart-vl',
+      'chart-xlsx',
+      'chart-echarts-html',
+      'chart-plotly-html',
+      'chart-officejs',
+      'chart-flint'
+    ]);
+    const byId = (id) => formats.find((f) => f.id === id);
+    expect(isFormatCopyable(byId('chart-xlsx'))).toBe(false);
+    expect(isFormatCopyable(byId('chart-echarts-html'))).toBe(true);
+  });
+
   it('returns empty for unknown or empty modes', () => {
     expect(listExportFormats('auto', 'x')).toEqual([]);
     expect(listExportFormats(null, 'x')).toEqual([]);
@@ -140,6 +176,41 @@ describe('buildExportPayload', () => {
     expect(vl.ext).toBe('vl.json');
     expect(JSON.parse(vl.body).mark).toBe('bar');
     expect(JSON.parse(vl.body).archislopVersion).toBeUndefined();
+  });
+
+  it('builds the Flint backend exports from the stored Flint spec', async () => {
+    const build = (formatId) =>
+      buildExportPayload({ contentType: 'chart', diagramSource: FLINT_CHART_SOURCE, formatId });
+
+    const xlsx = await build('chart-xlsx');
+    expect(xlsx.delivery).toBe('file');
+    expect(xlsx.filename).toMatch(/\.xlsx$/);
+    const bytes = new Uint8Array(await xlsx.blob.arrayBuffer());
+    expect(String.fromCharCode(bytes[0], bytes[1])).toBe('PK');
+
+    const echarts = await build('chart-echarts-html');
+    expect(echarts.body).toContain('echarts.init(');
+    expect(echarts.body).toContain('"North"');
+
+    const plotly = await build('chart-plotly-html');
+    expect(plotly.body).toContain('Plotly.newPlot(');
+    expect(plotly.body).toContain('<title>Sales by region</title>');
+
+    const officeJs = await build('chart-officejs');
+    expect(officeJs.body).toContain('Excel.run');
+
+    const flint = await build('chart-flint');
+    expect(JSON.parse(flint.body).chart_spec.chartType).toBe('Bar Chart');
+  });
+
+  it('refuses a Flint export for a plain Vega-Lite chart', async () => {
+    await expect(
+      buildExportPayload({
+        contentType: 'chart',
+        diagramSource: CHART_SOURCE,
+        formatId: 'chart-xlsx'
+      })
+    ).rejects.toThrow(/unavailable/);
   });
 
   it('pretty-prints metaphor JSON', async () => {
