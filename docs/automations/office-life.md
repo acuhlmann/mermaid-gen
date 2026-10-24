@@ -350,6 +350,28 @@ something you actually made — is the one slice here that answers "interactive 
 rather than only "interactive". It must compose through `floorActivityFor` (ADR-0011) and it must
 not add a floor subscription to the diagram store (§ 4).
 
+**The two shapes named above are not equally available — checked 2026-10-24, so the next run does not
+spend itself on the blocked one.**
+
+- **The whiteboard half is blocked by an existing rule, not by effort.** `utils/officeFloorBoard.js`
+  opens by saying the board _"gains no `verb` from any of this: it is a second **view** of the diagram,
+  never a second editor (ADR-0011 rule 2 — the canvas keeps its conventional control)."_ A note you
+  leave on the board is authoring into the room, which that sentence exists to prevent. Doing it anyway
+  is an owner ruling on ADR-0011 rule 2, not a call a rung may make on its own.
+- **The printer half is unblocked, and cheaper to wire than this item's prose suggests.**
+  `FLOOR_PROP_USES` already grants it `hands: 'papers'`; `officeFloor/HeldItem.jsx` already draws the
+  `papers` case; and your own work already reaches the floor as the `board` **prop** (`OfficeFloor.jsx`
+  takes it as a prop and passes it to the monitor, the whiteboard and the glass-room table, all three
+  derived by the one pure `officeFloorBoard.js`). So the page is missing no data path and no
+  subscription — § 4's ban is already satisfied by the route the data takes — and it is missing only
+  content. Derive it from `board`; invent no second derivation, or the surfaces disagree about what is
+  on the page.
+- **What it does cost, and why this is not a copy-sized slice:** the printout is a new visual surface,
+  so the shelf's standing rule applies — render it, and carry the evidence in the PR. `jsdom` cannot
+  adjudicate this one: its stubbed `getBBox` is the reason geometry is measured in a real browser
+  (`docs/agents/domains/office.md`), and a sheet of paper is exactly a geometry question. Use
+  `apps/web/test/officeVisitTrace.mjs`, or the browser recipe in `docs/office-isometric-mode.md` § 8.
+
 ### 7. A provoked line that arrived prewritten
 
 Question 3, on the provoked channels only: the dwell fallback deck, `pickTalkAnswer`'s
