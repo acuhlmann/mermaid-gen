@@ -367,12 +367,31 @@ re-ship a fact the office already has, and pay for it by breaking a documented p
 
 The real gap runs the other way and is worth more: **the shared digest hands every listener every
 line.** Gary is told about your private thread with Gilfoyle as plainly as about the fridge, and the
-room has no notion of who was standing there. So the slice is _scoping_, not _carrying_ — decide what
-a given speaker is entitled to (their own zone, the glass-room boundary `dwellTargetAt` already
-models, who sat in `attendees` versus who was silent `audience`) and let the digest read differently
-per speaker. Same entries, same 12-line / 700-char budget, no new writer, no new call, still
-record-not-trigger — and it turns the privacy rule into a feature: some things the floor genuinely
-does not know, which is what a floor with a private life sounds like.
+room has no notion of who was standing there. So the slice is _scoping_, not _carrying_.
+
+**It is a wire change, not a prompt change — and the first version of this paragraph called it cheap,
+and was wrong.** Verified 2026-10-24: `officeLog` is **one field per request**, and three of its four
+consumers script _many_ speakers out of that single field — `useMeetingPlayback.js`,
+`useHuddlePlayback.js` and `useAdvisorOrchestrator.js` each pass one `getOfficeLogDigest()` into a
+multi-attendee prompt that `buildOfficeLogBlock()` renders for the whole room. Only `/moment` carries
+the one `colleagueId` a per-speaker scope needs. Filtering inside `officeLogStore.js` therefore cannot
+scope per speaker, whatever the budget arithmetic looks like.
+
+Two honest shapes; the cheap-looking third is forbidden:
+
+- **Structured entries instead of rendered strings.** Send a `{ line, colleagueId, kind }` object per
+  fact and let the server render per speaker. This is the correct fix — it moves projection to where
+  the audience is actually known. Cost: `OfficeMeetingRequestSchema` plus the moment, interjection and
+  huddle restates, the both-sides caps that must match (drift is a 400 the user experiences as
+  silence), and the 12-line / 700-char budget re-derived over a longer payload.
+- **Co-presence, one scope per room.** Keep the string payload and scope the _request_ to everyone in
+  it: a line survives if any attendee or the facilitator is party to it. No schema change, and the
+  fiction is defensible — a meeting is a room that knows collectively. It does not protect your
+  messages from Gary at his own desk, so it fixes the ensemble surfaces and leaves the floor as it is.
+- **Never** scope by substring-matching the rendered English against attendee ids. The lines do name
+  cast ids, so it would mostly work, and it is precisely the instrument § 14 retracted a claim over: a
+  keyword test standing in for a semantic property. If a scope has to read meaning, the data has to
+  carry the field.
 
 ### 12. A title the office invented to keep you
 
