@@ -3,10 +3,22 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import OfficeFloor from '../src/components/OfficeFloor.jsx';
 import { FloorPropCard } from '../src/components/officeFloor/FloorProps.jsx';
-import { officeChromeCopy } from '../src/utils/officeCast.js';
+import { isOfficeColleagueId, officeChromeCopy } from '../src/utils/officeCast.js';
+import { deskWorkFor } from '../src/utils/officeDeskWork.js';
+import {
+  BOARD_MAX_NOTES,
+  BOARD_NOTE_KINDS,
+  boardNoteMarks,
+  boardNotesFor
+} from '../src/utils/officeFloorNotes.js';
 import { usablePropKinds } from '../src/utils/officeFloorMovement.js';
 import { propUseFor } from '../src/utils/officeFloorProps.js';
-import { _resetOfficeLogForTests, getOfficeLogDigest } from '../src/state/officeLogStore.js';
+import {
+  _resetOfficeLogForTests,
+  getOfficeLogDigest,
+  getOfficeLogSnapshot,
+  recordOfficeLogEntry
+} from '../src/state/officeLogStore.js';
 import {
   _resetOfficeViewModeForTests,
   getOfficeViewMode
@@ -280,9 +292,16 @@ describe('looking closer at a prop', () => {
       />
     );
 
+  /*
+   * The coffee machine rather than the whiteboard, since § 6a: this case is
+   * about the *mechanism* (line first, detail on a click), and the whiteboard's
+   * first detail is now a derived note, so asserting `details[0]` there was
+   * reading the room's record and calling it the card's behaviour. The
+   * whiteboard's own Look closer is pinned in `the whiteboard's own record`.
+   */
   it('shows the main line first, and the detail only once you look', () => {
-    const item = propCopy().items.whiteboard;
-    renderCard('whiteboard');
+    const item = propCopy().items.coffeeMachine;
+    renderCard('coffeeMachine');
     expect(screen.getByText(item.line)).toBeTruthy();
 
     fireEvent.click(screen.getByTestId('office-floor-prop-look'));
@@ -318,11 +337,12 @@ describe('looking closer at a prop', () => {
 });
 
 /**
- * The board on the whiteboard (slice 16).
+ * What the props have to say (slice 16, re-scoped by § 6a).
  *
- * The card is where the *readable* half of that slice lives — 62 px of panel
- * can carry the shape of your diagram and not its labels — so these pin the
- * pair of copy states rather than the drawing.
+ * The card is where the *readable* half lives — 62 px of panel can carry a
+ * shape and not its labels — so these pin the copy states rather than the
+ * drawing. Two camps since § 6a: the printer reflects **your** work, and the
+ * whiteboard carries the **room's** own record.
  */
 describe('the props carry your diagram', () => {
   const propCopy = () => officeChromeCopy().floor.props;
@@ -359,23 +379,57 @@ describe('the props carry your diagram', () => {
     mini: { nodes: [], edges: [] }
   };
 
-  it('keeps the architecture from two re-orgs ago as the empty state', () => {
+  /*
+   * § 6a. The whiteboard's headline is the old board — the architecture nobody
+   * erased — and it stays that whether or not you have drawn anything, because
+   * the board is not about you. What the room has *added* reads on Look closer.
+   */
+  it('keeps the architecture from two re-orgs ago as its headline', () => {
     renderCard(null);
+    expect(screen.getByText(propCopy().items.whiteboard.line)).toBeTruthy();
+    cleanup();
+    renderCard(board);
     expect(screen.getByText(propCopy().items.whiteboard.line)).toBeTruthy();
   });
 
-  it('names what is on the board once you have drawn something', () => {
+  it('never names your diagram, however much of it you have drawn', () => {
     renderCard(board);
-    expect(screen.queryByText(propCopy().items.whiteboard.line)).toBeNull();
-    // The node count is interpolated, so the empty-state line cannot pass by
-    // accident — this asserts the *filled* line specifically.
-    expect(screen.getByText(/4 boxes/)).toBeTruthy();
+    // The printer's filled line interpolates the node count, so this is the
+    // assertion that the whiteboard is no longer in that camp at all.
+    expect(screen.queryByText(/4 boxes/)).toBeNull();
+    expect(propCopy().items.whiteboard.lineYours).toBeUndefined();
   });
 
-  it('reads the real labels out on Look closer', () => {
+  it('reads the room’s own notes out on Look closer', () => {
+    const notes = boardNotesFor({ copy: propCopy().items.whiteboard.notes });
+    // Companion non-empty assertion: a board with nothing on it would let the
+    // loop below pass while reading nothing.
+    expect(notes.length).toBeGreaterThan(0);
     renderCard(board);
-    fireEvent.click(screen.getByTestId('office-floor-prop-look'));
-    expect(screen.getByText(/Client, API Gateway, Auth Service/)).toBeTruthy();
+    for (const note of notes) {
+      fireEvent.click(screen.getByTestId('office-floor-prop-look'));
+      expect(screen.getByText(note.text), note.id).toBeTruthy();
+    }
+  });
+
+  /*
+   * The hearsay note is the one that mentions your work, and it is the room
+   * quoting you badly rather than the room mirroring you: it only exists once
+   * somebody has been in a position to hear about it.
+   */
+  it('puts your work on the board only as something somebody misheard', () => {
+    recordOfficeLogEntry('run', { colleagueId: 'dinesh', detail: 'Billing' });
+    renderCard(board);
+    const heard = boardNotesFor({
+      officeLog: getOfficeLogSnapshot(),
+      board,
+      copy: propCopy().items.whiteboard.notes
+    }).find((note) => note.kind === 'heard-about-yours');
+    expect(heard?.colleagueId).toBe('dinesh');
+    expect(heard.text).toContain('Client');
+
+    for (let i = 0; i < 3; i += 1) fireEvent.click(screen.getByTestId('office-floor-prop-look'));
+    expect(screen.getByText(heard.text)).toBeTruthy();
   });
 
   /*
@@ -392,26 +446,37 @@ describe('the props carry your diagram', () => {
    * about the room of the day and a `lineYours`-shaped hole pinned as a
    * feature.
    */
-  it('shows your work at every prop whose whole use is looking at it', () => {
+  it('gives every prop whose whole use is looking at it something of its own to say', () => {
     const reflective = usablePropKinds().filter((kind) => !propUseFor(kind)?.verb);
     // Companion non-empty assertion — see the locale sweep.
     expect(reflective).toEqual(['printer', 'whiteboard']);
     for (const kind of reflective) {
+      const item = propCopy().items[kind];
+      // One camp or the other, never neither: a third reflective prop cannot
+      // ship reading you somebody else's 2023 print queue.
+      expect(Boolean(item.lineYours) !== Boolean(item.notes), `${kind} declares a camp`).toBe(true);
+
       cleanup();
       renderCardFor(kind, board);
-      expect(
-        screen.queryByText(propCopy().items[kind].line),
-        `${kind} still shows its empty state with a board up`
-      ).toBeNull();
-      // The node count is interpolated, so an empty-state line cannot pass by
-      // accident — this asserts the *filled* line specifically.
-      expect(screen.getByText(/4 boxes/), `${kind} never names your diagram`).toBeTruthy();
-
-      fireEvent.click(screen.getByTestId('office-floor-prop-look'));
-      expect(
-        screen.getByText(/Client, API Gateway, Auth Service/),
-        `${kind} never reads your labels out`
-      ).toBeTruthy();
+      if (item.lineYours) {
+        expect(
+          screen.queryByText(item.line),
+          `${kind} still shows its empty state with a board up`
+        ).toBeNull();
+        // The node count is interpolated, so an empty-state line cannot pass
+        // by accident — this asserts the *filled* line specifically.
+        expect(screen.getByText(/4 boxes/), `${kind} never names your diagram`).toBeTruthy();
+        fireEvent.click(screen.getByTestId('office-floor-prop-look'));
+        expect(
+          screen.getByText(/Client, API Gateway, Auth Service/),
+          `${kind} never reads your labels out`
+        ).toBeTruthy();
+      } else {
+        const notes = boardNotesFor({ copy: item.notes });
+        expect(notes.length, `${kind} has nothing of its own on it`).toBeGreaterThan(0);
+        fireEvent.click(screen.getByTestId('office-floor-prop-look'));
+        expect(screen.getByText(notes[0].text), `${kind} reads its own record`).toBeTruthy();
+      }
     }
   });
 
@@ -477,14 +542,136 @@ describe('the room draws what you are working on', () => {
     ).toBe(theirs.querySelectorAll('polygon').length);
   });
 
-  it('inks the whiteboard, connectors and all', () => {
-    const { container: empty } = renderFloor();
-    // `IsoPanel` draws a `polyline` frame; a bare `line` only ever comes from
-    // the board's connectors, so this cannot pass on the empty state.
-    expect(whiteboard(empty).querySelectorAll('line').length).toBe(0);
+  /*
+   * The rewrite of slice 16's whiteboard case, to § 6a's contract rather than a
+   * deletion: the board is inked by the **room**, not by your slot, so the
+   * marks move with what the office has written and not with what you drew. A
+   * deleted test would be indistinguishable from a lost invariant.
+   */
+  it('inks the whiteboard from the room’s record, not from your slot', () => {
+    const { container: yours } = renderFloor({ board });
+    const withBoard = whiteboard(yours).querySelectorAll('polygon').length;
     cleanup();
 
-    const { container: full } = renderFloor({ board });
-    expect(whiteboard(full).querySelectorAll('line').length).toBe(1);
+    const { container: bare } = renderFloor();
+    expect(
+      whiteboard(bare).querySelectorAll('polygon').length,
+      'your diagram no longer changes what is on the whiteboard'
+    ).toBe(withBoard);
+    // Standing items are standing: a board the room has not touched today is
+    // still not a blank board.
+    expect(whiteboard(bare).querySelectorAll('polygon').length).toBeGreaterThan(0);
+  });
+
+  it('draws no connectors on it, because it is not a diagram any more', () => {
+    // `IsoPanel` draws a `polyline` frame; a bare `line` only ever came from
+    // the board's connectors, which is what the mirror used to put up there.
+    const { container } = renderFloor({ board });
+    expect(whiteboard(container).querySelectorAll('line').length).toBe(0);
+  });
+
+  it('inks more of it once the room has heard about your work', () => {
+    const { container: quiet } = renderFloor({ board });
+    const before = whiteboard(quiet).querySelectorAll('polygon').length;
+    cleanup();
+
+    recordOfficeLogEntry('pitch', { colleagueId: 'gilfoyle' });
+    const { container: busy } = renderFloor({ board });
+    expect(whiteboard(busy).querySelectorAll('polygon').length).toBeGreaterThan(before);
+  });
+});
+
+/**
+ * The derivation behind § 6a, as a pure module.
+ *
+ * It lives in this suite rather than in an `officeFloorNotes.test.js` of its
+ * own: a new `officeFloor*`-named suite fails `npm test` until it is listed in
+ * `ISOMETRIC_FLOOR_BLAST_TESTS`, which is `improve`'s file (playbook § 4), and
+ * the contract these pin is the same one the card and the panel above read.
+ */
+describe('the whiteboard’s own record (§ 6a)', () => {
+  const bank = () => officeChromeCopy().floor.props.items.whiteboard.notes;
+
+  const board = {
+    kind: 'mermaid',
+    shape: 'graph',
+    nodes: 4,
+    edges: 3,
+    labels: ['Client', 'API Gateway'],
+    bars: [],
+    mini: { nodes: [], edges: [] }
+  };
+
+  it('is never blank, never longer than three, and always leads with the old board', () => {
+    const notes = boardNotesFor({ copy: bank() });
+    expect(notes.length).toBeGreaterThan(0);
+    expect(notes.length).toBeLessThanOrEqual(BOARD_MAX_NOTES);
+    expect(notes[0].kind).toBe('stale');
+    expect(notes.map((note) => note.id)).toEqual([...new Set(notes.map((note) => note.id))]);
+  });
+
+  it('attributes every note somebody could be asked about', () => {
+    const notes = boardNotesFor({ copy: bank() });
+    for (const note of notes) {
+      expect(BOARD_NOTE_KINDS, note.id).toContain(note.kind);
+      expect(note.text.length, note.id).toBeGreaterThan(0);
+      // `stale` is the one note with no author, and that is its content: the
+      // person who wrote it left two re-orgs ago.
+      if (note.kind === 'stale') expect(note.colleagueId).toBeNull();
+      else
+        expect(
+          isOfficeColleagueId(note.colleagueId) || Boolean(deskWorkFor(note.colleagueId))
+        ).toBe(true);
+    }
+  });
+
+  it('refuses the hearsay note when nobody could have heard about it', () => {
+    // No board: nothing to have misremembered.
+    recordOfficeLogEntry('run', { colleagueId: 'dinesh' });
+    expect(
+      boardNotesFor({ officeLog: getOfficeLogSnapshot(), copy: bank() }).some(
+        (note) => note.kind === 'heard-about-yours'
+      )
+    ).toBe(false);
+
+    // A board, but the only thing in the log is you reading this very board.
+    _resetOfficeLogForTests();
+    recordOfficeLogEntry('prop', { detail: 'whiteboard' });
+    expect(
+      boardNotesFor({ officeLog: getOfficeLogSnapshot(), board, copy: bank() }).some(
+        (note) => note.kind === 'heard-about-yours'
+      )
+    ).toBe(false);
+  });
+
+  it('puts the handwriting you recognise at the front', () => {
+    const cold = boardNotesFor({ copy: bank() });
+    recordOfficeLogEntry('chat', { colleagueId: 'hr' });
+    const warm = boardNotesFor({ officeLog: getOfficeLogSnapshot(), copy: bank() });
+
+    expect(cold.find((note) => note.kind === 'open')?.colleagueId).not.toBe('hr');
+    expect(warm.find((note) => note.kind === 'open')?.colleagueId).toBe('hr');
+  });
+
+  it('keeps the hearsay note even when the board is full of standing items', () => {
+    recordOfficeLogEntry('meeting', { colleagueId: 'gilfoyle' });
+    const notes = boardNotesFor({ officeLog: getOfficeLogSnapshot(), board, copy: bank() });
+    expect(notes).toHaveLength(BOARD_MAX_NOTES);
+    expect(notes[notes.length - 1].kind).toBe('heard-about-yours');
+  });
+
+  it('marks the panel inside its own bounds, and more of it per note', () => {
+    const one = boardNoteMarks(boardNotesFor({ copy: { stale: 'x' } }));
+    const three = boardNoteMarks(
+      boardNotesFor({ officeLog: [{ kind: 'run', colleagueId: 'hr' }], board, copy: bank() })
+    );
+    expect(boardNoteMarks([])).toEqual([]);
+    expect(three.length).toBeGreaterThan(one.length);
+    for (const mark of three) {
+      expect(mark.x).toBeGreaterThanOrEqual(0);
+      expect(mark.y).toBeGreaterThanOrEqual(0);
+      expect(mark.x + mark.w).toBeLessThanOrEqual(1);
+      expect(mark.y + mark.h).toBeLessThanOrEqual(1);
+    }
   });
 });

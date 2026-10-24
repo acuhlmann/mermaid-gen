@@ -1370,16 +1370,22 @@ export const OFFICE_EN_AU = {
               'Someone has drawn a very good horse in the corner. Nobody has ever mentioned it.',
               'Under DO NOT ERASE, in different handwriting: "why". Under that: "ask Ulrich".'
             ],
-            // Slice 16 — see the note on the default bundle. `line` above stays
-            // the empty state.
-            lineYours:
-              'Somebody has wiped the old architecture. Yours is up there instead — {count} boxes in marker, already smudged where a sleeve went past.',
-            detailsYours: [
-              'The boxes read: {labels}. One of them has been starred. Nobody knows who did it, or which one they meant.',
-              'An arrow has turned up that was not on ya version. It leaves a box and comes back to the same box.',
-              'Underneath, in different handwriting: "who owns this". No arrow to say which one.',
-              'SYNERGY has survived in the corner, underlined twice. It always does.'
-            ]
+            // § 6a — the board's own record; see the note on the default
+            // bundle. `line` and `details` above are the old board nobody
+            // erased, and the mirror copy is retired.
+            notes: {
+              stale:
+                'SYNERGY, underlined twice, in permanent marker. Two re-orgs old. Nobody has dared.',
+              open: {
+                gilfoyle:
+                  'A migration plan in small, furious handwriting, with the date it was approved left blank.',
+                scrumMaster:
+                  'PARKED: "revisit who owns the arrows" — from a retro, in a colour nobody else uses.',
+                hr: 'COMPLIANCE TRAINING — FRIDAY, underlined three times, with a smiley face.'
+              },
+              heardAboutYours:
+                'Someone has had a crack at "{label}" from memory: three boxes, nothing joining them, one of the words wrong.'
+            }
           }
         }
       },

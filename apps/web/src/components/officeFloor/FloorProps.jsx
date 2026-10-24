@@ -33,12 +33,39 @@ import {
   projectIso
 } from '../../utils/officeFloorPlan.js';
 import { usablePropKinds } from '../../utils/officeFloorMovement.js';
+import { boardNotesFor } from '../../utils/officeFloorNotes.js';
+import { getOfficeLogSnapshot } from '../../state/officeLogStore.js';
+
+/**
+ * What the room has written on its own whiteboard, right now (§ 6a).
+ *
+ * **Sampled, never subscribed.** `boardNotesFor` is pure and both surfaces that
+ * show the board — the panel and the **Look closer** card — call this one
+ * composer with the same inputs, which is the `floorActivityFor` habit
+ * (ADR-0011): six components may *call* a composer, none may be a second one.
+ * They are rendered in the same commit under `OfficeFloor`, so they cannot
+ * disagree; and because nothing here subscribes to the log, the board changes
+ * only when the floor re-renders for some other reason — which is the right
+ * fiction as well as the right cost. A board that re-inked itself the instant
+ * somebody printed a page would be a dashboard.
+ *
+ * @param {Record<string, any>} copy `officeChromeCopy().floor`
+ * @param {import('../../utils/officeFloorBoard.js').BoardState | null} board
+ * @returns {import('../../utils/officeFloorNotes.js').BoardNote[]}
+ */
+function boardNotes(copy, board) {
+  return boardNotesFor({
+    officeLog: getOfficeLogSnapshot(),
+    board,
+    copy: copy.props?.items?.whiteboard?.notes ?? null
+  });
+}
 
 /**
  * One prop's art, positioned on its tile. Shared by both branches so a usable
  * prop and a scenic one are the same object drawn the same way.
  */
-function propArt(prop, board) {
+function propArt(prop, board, notes) {
   return (
     <svg
       className="office-floor-prop-art"
@@ -48,7 +75,13 @@ function propArt(prop, board) {
       aria-hidden="true"
       focusable="false"
     >
-      <FloorPropArt kind={prop.kind} span={prop.span} axis={prop.axis} board={board} />
+      <FloorPropArt
+        kind={prop.kind}
+        span={prop.span}
+        axis={prop.axis}
+        board={board}
+        notes={notes}
+      />
     </svg>
   );
 }
@@ -84,6 +117,7 @@ export function FloorProps({
 }) {
   const usable = interactive && onUseProp ? usablePropKinds() : [];
   const items = copy.props?.items ?? {};
+  const notes = boardNotes(copy, board);
 
   const rendered = FLOOR_PROPS.map((prop, index) => {
     const key = `${prop.kind}-${index}`;
@@ -98,7 +132,7 @@ export function FloorProps({
     if (!isUsable) {
       return (
         <div key={key} className="office-floor-prop" style={style} aria-hidden="true">
-          {propArt(prop, board)}
+          {propArt(prop, board, notes)}
         </div>
       );
     }
@@ -117,7 +151,7 @@ export function FloorProps({
         aria-label={item.useLabel ?? item.name ?? prop.kind}
         onClick={() => onUseProp?.(prop.kind)}
       >
-        {propArt(prop, board)}
+        {propArt(prop, board, notes)}
       </button>
     );
   });
@@ -126,24 +160,31 @@ export function FloorProps({
 }
 
 /**
- * The readable half of slice 16.
+ * The readable words a prop has to offer.
  *
- * At 62 px the whiteboard can show the *shape* of your diagram and nothing
- * else; the words go here, where there is room for them. A prop opts in by
- * declaring `lineYours` — the component never names the whiteboard, so a second
- * prop that could honestly reflect your work costs a copy row rather than a
- * branch.
+ * There are two camps, and a prop declares which one it is in with a copy key
+ * rather than by being named here:
  *
- * The empty state is the joke that was already there: with no board, the
- * whiteboard still carries the architecture from two re-orgs ago, which is
- * exactly what a whiteboard has on it before you draw anything.
+ * - **Reflects your work** (`lineYours`) — the printer, which really does hand
+ *   you a page of it. At 62 px the art can only show the *shape*, so the words
+ *   go here where there is room for them.
+ * - **Carries the room's own record** (`notes`) — the whiteboard (§ 6a). Its
+ *   `line` and `details` are the old board nobody erased; the derived notes are
+ *   what the room has added since, and they read first because they are the new
+ *   handwriting.
+ *
+ * A third usable prop joins a camp with a copy row, not a branch.
  *
  * @param {Record<string, any>} item
  * @param {import('../../utils/officeFloorBoard.js').BoardState | null} board
+ * @param {import('../../utils/officeFloorNotes.js').BoardNote[]} notes
  * @returns {{ line: string, details: string[] }}
  */
-function propCopyFor(item, board) {
+function propCopyFor(item, board, notes) {
   const fallback = { line: item.line, details: Array.isArray(item.details) ? item.details : [] };
+  if (item.notes) {
+    return { line: item.line, details: [...notes.map((note) => note.text), ...fallback.details] };
+  }
   if (!board || !item.lineYours) return fallback;
 
   const vars = {
@@ -175,7 +216,7 @@ export function FloorPropCard({ prop, phase = 'idle', copy, onBack, board = null
   const propsCopy = copy.props ?? {};
   const item = propsCopy.items?.[prop.propKind] ?? {};
   const arrived = prop.phase === 'using';
-  const shown = propCopyFor(item, board);
+  const shown = propCopyFor(item, board, boardNotes(copy, board));
 
   /*
    * Looking closer (§ 8 "examine / look at").

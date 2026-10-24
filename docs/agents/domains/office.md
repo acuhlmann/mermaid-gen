@@ -638,6 +638,22 @@ test:floor`; the floor test map is [`docs/agents/isometric-floor-tests.md`](../.
 
 ---
 
+- **A prop you can only look at belongs to one of two camps, and says which in its copy.**
+  `FloorPropCard` (`apps/web/src/components/officeFloor/FloorProps.jsx`) branches on a key, never
+  on a prop name: `lineYours` means _this prop reflects your work_ (the printer, which really does
+  hand you a page), `notes` means _this prop carries the room's own record_ (the whiteboard, § 6a).
+  The whiteboard's mirror copy is **deleted**, not kept beside the new bank — a surface that can
+  pick either is a surface that will pick the wrong one. `officeLocale.test.js` sweeps the derived
+  set (usable, no `verb`) and asserts exactly **one** camp per prop in all four bundles, so a third
+  reflective prop cannot ship undeclared. `officeFloorProps.test.jsx:467` ("never puts your work on
+  a colleague's screen", ADR-0010) is untouched by any of this and must stay that way.
+- **The whiteboard derives, lags, and is never sorted by "now".** `officeFloorNotes.js` reads the
+  office log and a per-locale bank; nothing is written, so there is no second renderer to owe
+  (ADR-0011 rule 1). A live board is a dashboard — the log only decides _whose_ handwriting is at
+  the front, never whether a standing item exists. `FloorProps.jsx` samples
+  `getOfficeLogSnapshot()` and does **not** subscribe; both surfaces that read the board call the
+  one pure composer, which is the `floorActivityFor` habit (many callers, one composer).
+
 ## Full findings
 
 - **Office sound is one posture, not four checkboxes.** Menu bar **Admin** carries 🎧 **Headphones**
@@ -1538,3 +1554,36 @@ subject?, actionPrompt? }, usage?, model? }`, and `body` is what the model wrote
   `deskOsPresenceStrip.test.jsx`, `deskOsFrameStyles.test.js`, `apps/server/test/officeTts.test.js`,
   `officeRoute.test.js` (or `npm run test:affected`). **After isometric-floor edits**, `npm run
 test:floor`; the floor test map is [`docs/agents/isometric-floor-tests.md`](../../agents/isometric-floor-tests.md).
+- **A prop card picks its words by camp, and the camps must not overlap.** Slice 16 gave every
+  reflective prop a `lineYours`/`detailsYours` pair that `FloorPropCard` switched to whenever a
+  board existed. § 6a retired that for the whiteboard: your monitor already shows your work and the
+  glass room's table shows it in a meeting about it, so a whiteboard showing it too was the room's
+  **third** copy of one thing and the only surface with no life of its own. It now carries derived
+  notes (`officeFloorNotes.js`) — the re-org nobody undid, somebody's standing item, and your work
+  as somebody _misremembered_ it. Three things are load-bearing in how that landed. The mirror copy
+  was **deleted** in all four bundles rather than left unused, because dead copy beside live copy is
+  the next reader's trap. The card's `line` did **not** change — it stopped being an "empty state"
+  and became the headline, which is the tell that the surface is no longer about you: a board that
+  is not about you has nothing to switch to. And the locale sweep was widened rather than narrowed:
+  it used to assert `lineYours` on every usable verb-less prop, which would now fail on the
+  whiteboard; narrowing it to "props that declare `lineYours`" would have made it a sweep that can
+  only ever fail inside its own filter (the shop-talk bank's old failure). It asserts
+  `Boolean(lineYours) !== Boolean(notes)` instead — the class is unchanged, the invariant is "every
+  member declares a camp", and a third reflective prop still cannot ship in English only.
+- **The hearsay note refuses rather than guards.** `heard-about-yours` exists only when there is a
+  board **and** the log holds a `run`/`pitch`/`meeting`/`huddle` with a cast id on it. Reading the
+  whiteboard (`prop`) deliberately does not count — you cannot have heard about your diagram from
+  the board you are standing at — and with nobody in the log the note is omitted rather than
+  attributed to a default colleague. A fallback author would be the office inventing a witness,
+  which is the same class of mistake as a `situation` stating a delta the prompt does not carry.
+  It also draws **unjoined** boxes: the `<line>` count on the panel went 2 → 0 with this slice, and
+  connectors were the tell that a _topology_ was up there. Measured in real Chromium (4×, animations
+  at `endTime`): the panel's polygons went 8 → 10 on a quiet log and 8 → 12 once somebody had
+  pitched, while your own diagram stopped changing it at all.
+- **`resolveChromium()`'s path assumes one of the two Playwright layouts.**
+  `apps/web/test/officeVisitTrace.mjs` builds `<browsersPath>/chromium-<n>/chrome-linux/chrome`. On
+  the current cloud image the directory is **`chrome-linux64`**, so that path does not exist and
+  `launch()` reports `executable doesn't exist at …`, which reads exactly like a broken image —
+  the failure the harness's own "trap 1" comment exists to prevent, one directory name later.
+  `<browsersPath>/chromium` is a symlink to the real binary on both layouts and is the resolution
+  that does not rot; probe both spellings before falling back to it.

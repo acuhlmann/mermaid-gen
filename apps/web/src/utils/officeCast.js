@@ -2307,26 +2307,35 @@ export const OFFICE_CHROME_COPY = {
             'Under DO NOT ERASE, in different handwriting: "why". Under that: "ask Ulrich".'
           ],
           /*
-           * Slice 16. `line` and `details` above are the **empty state** and
-           * stay exactly as they were: an architecture from two re-orgs ago is
-           * what a whiteboard has on it before you draw anything. These two
-           * replace them once the board is carrying your diagram, and
-           * `FloorPropCard` picks between the pairs on `lineYours` existing —
-           * so any prop that could honestly reflect your work opts in with a
-           * copy row rather than a branch.
+           * The board's **own** record (§ 6a). Slice 16 put your diagram up
+           * here, and the owner retired that: your monitor already shows your
+           * work and the glass room's table shows it in a meeting about it, so
+           * a whiteboard that mirrored it was the room's third copy of one
+           * thing and the only surface with no life of its own. `lineYours` /
+           * `detailsYours` are gone from this item for that reason — the
+           * printer keeps them, because a printer that hands you a page really
+           * is reflecting your work.
            *
-           * `{count}` is the node count and `{labels}` the first three, which
-           * is where the readable half of this slice lives: the 62 px panel can
-           * only show the shape.
+           * `line` and `details` above stay, and they are no longer an "empty
+           * state": they are the old board, which nobody has erased. These are
+           * what the room has added since. Which of them is up, in what order,
+           * and whose handwriting it is, is derived in `officeFloorNotes.js`;
+           * the words are here so they can be translated and so a colleague can
+           * quote them.
            */
-          lineYours:
-            'Somebody has wiped the old architecture. Yours is up there instead — {count} boxes in marker, already smudged where a sleeve went past.',
-          detailsYours: [
-            'The boxes read: {labels}. One of them has been starred. Nobody knows who did it, or which one they meant.',
-            'An arrow has appeared that was not on your version. It leaves a box and comes back to the same box.',
-            'Underneath, in different handwriting: "who owns this". No arrow to say which one.',
-            'SYNERGY has survived in the corner, underlined twice. It always does.'
-          ]
+          notes: {
+            stale:
+              'SYNERGY, underlined twice, in permanent marker. Two re-orgs old. Nobody has dared.',
+            open: {
+              gilfoyle:
+                'A migration plan in small, furious handwriting, with the date it was approved left blank.',
+              scrumMaster:
+                'PARKED: "revisit who owns the arrows" — from a retro, in a colour nobody else uses.',
+              hr: 'COMPLIANCE TRAINING — FRIDAY, underlined three times, with a smiley face.'
+            },
+            heardAboutYours:
+              'Somebody has had a go at "{label}" from memory: three boxes, nothing joining them, one of the words wrong.'
+          }
         }
       }
     },

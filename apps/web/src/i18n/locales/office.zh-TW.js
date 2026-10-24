@@ -1585,17 +1585,19 @@ export const OFFICE_ZH_TW = {
             useLabel: '白板 — 讀讀上面寫的',
             useTitle: '走過去讀一下',
             line: '兩輪重組前的架構，油性筆寫的。三個框、一根箭頭，還有被劃了兩道的 SYNERGY。',
-            // Slice 16 — see the note on the default bundle. `line` and
-            // `details` stay the empty state; these two take over once your
-            // diagram is on the board.
-            lineYours:
-              '有人把舊架構擦掉了。現在上面是你的——{count} 個框，油性筆寫的，已經被袖子蹭花了一處。',
-            detailsYours: [
-              '框上寫著：{labels}。其中一個被畫了星號。沒人知道是誰畫的，也不知道指的是哪一個。',
-              '多了一根你那版上沒有的箭頭。它從一個框出發，又回到同一個框。',
-              '下面另一種筆跡寫著「這個歸誰管」。沒有箭頭說明是哪一個。',
-              'SYNERGY 還活在角落裡，被劃了兩道。它總是活著。'
-            ],
+            // § 6a — the board's own record; see the note on the default
+            // bundle. `line` and `details` are the old board nobody erased,
+            // and the mirror copy is retired.
+            notes: {
+              stale: 'SYNERGY，油性筆寫的，劃了兩道。兩輪重組前留下的。沒人敢擦。',
+              open: {
+                gilfoyle: '一份遷移方案，字小而憤怒，審批日期那一欄是空的。',
+                scrumMaster: '「待議：箭頭到底歸誰管」——回顧會上寫的，用的是別人都不用的顏色。',
+                hr: '合規訓練 — 本週五，劃了三道，還畫了個笑臉。'
+              },
+              heardAboutYours:
+                '有人憑聽說畫了一版「{label}」：三個框，彼此不相連，其中一個詞還寫錯了。'
+            },
             details: [
               '右下角小字：「這只是暫時的」。日期是四年前。',
               '第四個框被擦掉了一半。還能認出 BILLING 這個詞。',

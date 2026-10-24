@@ -4,13 +4,20 @@
  *
  * Fifteen slices went into making the floor feel inhabited and none of them
  * connected it to the thing you are actually doing: your own monitor was a flat
- * blue rectangle while every colleague's showed fiction, the whiteboard held
- * somebody else's dead architecture, and the glass room's table screen was
- * blank during a meeting about your diagram. This module is the one derivation
- * all three of those surfaces read, for the same reason `officeFloorActivity.js`
- * exists: two surfaces deriving "what is on the board" separately are two
- * surfaces that can disagree, and the one that is wrong is whichever one you are
- * not looking at.
+ * blue rectangle while every colleague's showed fiction, and the glass room's
+ * table screen was blank during a meeting about your diagram. This module is
+ * the one derivation **both** of those surfaces read, for the same reason
+ * `officeFloorActivity.js` exists: two surfaces deriving "what is on the board"
+ * separately are two surfaces that can disagree, and the one that is wrong is
+ * whichever one you are not looking at.
+ *
+ * **Two, not three, since § 6a.** The whiteboard read this module until the
+ * owner retired the mirror: your monitor already shows your work and the table
+ * shows it in a meeting about it, so a whiteboard that showed it as well was
+ * the room's third copy of one thing. It now carries the room's own record
+ * instead — `officeFloorNotes.js`, which derives from the office log rather
+ * than from your slot. The printer is the other surface that still reflects
+ * your work, through the prop card's `lineYours` rather than through a drawing.
  *
  * **Pure, and deliberately DOM-free.** The obvious reuse — the advisor's
  * `getAdvisorVisibleLabels` — is half unusable here: its mermaid and infographic
@@ -23,12 +30,13 @@
  *
  * **It derives, it never stores** (ADR-0011 rule 1), and nothing here implies
  * the cast produced anything (ADR-0010) — the board is *your* content, rendered
- * in the room's own language. The whiteboard gains no `verb` from any of this:
- * it is a second **view** of the diagram, never a second editor (ADR-0011
- * rule 3 — diegesis duplicates, and the canvas keeps its conventional control).
- * (Cited as rule 2 until 2026-10-24; rule 2 of that ADR is "the floor is
- * DOM/CSS + SVG". The mis-number is what let a future reader conclude the board
- * may never hold anything of its own — it may not hold a second *editor*.)
+ * in the room's own language. No prop gains a `verb` from any of this: a
+ * surface here is a second **view** of the diagram, never a second editor
+ * (ADR-0011 rule 3 — diegesis duplicates, and the canvas keeps its conventional
+ * control). (Cited as rule 2 until 2026-10-24; rule 2 of that ADR is "the floor
+ * is DOM/CSS + SVG". The mis-number is what let a reader conclude the
+ * whiteboard may never hold anything of its own — it may not hold a second
+ * *editor*, and § 6a is what it holds instead.)
  *
  * **What it deliberately does not do: reproduce your layout.** The whiteboard
  * panel is 62 px tall and the monitor's screen face is 19 px. At that size a
