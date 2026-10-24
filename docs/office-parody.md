@@ -17,8 +17,13 @@ you about. Comedy rules:
 - **Chaos with accidental competence.** Roughly 1 in 3 moments says something genuinely useful
   about the diagram (advisor-style "voice, not topic" rule); the rest is pure office noise. The
   useful ones are what make the parody land.
-- **Never mean, never blocking, always dismissible.** Every surface has an ✕, an escape hatch, and
-  a hard cap. "Focus Time" mutes the whole office.
+- **Bite is a per-character dial, capped by target and never by presence.** Colleagues may be
+  sarcastic, contemptuous and self-interested — the contempt lands on the work, the process, each
+  other, or the speaker's own territory, and never on the user's worth. A cast uniformly denied bite
+  is one voice wearing seven names; the named seats are already tuned sharp, so a blanket cap flattened
+  exactly the invented characters that needed the room.
+- **Never blocking, always dismissible.** Every surface has an ✕, an escape hatch, and a hard cap.
+  "Focus Time" mutes the whole office. This one is a mechanical invariant, not a comedy rule.
 - **Degrade in-fiction.** Offline / LLM-less sessions still get canned office noise; a failed
   meeting becomes a cancellation email ("Rescheduled to: never."), not an error toast.
 

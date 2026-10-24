@@ -354,6 +354,55 @@ The floor is sparse and slice 11 already answered this: one walker, because a se
 rules that do not exist. Do not "start with two and see" — file the issue with the collision model
 in it, or take a ledger row. This is a design, not a constant.
 
+### 11. The room has heard about you
+
+Question 1's cheapest remaining answer, and the one thing that turns seven solo NPCs into a floor.
+`officeLogStore.js` already records `email` / `chat` / `walkby` / `pitch` with a `colleagueId`, and
+`buildOfficeRelationship()` already projects that per colleague — but the projection is **private to
+the pair**, so a thing you told Dinesh can never surface in Gilfoyle's mouth. One hop of _carry_ —
+a fact said to A becoming available to B on B's next provoked line — is derived state over entries
+that already exist: no new writer, no new call, no trigger, so it stays on the record side of
+ADR-0010. It is not queue 7 (that is a canned reply where a real one should be); this is a fact the
+prompt does not carry at all. Watch the caps on both sides — the shared digest is 12 lines / 700
+chars and drops from the front, which is precisely why the per-colleague projection exists.
+
+### 12. A title the office invented to keep you
+
+The room should be aware of your history without being told. `runGamificationStore.js` already
+computes a level and a `levelTitle` and `slopitectCopy.js` already ships the ladder ("Intern
+Architect" → "Chief Slopitect Officer"), so the _number_ exists and nothing in the office wears it.
+One derived table — level → the honorary title People Ops handed out unprompted — keyed on a value
+already computed, costs no new state and no new call. It answers "real" through status, which is
+what the show's comedy is made of, not through more interruptions. It is copy, so it costs four
+places: the inline English default and all three `office.*` bundles, plus `officeLocale.test.js`.
+**Do not** render it anywhere new before the derivation has a consumer that already exists.
+
+### 13. Declines should have content
+
+Every surface has an ✕ and every ✕ is silent: "Not my circus", "Escalate to HR", "Nah, not today" —
+`sceneJoin`'s decline path in particular ends the offer and records nothing. A one-line canned
+reaction to a _decline_ is honest spend (nobody typed anything, so §11 keeps it canned) and it is the
+difference between a room that asked and a room that noticed. It must **not** re-offer: the soft
+errand's no-TTL rule is the same rule, and a decline that gets chased is auto-fix-on-idle in a hat.
+
+### 14. The register is set in the card, not in the shared tail
+
+Landed 2026-10-24 (see `docs/agents/domains/office.md` § blanket tone caps). The standing rule for
+any future copy or prompt slice here: **bite is capped by target, never by presence.** Two invented
+cards banned sarcasm outright while every named seat was tuned sharp, which read as one cheerful
+voice wearing seven names. The measured asymmetry — the changed global tail moved `helpdesk` and
+`greybeard` by ~nothing, and `helpdesk`'s _aimed_ score went **down** — means a room-wide tone rule
+is weaker copy than the one card it lands on. So: write an _interest_ into the individual card, do
+not add a clause to the shared tail, and `officePersonas.test.js` now fails a blanket ban while
+accepting one scoped to the user. The exclamation marks are the tell: Pam's arm went 2.00 to 0.00.
+
+**One thing the register slice deliberately left open.** The named seats carry an explicit
+do-not-relent clause for a user who says "ship it"; the six invented office cards carry none, and a
+post-commit confirmation run put `intern` at 1 of 4 concessions on exactly that prompt. If a larger
+n reproduces it, the fix is one clause written into the individual card — the §14 rule above says why
+it does not belong in the shared tail. Audition before writing: the premise that the whole reactive
+path concedes was measured and found mostly untrue, so this is a per-card gap, not a system one.
+
 ## 4. Rules this domain already paid for
 
 [`docs/agents/domains/office.md`](../agents/domains/office.md) is the domain's own findings file —

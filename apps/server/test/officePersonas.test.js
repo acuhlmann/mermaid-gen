@@ -58,6 +58,65 @@ test('office colleague registry covers the v1 cast and stakeholders stay separat
   assert.equal(isOfficeSpeaker('ceo'), false);
 });
 
+/**
+ * The register rule, pinned (owner steer, 2026-10-24).
+ *
+ * Two office cards used to forbid sarcasm outright ("Never edgy, never sarcastic",
+ * "Never mean, never cynical") and the moment prompt's global tail said
+ * "never mean", so every generated line averaged toward generic corporate cheer —
+ * while the named seats were tuned elsewhere to be flat and cutting. The cast is
+ * meant to be uneven: bite is a per-character dial, so a blanket cap is not
+ * tidiness, it is seven characters talking in one voice.
+ *
+ * "Never blocking" stays pinned below: that one is a mechanical invariant (the
+ * office never gates, delays, or withholds the user's work — docs/office-parody.md
+ * §1), not a comedy rule, and only the comedy clause was ever meant to move.
+ */
+test('no office voice card forbids sarcasm outright', () => {
+  // A cap is only a defect when it bans the *presence* of bite. Banning a
+  // *target* — "never mean to the user as a person" — is the rule itself, so the
+  // negative lookahead lets the guard through and fails only the blanket ban.
+  const BANNED = [
+    /never sarcastic/i,
+    /never edgy/i,
+    /never cynical/i,
+    /never meanness/i,
+    /never mean(?!\s+(?:to|at)\s+the\s+user)/i
+  ];
+  for (const [id, colleague] of Object.entries(OFFICE_COLLEAGUES)) {
+    for (const pattern of BANNED) {
+      assert.equal(
+        pattern.test(colleague.voice),
+        false,
+        `${id} caps bite outright (${pattern}) — bite is a per-character dial, not a global ban`
+      );
+    }
+  }
+});
+
+test('the moment tail lets the cast bite and pins what it may never do', () => {
+  const prompt = buildMomentSystemPrompt({ kind: 'walkby', colleagueId: 'helpdesk' });
+  assert.doesNotMatch(prompt, /never mean/);
+  assert.match(prompt, /take that aim/i, 'the register must be a permission, not a hedge');
+  assert.match(prompt, /never\s+block/i, "the office may never block the user's work");
+  // The target rule survives: contempt lands on the work, never on the person.
+  assert.match(prompt, /aim at the user's worth/i);
+});
+
+test('meetings and hudders welcome real disagreement, not gentle theatre', () => {
+  const meeting = buildMeetingSystemPrompt({
+    attendees: ATTENDEES,
+    facilitatorId: 'scrumMaster'
+  });
+  assert.doesNotMatch(meeting, /Gentle bickering welcome; never mean/);
+  const huddle = buildHuddleSystemPrompt({ attendees: ['gilfoyle', 'dinesh', 'intern'] });
+  assert.doesNotMatch(huddle, /Gentle bickering welcome; never mean/);
+  for (const prompt of [meeting, huddle]) {
+    assert.match(prompt, /lands on the work/i, 'disagreement needs a stated target');
+    assert.match(prompt, /never cruel to the user/i);
+  }
+});
+
 test('senior stakeholders are valid meeting speakers with real voice blocks', () => {
   for (const id of ['belson', 'cfo']) {
     assert.equal(isOfficeSpeaker(id), true, `${id} should be able to take a seat`);

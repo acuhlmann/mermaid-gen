@@ -127,6 +127,15 @@ it names. Merging the two into a single pass is worth doing and is not urgent �
   side; re-led with the register and cut to one guard it went 0 of 12 → 6 of 12, at shorter mean
   length. Treat this as a property of these prompts, not a one-fixture artefact, and audition
   every new block against a control before believing it does anything.
+- **A blanket cap on tone flattens the cast — cap the _target_ of the bite, never its presence.**
+  `OFFICE_COLLEAGUES` (`apps/server/src/agents/officePersonas.js`) is pinned by
+  `officePersonas.test.js` against bans like "never sarcastic" / "never mean" / "never cynical", while
+  a guard scoped to the person ("never mean **to the user**") stays legal — the two are told apart by
+  a negative lookahead, so the pin cannot be satisfied by re-wording the ban. Owner steer
+  2026-10-24: the register is sarcastic, HBO _Silicon Valley_. Put an _interest_ in the individual
+  card (the ceremony is the job; he is uninformed, not dumb) and do **not** add a clause to the shared
+  tone tail — measured, the tail moved the two carded characters by ~nothing and moved `helpdesk`'s
+  aim _down_. Numbers, method, and the premise the control arm refuted are in the long form below.
 - **A new `/moment` context field is a two-place contract, and the scripted visit cannot see it.**
   `officeDeskWork` (`deskWorkPromptLines` → `officeMomentDelivery.js` → the route's zod restate →
   `buildOfficeDeskWorkBlock`) — no shared enum, so unlike a `situation` it is not four places. But
@@ -807,6 +816,52 @@ test:floor`; the floor test map is [`docs/agents/isometric-floor-tests.md`](../.
   enough to avoid the mistake, so **audition every new block against a control**; and the guard
   worth keeping is the one a measurement justifies — here the fabricated-diagram-delta risk,
   which came back 0 of 12 in both arms.
+
+- **A blanket cap on tone flattens the cast; cap the _target_ of the bite, never its presence.**
+  Owner steer 2026-10-24: the office's humour must read as sarcastic, HBO _Silicon Valley_, on top of
+  the standing "make it feel like a real office" brief. Two things were doing the capping, and only
+  one of them was ever a safety rule. (1) Two invented cards forbade bite outright —
+  `OFFICE_COLLEAGUES.scrumMaster` carried _"Never edgy, never sarcastic, never swear … never
+  meanness"_ and `.intern` carried _"Never mean, never cynical"_. (2) The moment prompt's global tail
+  read _"Stay comedic, never mean, never blocking."_ — one clause carrying a comedy rule and a
+  mechanical one in the same breath. The named seats were **already** tuned sharp by
+  `scripts/barker-fidelity.mjs` (Gilfoyle's _"contempt is your register, but it lands on the WORK"_
+  is the correct shape), so the caps were not protecting anybody from meanness: they were averaging
+  seven invented voices toward one cheerful one. What replaced them is an **interest written into each
+  card** — the ceremony is the job Pam defends like property; Chad is not dumb, he is uninformed, and
+  that is louder — because a rateless "be funny" buys exclamation marks, which is exactly what the
+  register is made of.
+
+  **Measured, two arms, n=4, one fixed funnel diagram, candidates spliced into the real
+  `buildMomentSystemPrompt` output by exact string replacement so every other byte matched**, judged
+  with `barker-fidelity.mjs`'s judge idiom at temperature 0.2. `scrumMaster` on a "ship it" pushback:
+  register 4.25 → 5.00, aimed 3.50 → 4.75, specificity 4.50 → 5.00, exclamation marks 2.00 → 0.00.
+  **The asymmetry is the finding, not the improvement.** `helpdesk` and `greybeard` carry no ban, so
+  they received only the changed global tail — and they moved 4.00 → 4.00 and 4.50 → 4.50 on register,
+  with `helpdesk`'s _aimed_ going **down** (4.00 → 3.50). A tone rule stated once for the whole room
+  is weaker copy than the same rule landed in the one card it belongs to. So the correct fix was two
+  cards and three shared sites, **not** a cast-wide sharpening, and `docs/automations/office-life.md`
+  §14 records that as the standing rule for the next tone slice. `meanToUser` was **0 of 48 in both
+  arms**: permission to bite did not put contempt in the direction of the user, which is the guard the
+  rewritten tail still states explicitly, next to the `never block, gate, or withhold the user's work`
+  invariant that the old tail was hiding behind a comma.
+
+  **The same control arm refuted most of a premise brought into the audition.** The brainstorm
+  claimed the reactive path concedes when the user says "ship it" and that the cast needed a
+  do-not-relent clause. The pushback cell measured **0 of 48 concessions in both arms** — the named
+  seats already carry that clause, so writing a second one would have been dead weight and the test
+  for it a false pin. That conclusion is only available because an arm ran that changed nothing.
+  **It did not fully survive the shipped text.** A confirmation run over the committed cards (24
+  calls, same fixture, same judge) put the office-tier `intern` at **1 of 4** concessions where the
+  audition's spliced candidate read 0 of 4, and let one stray exclamation mark through Pam's pushback
+  reply (0.00 to 0.50). Read the refutation as _the named seats needed no new rule_, not _the office
+  needs no new rule_: the office cards do not carry a do-not-relent clause at all. Follow-up queued at
+  `docs/automations/office-life.md` §14. Both numbers sit inside n=4 judge noise and neither is a
+  reason to hold the slice — the register axes held (Pam 5.00, Dave 4.00 / 3.50 reproduced exactly).
+
+  **So: audition the candidate, then re-measure the file.** Splicing a candidate into a real prompt
+  proves the _rule_ works; it does not prove the _text that ended up in the file_ is that text. The
+  two drifted here in exactly the two places the confirmation run caught.
 
 - **A new `/moment` context field is a two-place contract, and the scripted visit is blind to it.**
   The chain for `officeDeskWork` is `deskWorkPromptLines` (`officeDeskWork.js`, which owns every
