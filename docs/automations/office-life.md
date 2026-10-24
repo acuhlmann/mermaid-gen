@@ -354,17 +354,25 @@ The floor is sparse and slice 11 already answered this: one walker, because a se
 rules that do not exist. Do not "start with two and see" — file the issue with the collision model
 in it, or take a ledger row. This is a design, not a constant.
 
-### 11. The room has heard about you
+### 11. Who is entitled to know what the room knows
 
-Question 1's cheapest remaining answer, and the one thing that turns seven solo NPCs into a floor.
-`officeLogStore.js` already records `email` / `chat` / `walkby` / `pitch` with a `colleagueId`, and
-`buildOfficeRelationship()` already projects that per colleague — but the projection is **private to
-the pair**, so a thing you told Dinesh can never surface in Gilfoyle's mouth. One hop of _carry_ —
-a fact said to A becoming available to B on B's next provoked line — is derived state over entries
-that already exist: no new writer, no new call, no trigger, so it stays on the record side of
-ADR-0010. It is not queue 7 (that is a canned reply where a real one should be); this is a fact the
-prompt does not carry at all. Watch the caps on both sides — the shared digest is 12 lines / 700
-chars and drops from the front, which is precisely why the per-colleague projection exists.
+**This item was written on a false premise and re-scoped on 2026-10-24 after reading the code.** It
+claimed a thing said to Dinesh can never reach Gilfoyle's mouth. It can: `buildOfficeLogDigest()` in
+`officeLogDigest.js` renders **every** colleague's `walkby` / `email` / `pitch` / `chat` into the
+shared `officeLog` field that already rides on every office request, so third-party exchange _facts_
+cross mouths today. What does not cross is the **body**, and that is not a gap — it is stated in that
+module's own header ("a chat logs that it happened and with whom; what was said stays between you and
+them") and pinned by `officeLog.test.js`. **Do not build the original version of this item**: it would
+re-ship a fact the office already has, and pay for it by breaking a documented privacy rule.
+
+The real gap runs the other way and is worth more: **the shared digest hands every listener every
+line.** Gary is told about your private thread with Gilfoyle as plainly as about the fridge, and the
+room has no notion of who was standing there. So the slice is _scoping_, not _carrying_ — decide what
+a given speaker is entitled to (their own zone, the glass-room boundary `dwellTargetAt` already
+models, who sat in `attendees` versus who was silent `audience`) and let the digest read differently
+per speaker. Same entries, same 12-line / 700-char budget, no new writer, no new call, still
+record-not-trigger — and it turns the privacy rule into a feature: some things the floor genuinely
+does not know, which is what a floor with a private life sounds like.
 
 ### 12. A title the office invented to keep you
 
@@ -396,12 +404,16 @@ is weaker copy than the one card it lands on. So: write an _interest_ into the i
 not add a clause to the shared tail, and `officePersonas.test.js` now fails a blanket ban while
 accepting one scoped to the user. The exclamation marks are the tell: Pam's arm went 2.00 to 0.00.
 
-**One thing the register slice deliberately left open.** The named seats carry an explicit
-do-not-relent clause for a user who says "ship it"; the six invented office cards carry none, and a
-post-commit confirmation run put `intern` at 1 of 4 concessions on exactly that prompt. If a larger
-n reproduces it, the fix is one clause written into the individual card — the §14 rule above says why
-it does not belong in the shared tail. Audition before writing: the premise that the whole reactive
-path concedes was measured and found mostly untrue, so this is a per-card gap, not a system one.
+**And one thing this slice first claimed, then lost.** A post-commit note here said the six invented
+cards needed a do-not-relent clause because `intern` conceded 1 of 4 when told "ship it". **That was
+wrong and is retracted: a dedicated baseline put all seven invented cards at 0 of 6 folds** (42
+samples, two pushback phrasings, meaning-judging LLM at temperature 0.1). The 1 of 4 came from scoring
+concession with a **keyword regex** — it matched Chad saying the diagram finally "makes sense to me"
+and then immediately raising an objection about the gap between `Verify email` and `Trial workspace`.
+Agreement-shaped words are not agreement, and a regex cannot tell the two apart. **So the office cards
+need no such clause; the register already holds.** The transferable rule: score a register property
+with the judge, never with a phrase regex — a regex stays trustworthy only for what it can literally
+see, which is why the exclamation-mark and emoji counts in this section are still worth quoting.
 
 ## 4. Rules this domain already paid for
 

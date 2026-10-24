@@ -846,22 +846,32 @@ test:floor`; the floor test map is [`docs/agents/isometric-floor-tests.md`](../.
   rewritten tail still states explicitly, next to the `never block, gate, or withhold the user's work`
   invariant that the old tail was hiding behind a comma.
 
-  **The same control arm refuted most of a premise brought into the audition.** The brainstorm
-  claimed the reactive path concedes when the user says "ship it" and that the cast needed a
-  do-not-relent clause. The pushback cell measured **0 of 48 concessions in both arms** — the named
-  seats already carry that clause, so writing a second one would have been dead weight and the test
-  for it a false pin. That conclusion is only available because an arm ran that changed nothing.
-  **It did not fully survive the shipped text.** A confirmation run over the committed cards (24
-  calls, same fixture, same judge) put the office-tier `intern` at **1 of 4** concessions where the
-  audition's spliced candidate read 0 of 4, and let one stray exclamation mark through Pam's pushback
-  reply (0.00 to 0.50). Read the refutation as _the named seats needed no new rule_, not _the office
-  needs no new rule_: the office cards do not carry a do-not-relent clause at all. Follow-up queued at
-  `docs/automations/office-life.md` §14. Both numbers sit inside n=4 judge noise and neither is a
-  reason to hold the slice — the register axes held (Pam 5.00, Dave 4.00 / 3.50 reproduced exactly).
+  **The same control arm refuted a premise brought into the audition, and that refutation held.** The
+  brainstorm claimed the reactive path concedes when the user says "ship it" and that the cast needed
+  a do-not-relent clause. The pushback cell measured **0 of 48 concessions in both arms**, so a second
+  clause would have been dead weight and the test for it a false pin. That conclusion is only
+  available because an arm ran that changed nothing.
 
-  **So: audition the candidate, then re-measure the file.** Splicing a candidate into a real prompt
-  proves the _rule_ works; it does not prove the _text that ended up in the file_ is that text. The
-  two drifted here in exactly the two places the confirmation run caught.
+  **Then a wrong "correction" was landed, and the instrument that produced it is the real finding.**
+  Immediately after the commit, a confirmation run appeared to put `intern` at 1 of 4 concessions, and
+  this file was edited to narrow the refutation to the named seats only — claiming the invented office
+  cards held no do-not-relent clause and needed one. **That narrowing was false, and a dedicated
+  baseline re-refutes it: 0 of 6 folds on all seven `OFFICE_COLLEAGUES` cards** (42 samples, two
+  pushback phrasings, meaning-judging LLM at temperature 0.1). The 1 of 4 was an artefact of
+  measurement, not a character behaviour: that run scored concessions with a **keyword regex**, and the
+  line it caught was Chad saying the _diagram_ finally "makes sense to me" and then immediately
+  raising an objection about the gap between `Verify email` and `Trial workspace`. Agreement-shaped
+  words are not agreement — a colleague can say "makes sense", "fair enough" or "ship it" while
+  holding their ground, and a regex cannot tell those apart. The judge that reads meaning never
+  flagged that line, and flagged nothing else either.
+
+  **So: never score a register property with a keyword regex.** The two instruments disagreed, the
+  cheap one was wrong, the expensive one was right. Keyword counting stayed trustworthy for the
+  mechanical properties it can actually see — exclamation marks, emoji, word length — and those are
+  the numbers from this slice worth repeating. What is _not_ worth repeating is Pam's 0.50
+  exclamation marks on the shipped pushback arm at n=4: inside noise, not queued as a defect. Re-
+  measuring the shipped file remains the right habit; it is what exposed this, just not the way the
+  first version of this entry claimed.
 
 - **A new `/moment` context field is a two-place contract, and the scripted visit is blind to it.**
   The chain for `officeDeskWork` is `deskWorkPromptLines` (`officeDeskWork.js`, which owns every
