@@ -114,6 +114,11 @@ jobs:
         run: |
           set -uo pipefail
           test ! -e "$RUNNER_TEMP/god-key" || { echo "::error::key file survived the run"; exit 1; }
+          # An empty -F pattern matches every file, so a missing secret would read as a leak.
+          if [ -z "$OPENROUTER_GOD_KEY" ]; then
+            echo "no key configured, so none could leak"
+            exit 0
+          fi
           if grep -rqsF -- "$OPENROUTER_GOD_KEY" "$RUNNER_TEMP/god-spike" "$GITHUB_WORKSPACE" /tmp; then
             echo "::error::the key appears in a file the harness could reach"
             exit 1
@@ -269,6 +274,11 @@ jobs:
         run: |
           set -uo pipefail
           test ! -e "$RUNNER_TEMP/god-key" || { echo "::error::key file survived the run"; exit 1; }
+          # An empty -F pattern matches every file, so a missing secret would read as a leak.
+          if [ -z "$OPENROUTER_GOD_KEY" ]; then
+            echo "no key configured, so none could leak"
+            exit 0
+          fi
           if grep -rqsF -- "$OPENROUTER_GOD_KEY" "$RUNNER_TEMP/god-probe" "$GITHUB_WORKSPACE" /tmp; then
             echo "::error::the key appears in a file the probe server could reach"
             exit 1
@@ -570,6 +580,11 @@ jobs:
         run: |
           set -uo pipefail
           test ! -e "$RUNNER_TEMP/god-key" || { echo "::error::key file survived the run"; exit 1; }
+          # An empty -F pattern matches every file, so a missing secret would read as a leak.
+          if [ -z "$OPENROUTER_GOD_KEY" ]; then
+            echo "no key configured, so none could leak"
+            exit 0
+          fi
           if grep -rqsF -- "$OPENROUTER_GOD_KEY" "$RUNNER_TEMP/god-act" "$GITHUB_WORKSPACE" /tmp; then
             echo "::error::the key appears in a file the harness could reach"
             exit 1
