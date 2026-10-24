@@ -18,7 +18,7 @@ Short definitions for the recurring vocabulary in this repo. Cross-references in
 
 ## State
 
-**Slot.** One of the six independent diagram canvases per session: `mermaid` (Mermaid text), `infographic` (AntV DSL), `metaphor3d` (spatial JSON DSL), `chart` (Vega-Lite wrapper), `forms` (model-authored A2UI JSON rendered as interactive forms), or `anything` (freeform HTML in a sandboxed iframe). Each slot has its own `diagramSource`, `revisionId`, and history. Switching the active slot in the UI does **not** touch the others. See [Content types](docs/guide/content-types.md).
+**Slot.** One of the six independent diagram canvases per session: `mermaid` (Mermaid text), `infographic` (AntV DSL), `metaphor3d` (spatial JSON DSL), `chart` (JSON wrapper with a compiled Vega-Lite `spec`; see [[Flint]]), `forms` (model-authored A2UI JSON rendered as interactive forms), or `anything` (freeform HTML in a sandboxed iframe). Each slot has its own `diagramSource`, `revisionId`, and history. Switching the active slot in the UI does **not** touch the others. See [Content types](docs/guide/content-types.md).
 
 **`activeContentType`.** Session-level pointer at the currently-active [[slot]]. Defaults to `mermaid`; persisted in `localStorage` under `archislop:content-mode`.
 
@@ -37,6 +37,8 @@ Short definitions for the recurring vocabulary in this repo. Cross-references in
 **Mermaid validation ladder.** The combined four-layer sequence: heuristic prefix → sanitizer rescue → single-shot fixer → agent repair. Wraps every Mermaid mutation via `invokeWithRepair`.
 
 **Rule pack.** A diagram-type-specific block of "don't do this, do that" guidance fed to the fixer and to repair turns. Mermaid packs (15+) live in `apps/server/src/prompts/mermaidSyntaxGuard.js`; infographic packs in `apps/server/src/prompts/infographicSyntaxGuard.js`.
+
+**Flint.** Microsoft's [Flint chart spec](https://github.com/microsoft/flint-chart) — the default authoring shape for the [[chart]] slot (`CHART_AUTHORING` unset or not `vegalite`). The agent writes `{ flint, vegaConfig?, … }`; the server compiles to Vega-Lite via `compileFlintChartWrapper` (`chartFlintAuthoring.js`) before the chart validation ladder runs. The wrapper keeps `flint` as source of truth for multi-backend export (Excel, ECharts, Plotly, Office.js). A patch that changes only `spec` (hand edit in the source editor) drops `flint` and stores plain Vega-Lite instead. See [Content types — chart](docs/guide/content-types.md#chart) and [Validation — chart](docs/guide/validation.md).
 
 **Lib marker.** An HTML comment (`<!-- @lib:d3 -->`) by which an Anything-mode document opts into an allowlisted, pinned, vendored library. The slot stores the marker form; `expandAnythingLibs` splices the vendored source in as an inline `<script>` only where the page executes (client renderer + jsdom runtime check). Registry and marker lint: `packages/shared/src/anythingLibs.ts`; rationale: ADR-0008.
 
