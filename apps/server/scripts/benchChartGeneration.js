@@ -200,7 +200,8 @@ const pct = (n, d) => (d === 0 ? 0 : Math.round((n / d) * 1000) / 10);
 const median = (xs) => {
   if (xs.length === 0) return null;
   const s = [...xs].sort((a, b) => a - b);
-  return s[Math.floor(s.length / 2)];
+  const mid = Math.floor(s.length / 2);
+  return s.length % 2 === 1 ? s[mid] : (s[mid - 1] + s[mid]) / 2;
 };
 
 function summarizeArm(rows) {
@@ -213,8 +214,9 @@ function summarizeArm(rows) {
     firstPassAcceptRate: pct(counted.filter((r) => r.firstPass).length, counted.length),
     finalAcceptRate: pct(counted.filter((r) => r.accepted).length, counted.length),
     outcomes,
-    medianOutputTokens: median(rows.map((r) => r.outputTokens)),
-    medianWallMs: median(rows.map((r) => r.wallMs)),
+    // Transport failures are excluded from the rates, so from the medians beside them too.
+    medianOutputTokens: median(counted.map((r) => r.outputTokens)),
+    medianWallMs: median(counted.map((r) => r.wallMs)),
     medianAuthoredBytes: median(rows.filter((r) => r.authoredBytes).map((r) => r.authoredBytes)),
     medianStoredBytes: median(rows.filter((r) => r.storedBytes).map((r) => r.storedBytes)),
     firstErrors: rows
@@ -271,6 +273,12 @@ async function main() {
         jobs.push(() => runCase({ arm, sample, sampleIndex: s, profile: args.profile }));
       }
     }
+  }
+
+  if (jobs.length === 0) {
+    console.error('chart generation bench: --only / --arms selected no runs; nothing to measure.');
+    process.exitCode = 2;
+    return;
   }
 
   console.log(`chart generation bench: ${jobs.length} runs, arms=${args.arms.join(',')}`);

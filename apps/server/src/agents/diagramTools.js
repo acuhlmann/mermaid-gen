@@ -2,6 +2,7 @@ import { tool } from 'langchain';
 import { z } from 'zod';
 import { ToolApplyResultSchema } from '@archislop/shared';
 import { applySearchReplaceEdits } from './_lib/searchReplaceEdits.js';
+import { chartSourceForModel } from '../tools/chartFlintAuthoring.js';
 
 /**
  * Validate the state-store envelope before stringifying so a future shape drift
@@ -116,14 +117,19 @@ export function createChartTools({ stateStore, authoring = 'vegalite' }) {
       const state = stateStore.getSlot('chart');
       return JSON.stringify({
         revisionId: state.revisionId,
-        diagramSource: state.diagramSource,
+        // The Flint model view hides the derived `spec`: sending it back edited would read
+        // as a hand edit and drop `flint`.
+        diagramSource:
+          authoring === 'flint' ? chartSourceForModel(state.diagramSource) : state.diagramSource,
         updatedAt: state.updatedAt
       });
     },
     {
       name: 'get_chart_dsl',
       description:
-        'Read the current chart DSL (archislop wrapper around a Vega-Lite spec), including revision id and source.',
+        authoring === 'flint'
+          ? 'Read the current chart DSL (archislop wrapper around a Flint chart; the derived Vega-Lite is omitted), including revision id and source.'
+          : 'Read the current chart DSL (archislop wrapper around a Vega-Lite spec), including revision id and source.',
       schema: z.object({})
     }
   );

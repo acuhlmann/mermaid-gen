@@ -6,6 +6,7 @@ import {
   isFlintChartAuthoringEnabled
 } from '../src/tools/chartFlintAuthoring.js';
 import { validateAndPrepareChartPatch, validateChartStrict } from '../src/tools/chartDslTool.js';
+import { createChartTools } from '../src/agents/diagramTools.js';
 import {
   CHART_FLINT_SYSTEM_PROMPT,
   listFlintChartTypes
@@ -154,6 +155,21 @@ test('chartSourceForModel hides the derived spec from the model', () => {
   assert.deepEqual(view.vegaConfig, { background: '#fff' });
   const plain = JSON.stringify({ theme: 'whiteboard', spec: { mark: 'bar' } });
   assert.equal(chartSourceForModel(plain), plain);
+});
+
+test('get_chart_dsl shows the Flint model view in Flint mode, the raw source otherwise', async () => {
+  const stored = compileFlintChartWrapper(JSON.stringify(GROUPED_BAR)).text;
+  const stateStore = {
+    getSlot: () => ({ revisionId: 'r1', diagramSource: stored, updatedAt: 0 })
+  };
+  const read = async (authoring) => {
+    const [getChartDsl] = createChartTools({ stateStore, authoring });
+    return JSON.parse(JSON.parse(await getChartDsl.invoke({})).diagramSource);
+  };
+  const flintView = await read('flint');
+  assert.equal(flintView.spec, undefined);
+  assert.deepEqual(flintView.flint, GROUPED_BAR.flint);
+  assert.ok((await read('vegalite')).spec);
 });
 
 test('validateAndPrepareChartPatch stores the Flint wrapper and its compiled spec', async () => {
