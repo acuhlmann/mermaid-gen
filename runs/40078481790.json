@@ -1,0 +1,80 @@
+{
+  "v": 1,
+  "runId": "40078481790",
+  "startedAt": "2026-10-24T08:40:08.388Z",
+  "endedAt": "2026-10-24T08:40:09.039Z",
+  "trigger": "schedule",
+  "tier": "propose",
+  "focus": "any",
+  "verdict": "failed",
+  "stopReason": "error",
+  "findingId": null,
+  "hypothesis": null,
+  "pr": null,
+  "branch": null,
+  "filesChanged": [],
+  "usage": {
+    "calls": 0,
+    "inputTokens": 0,
+    "outputTokens": 0,
+    "cacheHitTokens": 0,
+    "usd": 0
+  },
+  "minutes": 0.01,
+  "balanceAfter": null,
+  "reason": "go",
+  "digest": {
+    "agentTurns": 21,
+    "uxSignals": 20,
+    "sessions": 3,
+    "findings": 0,
+    "sufficient": true,
+    "probeTurns": 24
+  },
+  "probe": {
+    "turns": 12,
+    "usd": 0.019234,
+    "slots": [
+      {
+        "contentType": "mermaid",
+        "turns": 2,
+        "accepted": 2,
+        "repairAttempts": 0
+      },
+      {
+        "contentType": "infographic",
+        "turns": 2,
+        "accepted": 2,
+        "repairAttempts": 0
+      },
+      {
+        "contentType": "chart",
+        "turns": 2,
+        "accepted": 2,
+        "repairAttempts": 0
+      },
+      {
+        "contentType": "forms",
+        "turns": 2,
+        "accepted": 2,
+        "repairAttempts": 0
+      },
+      {
+        "contentType": "anything",
+        "turns": 2,
+        "accepted": 2,
+        "repairAttempts": 0
+      },
+      {
+        "contentType": "metaphor3d",
+        "turns": 2,
+        "accepted": 2,
+        "repairAttempts": 0
+      }
+    ]
+  },
+  "harness": {
+    "name": "dsh",
+    "version": "0.2.0-rc.2"
+  }
+}
