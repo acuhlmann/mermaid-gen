@@ -21,6 +21,7 @@ import {
   upsertOfficeHuddleBeat
 } from '../state/officeMomentStore.js';
 import { usePairInitiative } from './usePairInitiative.js';
+import { usePairPresence } from './usePairPresence.js';
 
 export const HUDDLE_FETCH_TIMEOUT_MS = 20_000;
 export const HUDDLE_SUGGEST_TIMEOUT_MS = 18_000;
@@ -123,6 +124,26 @@ function applyPairReplyTurn(huddleId, beats, { fingerprint, userTurn }) {
   beginOfficeHuddleTurn(huddleId, beats, { diagramFingerprint: fingerprint });
   recordPartnerTurns('pair', beats);
   return beats[0];
+}
+
+/**
+ * The transcript for a question asked mid-stand-up: the teammate's own remark,
+ * then your question. Null when there is no mob, no such teammate, or nothing
+ * was asked.
+ */
+function askTurns(huddle, speakerId, question) {
+  const text = trimmedPairReply(question);
+  if (!huddle || huddle.mode === 'pair' || !text) return null;
+  if (!huddle.attendees.includes(speakerId)) return null;
+  const remark = (huddle.beats ?? []).find((b) => b.speakerId === speakerId)?.text ?? '';
+  const said = remark ? [{ role: 'partner', text: remark.slice(0, PAIR_REPLY_MAX_CHARS) }] : [];
+  return [...said, { role: 'you', text }];
+}
+
+/** The first beat of a script that actually says something, or null. */
+function firstSpokenBeat(payload) {
+  const beat = payload?.script?.beats?.[0];
+  return typeof beat?.text === 'string' && beat.text.trim() ? beat : null;
 }
 
 /** What the scene is looking at, read once so every caller agrees on it. */
@@ -475,6 +496,50 @@ export function useHuddlePlayback(params) {
     readCanvas: () => readSceneCanvas(paramsRef.current),
     askPartner
   });
+  // Between their lines too: you can cut them off, and they look where you look.
+  usePairPresence({
+    huddle: snapshot.huddle,
+    diagramWatchKey,
+    onCancelNarration: () => paramsRef.current.onCancelNarration?.()
+  });
+
+  /**
+   * You raised a hand mid-stand-up and asked the teammate who had the floor.
+   *
+   * Sent as a one-seat `pair` turn with cue `ask`, because the answer is one
+   * person talking to you about their own remark — the pair grammar, not the
+   * one-line-each mob grammar. The answer is returned rather than written to
+   * the scene: the mob's script is a fixed line count that `useScenePacing`
+   * keys on, and the ring controls play the answer as that teammate's pinned
+   * line instead, which already pauses and resumes the stand-up around it.
+   *
+   * @param {string} speakerId
+   * @param {string} question
+   * @returns {Promise<object | null>} their answer, or null when none came back
+   */
+  const askHuddleSpeaker = useCallback(async (speakerId, question) => {
+    const current = getOfficeSnapshot().huddle;
+    const turns = askTurns(current, speakerId, question);
+    if (!turns) return null;
+
+    const generation = ++suggestGenerationRef.current;
+    suggestAbortRef.current?.abort();
+    const controller = new AbortController();
+    suggestAbortRef.current = controller;
+    const params = paramsRef.current;
+    const ctx = huddleContext(params, [speakerId], 'pair');
+    const payload = await fetchHuddleScript(
+      { ...ctx, turns, cue: 'ask' },
+      params.getSessionId?.() ?? '',
+      controller,
+      HUDDLE_REPLY_TIMEOUT_MS
+    );
+    if (suggestAbortRef.current === controller) suggestAbortRef.current = null;
+    if (generation !== suggestGenerationRef.current) return null;
+    if (getOfficeSnapshot().huddle?.id !== current.id) return null;
+    reportUsage(params.onUsage, payload);
+    return firstSpokenBeat(payload);
+  }, []);
 
   /**
    * Click a head that has not spoken yet → pull one on-spot suggestion and pin
@@ -605,6 +670,7 @@ export function useHuddlePlayback(params) {
     startHuddle,
     endHuddle,
     requestSpeakerSuggestion,
+    askHuddleSpeaker,
     continuePairing,
     pauseForWatching,
     resumeSpeaking

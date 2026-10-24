@@ -1113,7 +1113,8 @@ export function buildInterjectUserPrompt({
  * procedural padding, so there are no beat kinds. Every line is signal, which is
  * what makes it the face-to-face counterpart to the remote WG meeting.
  */
-export function buildHuddleSystemPrompt({ attendees, uiLocale, priorBeats }) {
+export function buildHuddleSystemPrompt({ attendees, uiLocale, priorBeats, visibleIds = [] }) {
+  const pointing = Array.isArray(visibleIds) && visibleIds.some(Boolean);
   const prior = Array.isArray(priorBeats)
     ? priorBeats.filter((b) => b?.speakerId && typeof b.text === 'string' && b.text.trim())
     : [];
@@ -1145,8 +1146,8 @@ ${cards}
 
 RULES:
 - Output STRICT JSON only — no prose, no backticks, no preamble.
-- Schema: {"beats": [{"speakerId": string, "text": string, "actionPrompt": string (optional)}]}.
-${headcountRule}
+${pointing ? HUDDLE_POINT_SCHEMA : HUDDLE_PLAIN_SCHEMA}
+${headcountRule}${pointing ? `\n${HUDDLE_POINT_RULE}` : ''}
 - Each "text" is max 30 words. This is a hallway remark over somebody's shoulder, not a presentation.
 - Every beat must engage the ACTUAL diagram and reference at least one visible label by name when
   labels exist.
@@ -1158,6 +1159,8 @@ ${headcountRule}
   actionable without any other context. This is the accidental competence that makes the parody land.
 - At least one beat reacts to the person before them by name (agree, object, or misunderstand).
   Gentle bickering welcome; never mean.
+- PASS THE WORD: 1–2 beats end by turning to the NEXT person in the list by name ("…right,
+  Dinesh?"), the way a stand-up hands over. Never to someone who already spoke.
 - No facilitation, no scheduling, no "let's take this offline" — nobody is running this, they just
   wandered over.
 - ${SUBJECT_RULE}${buildOfficeLanguageRule(uiLocale)}`;
@@ -1173,7 +1176,10 @@ ${headcountRule}
  * prohibitions crowd out a hedged permission in these prompts.
  *
  * @param {string} attendee
- * @param {'reply' | 'edit' | 'lull' | null} cue null for the opening script
+ * `ask` is the one cue from a mob: you raised a hand mid-stand-up to ask the
+ * teammate who was talking, and they answer as a one-person turn.
+ *
+ * @param {'reply' | 'edit' | 'lull' | 'ask' | null} cue null for the opening script
  */
 function pairTurnRules(attendee, cue) {
   if (cue === 'edit') {
@@ -1182,7 +1188,8 @@ function pairTurnRules(attendee, cue) {
   the diagram (the last line of the transcript). They watched it happen over the user's shoulder.`,
       moveRule: `- React to what they just did, the way someone sitting next to them does: notice it,
   back it, question it, or build on it, in character, and name the box they touched. Keep it about
-  this change — do not restart the tour.`
+  this change — do not restart the tour. When the line says what you had suggested, say whether
+  this is it: pleased if they took it, a raised eyebrow if they went another way, and let it go.`
     };
   }
   if (cue === 'lull') {
@@ -1192,6 +1199,14 @@ function pairTurnRules(attendee, cue) {
       moveRule: `- Bring something new: a box you have not talked about yet, a question you have been
   sitting on, or a small aside in your own voice that still lands on the diagram. Never repeat a
   point that is already in the transcript.`
+    };
+  }
+  if (cue === 'ask') {
+    return {
+      shapeRule: `- EXACTLY 1 beat from "${attendee}": their answer to the question the user just asked
+  them. The user stopped the team stand-up mid-way to ask, about the remark in the transcript.`,
+      moveRule: `- Answer the question directly, in your own voice, about your own remark — the rest of the
+  team is waiting to go on, so it is a quick answer, not a second speech.`
     };
   }
   if (cue === 'reply') {
@@ -1209,6 +1224,23 @@ function pairTurnRules(attendee, cue) {
   observation four ways is the failure mode — each beat has to earn its turn.`
   };
 }
+
+/**
+ * Mob pointing: each teammate can put a finger on the box their remark is
+ * about, the same closed-list contract as a pair (`normalizeHuddleBeat` strips
+ * any id the client did not send). Named only when there are ids, for the
+ * reason measured on the pair prompt: a schema field with nothing to fill it
+ * invites a hallucinated one.
+ */
+const HUDDLE_PLAIN_SCHEMA =
+  '- Schema: {"beats": [{"speakerId": string, "text": string, "actionPrompt": string (optional)}]}.';
+const HUDDLE_POINT_SCHEMA =
+  '- Schema: {"beats": [{"speakerId": string, "text": string, "actionPrompt": string (optional), "focusId": string (optional), "alsoFocusId": string (optional)}]}.';
+const HUDDLE_POINT_RULE = `- POINT AT WHAT YOU MEAN: when a remark is about a box, set "focusId" to its exact id from
+  VISIBLE NODE IDS, and the user sees that teammate's finger on it as they speak. A remark about
+  two boxes together also sets "alsoFocusId" — and a teammate who disagrees with the one before
+  them points at their own box AND the one that teammate meant. Ids outside that list do not
+  exist on screen.`;
 
 /**
  * Pairing: one teammate pulls up a chair and works the diagram *with* you.
@@ -1361,7 +1393,8 @@ const PAIR_TURN_SPEAKERS = {
 const PAIR_CUE_CLOSERS = {
   reply: 'The user has just spoken. Answer them.',
   edit: 'The user just made that change while you watched. React to it.',
-  lull: 'The user has been working quietly for a while. Say something unprompted.'
+  lull: 'The user has been working quietly for a while. Say something unprompted.',
+  ask: 'The user stopped the stand-up to ask you that. Answer them.'
 };
 
 /**

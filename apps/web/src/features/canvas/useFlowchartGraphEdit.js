@@ -239,10 +239,13 @@ export function useFlowchartGraphEdit({
       void commitSource(result.source, 'Connect node', { toast: copy.linked }).then((applied) => {
         if (!applied) return;
         setSelectedNode?.(nextSelection(adapter, result));
+        // A new box opens its name field empty rather than holding its
+        // placeholder id ("n1"): you type a name instead of overwriting one,
+        // and an empty commit keeps the id, as before.
         setLabelSession({
           kind: 'node',
           logicalId: result.newId,
-          draft: result.newLabel || result.newId,
+          draft: result.newLabel || '',
           created: true
         });
       });

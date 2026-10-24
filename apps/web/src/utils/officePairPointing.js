@@ -144,7 +144,8 @@ export function pointEdgeRects(root) {
   return rects;
 }
 
-function overlaps(a, b) {
+/** True when two on-screen rects share any area. */
+export function rectsOverlap(a, b) {
   return (
     a.left < b.left + b.width &&
     b.left < a.left + a.width &&
@@ -253,7 +254,7 @@ export function pointHandPlacement(
       box.left + box.width <= width &&
       box.top + box.height <= height
   );
-  const misses = (list) => (candidate) => !list.some((o) => overlaps(candidate.box, o));
+  const misses = (list) => (candidate) => !list.some((o) => rectsOverlap(candidate.box, o));
   const clearOfBoxes = onScreen.filter(misses(obstacles));
   const pick =
     clearOfBoxes.find(misses(softObstacles)) ?? clearOfBoxes[0] ?? onScreen[0] ?? candidates[0];

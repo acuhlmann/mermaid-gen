@@ -18,6 +18,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { cancelOfficeNarration, OFFICE_NARRATION_GAP_MS } from '../utils/officeNarration.js';
 
+/** How long a cancelled line waits to see whether the scene itself was stopped. */
+const CANCEL_SETTLE_MS = 80;
+
 /**
  * @param {{
  *   lines: Array<{speakerId: string, text: string}>,
@@ -109,9 +112,20 @@ export function useScenePacing({
           // Skip speaking the line aloud while paused (e.g. notebook Do-it).
           if (!pausedRef.current) {
             const result = await narrateRef.current?.(line);
-            // Hard stop / dismiss cancels TTS before React re-renders this
-            // effect — without this bail the loop would start the next line.
-            if (cancelled || result?.cancelled) return;
+            if (cancelled) return;
+            if (result?.cancelled) {
+              /*
+               * Hard stop / dismiss cancels TTS before React re-renders this
+               * effect, so the loop must not start the next line on its own.
+               * But pinning a face mid-line cancels the voice too, and bailing
+               * there stranded the scene: nothing restarts this loop, so the
+               * rest of the ring never spoke and the huddle never ended. Give
+               * a real stop a moment to tear the scene down; if it is still
+               * running after that, it was a pause, and the line counts as said.
+               */
+              await wait(CANCEL_SETTLE_MS);
+              if (cancelled) return;
+            }
             spoken = Boolean(result?.spoken);
           }
         } catch {

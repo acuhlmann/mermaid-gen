@@ -427,12 +427,17 @@ export function pauseOfficeHuddleForWatching(id = null) {
   update({ huddle: { ...state.huddle, phase: 'watching' } });
 }
 
-/** Resume turn-taking after the notebook run finishes. */
+/**
+ * Resume after the notebook run finishes. A mob picks up turn-taking where it
+ * paused; a pair goes back to `listening`, because their line was already said
+ * before you pressed Do it and resuming `speaking` would only replay it.
+ */
 export function resumeOfficeHuddleSpeaking(id = null) {
   if (!state.huddle) return;
   if (id && state.huddle.id !== id) return;
   if (state.huddle.phase !== 'watching') return;
-  update({ huddle: { ...state.huddle, phase: 'speaking' } });
+  const phase = state.huddle.mode === 'pair' ? 'listening' : 'speaking';
+  update({ huddle: { ...state.huddle, phase } });
 }
 
 /**
@@ -514,6 +519,58 @@ export function setOfficeHuddleListening(id = null) {
   if (id && state.huddle.id !== id) return;
   if (state.huddle.phase !== 'speaking') return;
   update({ huddle: { ...state.huddle, phase: 'listening' } });
+}
+
+/**
+ * A wordless reaction from the person in the chair: a `nod` at a small edit
+ * you made, or a `glance` at the node you just picked up. Kept in the store
+ * rather than in a renderer so both drawings of the huddle see the same
+ * gesture (ADR-0011 rule 1). `seq` bumps on every gesture, so two nods at the
+ * same box still read as two.
+ *
+ * @param {string | null} id
+ * @param {{ kind: 'nod' | 'glance', focusId?: string | null }} gesture
+ */
+export function setOfficeHuddleGesture(id, { kind, focusId = null }) {
+  if (!state.huddle) return;
+  if (id && state.huddle.id !== id) return;
+  if (kind !== 'nod' && kind !== 'glance') return;
+  const seq = (state.huddle.gesture?.seq ?? 0) + 1;
+  const target = typeof focusId === 'string' && focusId ? focusId : null;
+  update({
+    huddle: { ...state.huddle, gesture: { kind, focusId: target, seq, at: Date.now() } }
+  });
+}
+
+/**
+ * You cut the person in the chair off: they stop mid-sentence and it is your
+ * turn. Their unsaid lines leave the transcript too, because the model must
+ * not answer later as if you heard a point they never got to make.
+ *
+ * Pair only, and only while they are talking — a mob is stopped with a raised
+ * hand, which pauses rather than ends their turn.
+ *
+ * @param {string | null} id
+ */
+export function interruptOfficeHuddle(id = null) {
+  const huddle = state.huddle;
+  if (!huddle || huddle.mode !== 'pair' || huddle.phase !== 'speaking') return;
+  if (id && huddle.id !== id) return;
+  const turns = withoutUnsaidLines(huddle);
+  update({ huddle: { ...huddle, phase: 'listening', turns, interruptedAt: Date.now() } });
+}
+
+/** The transcript minus the partner lines of this turn they never got to. */
+function withoutUnsaidLines(huddle) {
+  const beats = huddle.beats ?? [];
+  const said = Math.min(beats.length, Math.max(0, huddle.activeLineIndex ?? 0) + 1);
+  let unsaid = beats.length - said;
+  const turns = [...(huddle.turns ?? [])];
+  while (unsaid > 0 && turns.at(-1)?.role === 'partner') {
+    turns.pop();
+    unsaid -= 1;
+  }
+  return turns;
 }
 
 /** The "they are thinking about what you just said" flag. */

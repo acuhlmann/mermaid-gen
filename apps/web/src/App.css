@@ -21280,11 +21280,63 @@ body.slopitect-rainbow-tint::before {
 .office-huddle-hard-stop:hover {
   background: color-mix(in srgb, #b91c1c 12%, var(--office-surface-bg));
 }
+/* A raised hand: stop the teammate who has the floor and ask them something.
+ * Same pill as Hard stop, without the red — it pauses, it does not end. */
+.office-huddle-raise-hand {
+  appearance: none;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 0.32rem 0.8rem;
+  border-radius: 999px;
+  color: var(--text);
+  background: color-mix(in srgb, var(--office-surface-bg) 94%, transparent);
+  border: 1px solid var(--control-border);
+  box-shadow: var(--control-shadow);
+}
+.office-huddle-raise-hand:hover {
+  background: color-mix(in srgb, var(--accent) 12%, var(--office-surface-bg));
+}
+/* Faces lean toward whoever has the floor, or the box the moment is about.
+ * `translate` (the individual property) composes with the seat's own
+ * transforms and the speaking pulse instead of fighting them. */
+.office-huddle-face {
+  translate: var(--gaze-x, 0px) var(--gaze-y, 0px);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .office-huddle-face {
+    transition: translate 280ms ease-out;
+  }
+  .office-huddle-seat.is-nodding .office-huddle-face {
+    animation: office-huddle-nod 0.7s ease-in-out 1;
+  }
+}
+@keyframes office-huddle-nod {
+  0%,
+  100% {
+    transform: none;
+  }
+  30% {
+    transform: translateY(5px) rotate(-3deg);
+  }
+  60% {
+    transform: translateY(-1px);
+  }
+  80% {
+    transform: translateY(3px);
+  }
+}
+/* A face over the label you are typing or the node you selected steps back
+ * and lets clicks through, rather than making you work around it. */
+.office-huddle-layer .office-huddle-seat.is-yielding {
+  opacity: 0.16;
+  pointer-events: none;
+}
 /* ── Pairing gestures ────────────────────────────────────────────────────
- * The two things the person in the chair does to *your* screen: point at a
- * node, and slide the keyboard over when it is your turn to type. Both portal
- * to <body> and are positioned in viewport coordinates, so neither is clipped
- * by the huddle layer and neither inherits its transforms.
+ * What the person in the chair does to *your* screen: point at a node, and
+ * glance at or nod about one in passing. All portal to <body> and are
+ * positioned in viewport coordinates, so none is clipped by the huddle layer
+ * and none inherits its transforms.
  * Above the canvas and the huddle ring, below the dialogs that own the screen. */
 .office-pair-pointer {
   position: fixed;
@@ -21313,27 +21365,42 @@ body.slopitect-rainbow-tint::before {
   line-height: 1;
   filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.45));
 }
-.office-pair-handover {
-  position: fixed;
-  right: 8%;
-  bottom: 22%;
-  z-index: 9200;
-  pointer-events: none;
+/* A passing glance or nod: drawn where a hand would go, upright (never
+ * mirrored or rotated like the 👉), and gone on its own. */
+.office-pair-pointer.is-gesture.is-side-left {
+  transform: translate(-100%, -50%);
 }
-.office-pair-handover-prop {
-  display: block;
-  font-size: 40px;
-  line-height: 1;
-  filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.5));
+.office-pair-pointer.is-gesture.is-side-right {
+  transform: translate(0, -50%);
 }
-.office-pair-handover-caption {
-  display: block;
-  margin-top: 0.25rem;
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-align: center;
-  color: var(--text);
+.office-pair-pointer.is-gesture.is-side-top {
+  transform: translate(-50%, -100%);
+}
+.office-pair-pointer.is-gesture.is-side-bottom {
+  transform: translate(-50%, 0);
+}
+.office-pair-pointer.is-gesture .office-pair-pointer-hand {
+  font-size: 24px;
+  animation: office-pair-gesture 1.8s ease-out forwards;
+}
+@keyframes office-pair-gesture {
+  0% {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  15% {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+  25%,
+  70% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.9);
+  }
 }
 /* Your side of the conversation. Sits in the huddle chrome column, so it
  * inherits the centring; it only has to be wide enough to type in. */
@@ -21407,11 +21474,6 @@ body.slopitect-rainbow-tint::before {
   .office-pair-pointer-hand {
     animation: office-pair-point-in 320ms cubic-bezier(0.2, 0.85, 0.25, 1) both;
   }
-  .office-pair-handover {
-    /* Seat is on the right edge; the Work Order is bottom-centre. The slide is
-     * the whole joke, so it is the one animation that has to actually move. */
-    animation: office-pair-handover-slide 1.4s cubic-bezier(0.3, 0.7, 0.3, 1) both;
-  }
 }
 @keyframes office-pair-point-in {
   from {
@@ -21422,21 +21484,6 @@ body.slopitect-rainbow-tint::before {
   to {
     transform: translate(0, 0) scale(1);
     opacity: 1;
-  }
-}
-@keyframes office-pair-handover-slide {
-  0% {
-    transform: translate(0, 0) rotate(0deg);
-    opacity: 0;
-  }
-
-  18% {
-    opacity: 1;
-  }
-
-  100% {
-    transform: translate(-34vw, 46vh) rotate(-14deg);
-    opacity: 0;
   }
 }
 @media (max-width: 1024px) {

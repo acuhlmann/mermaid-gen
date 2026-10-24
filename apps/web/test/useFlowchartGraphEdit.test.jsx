@@ -86,9 +86,11 @@ describe('useFlowchartGraphEdit', () => {
       result.current.handleGraphEditAction({ id: 'connect' });
     });
     expect(result.current.connectSourceId).toBeNull();
+    // The name field opens empty, not holding the placeholder id.
     expect(result.current.labelSession).toMatchObject({
       kind: 'node',
       logicalId: 'n1',
+      draft: '',
       created: true
     });
   });

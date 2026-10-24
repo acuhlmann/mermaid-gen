@@ -1,10 +1,9 @@
 /**
  * The pair's hands, drawn over the canvas.
  *
- * Two gestures, one module, because both are the same idea: the person in the
- * chair indicating something on *your* screen. The 👉 tracks the node their
- * line named; the ⌨️ is what their "Do it" became — they slide the keyboard
- * over and watch you type.
+ * The person in the chair indicating something on *your* screen. The 👉 tracks
+ * the node their line named; a passing 👀 or 👍 is a wordless reaction to the
+ * node you just picked up or the edit you just made.
  *
  * Deliberately an overlay and not something the canvas draws. The canvas owns
  * the ring and the camera (`useDiagramPointFocus`); this owns the gesture, and
@@ -41,8 +40,7 @@ import {
  */
 const POINT_MEASURE_MS = 90;
 
-/** How long the keyboard slide plays before it removes itself. */
-export const PAIR_HANDOVER_MS = 1400;
+const GESTURE_GLYPHS = { glance: '👀', nod: '👍' };
 
 function portal(node, host = null) {
   if (typeof document === 'undefined') return null;
@@ -56,9 +54,19 @@ function portal(node, host = null) {
  * remounts and replays the reach-in instead of teleporting a hand that is
  * already on screen — and so there is no stale anchor to clear in an effect.
  *
- * @param {{ focusId: string, otherId?: string | null, host?: Element | null }} props
+ * `gesture` swaps the 👉 for a passing reaction — 👀 for a glance at the node
+ * you picked up, 👍 for a nod at an edit you made — drawn in the same spot by
+ * the same placement rules, and faded out by CSS rather than unmounted on a
+ * timer of its own.
+ *
+ * @param {{
+ *   focusId: string,
+ *   otherId?: string | null,
+ *   host?: Element | null,
+ *   gesture?: 'nod' | 'glance' | null
+ * }} props
  */
-function PointingHand({ focusId, otherId = null, host = null }) {
+function PointingHand({ focusId, otherId = null, host = null, gesture = null }) {
   const [placement, setPlacement] = useState(null);
 
   useEffect(() => {
@@ -97,26 +105,37 @@ function PointingHand({ focusId, otherId = null, host = null }) {
 
   return portal(
     <div
-      className={`office-pair-pointer is-side-${placement.side}`}
+      className={[
+        'office-pair-pointer',
+        `is-side-${placement.side}`,
+        gesture ? `is-gesture is-${gesture}` : ''
+      ]
+        .filter(Boolean)
+        .join(' ')}
       style={{ left: `${placement.x}px`, top: `${placement.y}px` }}
       aria-hidden="true"
-      data-testid="office-pair-pointer"
+      data-testid={gesture ? 'office-pair-gesture' : 'office-pair-pointer'}
       data-focus-id={focusId}
       data-side={placement.side}
+      data-gesture={gesture ?? undefined}
     >
-      <span className="office-pair-pointer-hand">👉</span>
+      <span className="office-pair-pointer-hand">{GESTURE_GLYPHS[gesture] ?? '👉'}</span>
     </div>,
     host
   );
 }
 
 /**
- * @param {{ focusIds?: string[] | null, host?: Element | null }} props
+ * @param {{
+ *   focusIds?: string[] | null,
+ *   host?: Element | null,
+ *   gesture?: { kind: 'nod' | 'glance', focusId: string | null, seq: number } | null
+ * }} props `gesture` is a live nod or glance (`usePairGesture`); it is drawn
+ *   only when it names a box nobody is already pointing at.
  */
-export function OfficePairPointer({ focusIds = null, host = null }) {
+export function OfficePairPointer({ focusIds = null, host = null, gesture = null }) {
   const ids = Array.isArray(focusIds) ? focusIds.filter(Boolean).slice(0, 2) : [];
-  if (ids.length === 0) return null;
-  return ids.map((id) => (
+  const hands = ids.map((id) => (
     <PointingHand
       key={id}
       focusId={id}
@@ -124,42 +143,17 @@ export function OfficePairPointer({ focusIds = null, host = null }) {
       host={host}
     />
   ));
-}
-
-/**
- * The keyboard slide.
- *
- * Visibility is derived from props rather than mirrored into state: `seq` is
- * the handover that was asked for, `finishedSeq` the one that has played out,
- * and the gesture is live whenever they differ. A second handover in the same
- * session therefore replays with nothing to reset, and the `key` restarts the
- * animation because it is genuinely a new element.
- *
- * @param {{ seq: number, caption?: string, host?: Element | null }} props
- */
-export function OfficePairHandover({ seq, caption = '', host = null }) {
-  const [finishedSeq, setFinishedSeq] = useState(0);
-
-  useEffect(() => {
-    if (!seq) return undefined;
-    const timer = setTimeout(() => setFinishedSeq(seq), PAIR_HANDOVER_MS);
-    return () => clearTimeout(timer);
-  }, [seq]);
-
-  if (!seq || seq === finishedSeq) return null;
-
-  return portal(
-    <div
-      className="office-pair-handover"
-      key={seq}
-      aria-hidden="true"
-      data-testid="office-pair-handover"
-    >
-      <span className="office-pair-handover-prop">⌨️</span>
-      {caption ? <span className="office-pair-handover-caption">{caption}</span> : null}
-    </div>,
-    host
-  );
+  if (gesture?.focusId && !ids.includes(gesture.focusId)) {
+    hands.push(
+      <PointingHand
+        key={`gesture-${gesture.seq}`}
+        focusId={gesture.focusId}
+        host={host}
+        gesture={gesture.kind}
+      />
+    );
+  }
+  return hands.length > 0 ? hands : null;
 }
 
 export default OfficePairPointer;

@@ -345,6 +345,12 @@ https://api.deepseek.com/` — 401 is reachable, 000 is blocked); never route ar
   carries `turnIndex` (`useHuddleRingControls`). `beginOfficeHuddleTurn` replaces the queue;
   `upsertOfficeHuddleBeat` can never append a pair turn because it replaces by `speakerId`, and in
   a pair every beat has the same speaker.
+- **Both huddle modes point, through one gate.** A mob's beats carry `focusId`/`alsoFocusId` too
+  (`HUDDLE_POINT_RULE` in `officePersonas.js`, named only when `visibleIds` is non-empty), and
+  `useHuddleRingControls` points while each teammate speaks or a pinned head repeats, never while
+  `watching`. A pair's Do-it runs the agent like a mob's (the Work Order handover is gone), and
+  `resumeOfficeHuddleSpeaking` sends a pair back to `listening`, never `speaking`, which would replay
+  a line already said.
 - **A pointed-at node id is validated, never trusted.** `beat.focusId` (and the optional second
   point, `beat.alsoFocusId`) survives only if the client
   sent it in `visibleIds` (`normalizeHuddleBeat` in `officePersonas.js`); mermaid only, because
@@ -361,6 +367,19 @@ https://api.deepseek.com/` — 401 is reachable, 000 is blocked); never route ar
   clients still get `reply`. Route tests for new huddle cases go in `officeHuddleCue.test.js`:
   `officeRoute.test.js` already spends 57 of the router's 60-a-minute per-IP LLM budget, and one
   more request there turns an unrelated later test into a 429.
+- **Wordless reactions are a store gesture, never a request.** A pair's nod at a small edit and
+  glance at the node you pick up are `huddle.gesture` (`setOfficeHuddleGesture`, `seq` bumps per
+  gesture); `usePairGesture` expires it after `PAIR_GESTURE_MS` for the 👍/👀 beside the box and the
+  face's nod. Interrupting a pair is `interruptOfficeHuddle`, which also drops the unsaid lines from
+  `turns`. A cancelled line used to end `useScenePacing`'s loop outright, and
+  nothing restarts it — so pinning a face mid-stand-up froze the ring on that line for good. The
+  loop now waits `CANCEL_SETTLE_MS` after a cancel and only bails if the scene itself was stopped
+  in that window; otherwise the cut was a pause and the line counts as said. A raised hand still
+  lets the speaker finish their sentence rather than cancelling, because that is what people do.
+  Seat geometry (gaze, the pair's dock, a mob face yielding) is measured on an interval in
+  `useHuddleStaging`, because every input is layout that moves under a pan without React hearing;
+  jsdom has no layout, so test the pure rules in `officeHuddleGaze.js` and check the rest in a
+  browser.
 - **Anything portaled to `<body>` disappears in fullscreen.** Native fullscreen paints only the
   fullscreen element's subtree. Desk office overlays that must survive it (the huddle ring, the
   pair's hands) portal into `useFullscreenElement()` instead; the radial menu does the same through

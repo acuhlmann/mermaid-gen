@@ -56,6 +56,7 @@ export function adoptPromptFor(beat, { fallbackToText = false } = {}) {
  *   onHardStop?: () => void,
  *   onAdoptPrompt?: (prompt: string, colleagueId: string) => void,
  *   onRequestSuggestion?: (speakerId: string) => Promise<any>,
+ *   onAskSpeaker?: (speakerId: string, question: string) => Promise<any>,
  *   narrateLine?: (line: any) => Promise<{ spoken?: boolean }>,
  *   prefetchLine?: (line: any) => void,
  *   onCancelNarration?: () => void,
@@ -67,6 +68,7 @@ export function useHuddleRingControls({
   onHardStop,
   onAdoptPrompt,
   onRequestSuggestion,
+  onAskSpeaker,
   narrateLine,
   prefetchLine,
   onCancelNarration,
@@ -103,12 +105,18 @@ export function useHuddleRingControls({
   const [pinnedSpeakerId, setPinnedSpeakerId] = useState(/** @type {string | null} */ (null));
   const [fetchingSpeakerId, setFetchingSpeakerId] = useState(/** @type {string | null} */ (null));
   const [repeatingSpeakerId, setRepeatingSpeakerId] = useState(/** @type {string | null} */ (null));
+  /** Whose turn you stopped with a raised hand, while you type the question. */
+  const [askingSpeakerId, setAskingSpeakerId] = useState(/** @type {string | null} */ (null));
+  /** Each teammate's answer to the question you asked them, played as their pinned line. */
+  const [answers, setAnswers] = useState(/** @type {Record<string, any>} */ ({}));
   const pinGenerationRef = useRef(0);
 
   useEffect(() => {
     setPinnedSpeakerId(null);
     setFetchingSpeakerId(null);
     setRepeatingSpeakerId(null);
+    setAskingSpeakerId(null);
+    setAnswers({});
     pinGenerationRef.current += 1;
   }, [huddle?.id]);
 
@@ -117,6 +125,7 @@ export function useHuddleRingControls({
       setPinnedSpeakerId(null);
       setFetchingSpeakerId(null);
       setRepeatingSpeakerId(null);
+      setAskingSpeakerId(null);
     }
   }, [huddle?.phase]);
 
@@ -171,17 +180,26 @@ export function useHuddleRingControls({
   useEffect(() => {
     if (disabled || !huddle) return undefined;
     const onKeyDown = (event) => {
-      if (event.key === 'Escape') onHardStop?.();
+      if (event.key !== 'Escape') return;
+      // Escape with a hand up takes the hand down; it does not end the stand-up.
+      if (askingSpeakerId) {
+        pinGenerationRef.current += 1;
+        setPinnedSpeakerId(null);
+        setAskingSpeakerId(null);
+        return;
+      }
+      onHardStop?.();
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [disabled, huddle, onHardStop]);
+  }, [disabled, huddle, onHardStop, askingSpeakerId]);
 
   const unpin = useCallback(() => {
     pinGenerationRef.current += 1;
     setPinnedSpeakerId(null);
     setFetchingSpeakerId(null);
     setRepeatingSpeakerId(null);
+    setAskingSpeakerId(null);
     onCancelNarration?.();
   }, [onCancelNarration]);
 
@@ -213,6 +231,27 @@ export function useHuddleRingControls({
       onAdoptPrompt?.(prompt, speakerId);
     },
     [onAdoptPrompt, onCancelNarration]
+  );
+
+  const askSpeaker = useCallback(
+    async (question) => {
+      const speakerId = askingSpeakerId;
+      if (!speakerId || typeof onAskSpeaker !== 'function') return;
+      const generation = pinGenerationRef.current;
+      setFetchingSpeakerId(speakerId);
+      const answer = await Promise.resolve(onAskSpeaker(speakerId, question)).catch(() => null);
+      if (generation !== pinGenerationRef.current) return;
+      setFetchingSpeakerId(null);
+      setAskingSpeakerId(null);
+      if (!answer?.text) {
+        setPinnedSpeakerId(null);
+        return;
+      }
+      const beat = { ...answer, speakerId };
+      setAnswers((prev) => ({ ...prev, [speakerId]: beat }));
+      void repeatPinnedBeat(speakerId, beat, generation);
+    },
+    [askingSpeakerId, onAskSpeaker, repeatPinnedBeat]
   );
 
   const handleSeatClick = useCallback(
@@ -269,7 +308,26 @@ export function useHuddleRingControls({
   const heldIndex = Math.max(0, Math.min(visibleLines || beats.length, beats.length) - 1);
   const activeBeat = speaking || watching || listening ? (beats[heldIndex] ?? null) : null;
   const activeSpeakerId = watching || pinnedSpeakerId ? null : (activeBeat?.speakerId ?? null);
-  const pinnedBeat = pinnedSpeakerId ? beatForSpeaker(huddle, pinnedSpeakerId) : null;
+  /*
+   * A raised hand: "hold on — Dinesh, why that?". The speaker finishes the
+   * sentence they are in (narration is deliberately NOT cancelled, the way a
+   * person finishes their clause before turning to you), the stand-up holds
+   * on their pinned seat, and the strip asks them. Their answer plays as their
+   * pinned line, and the stand-up carries on when it ends — the same pause and
+   * resume a seat click already uses.
+   */
+  const holder = pairing || watching ? null : (pinnedSpeakerId ?? activeSpeakerId);
+  const raiseHand = useCallback(() => {
+    if (pairing || watching || !holder) return;
+    pinGenerationRef.current += 1;
+    setPinnedSpeakerId(holder);
+    setRepeatingSpeakerId(null);
+    setAskingSpeakerId(holder);
+  }, [pairing, watching, holder]);
+
+  const pinnedBeat = pinnedSpeakerId
+    ? (answers[pinnedSpeakerId] ?? beatForSpeaker(huddle, pinnedSpeakerId))
+    : null;
   const pinnedPrompt = pinnedSpeakerId
     ? adoptPromptFor(pinnedBeat, { fallbackToText: true })
     : null;
@@ -285,15 +343,18 @@ export function useHuddleRingControls({
     voiceActive: typeof narrateLine === 'function' && (speaking || listening) && lineSpoken
   });
   /**
-   * What the person in the chair is pointing at right now — one box, or two
-   * when the line is about a pair of them. Only ever set for a pair on a
-   * mermaid canvas — every other case has no resolvable node id, and a pointer
-   * aimed at nothing is worse than no pointer. Memoised on the ids themselves
-   * so a re-render does not hand the canvas a "new" point to re-ring.
+   * What the speaker is pointing at right now — one box, or two when the line
+   * is about a pair of them. A pair keeps pointing while it waits on you; a
+   * mob points while each teammate speaks, and again while a pinned head
+   * repeats its remark. Only ever set on a mermaid canvas — every other case
+   * has no resolvable node id, and a pointer aimed at nothing is worse than no
+   * pointer. Memoised on the ids themselves so a re-render does not hand the
+   * canvas a "new" point to re-ring.
    */
-  const pointing = pairing && (speaking || listening) && !watching;
-  const focusA = pointing ? activeBeat?.focusId : undefined;
-  const focusB = pointing ? activeBeat?.alsoFocusId : undefined;
+  const pointBeat = pinnedBeat ?? activeBeat;
+  const pointing = !watching && (pairing ? speaking || listening : speaking || Boolean(pinnedBeat));
+  const focusA = pointing ? pointBeat?.focusId : undefined;
+  const focusB = pointing ? pointBeat?.alsoFocusId : undefined;
   const activeFocusIds = useMemo(
     () => beatFocusIds({ focusId: focusA, alsoFocusId: focusB }),
     [focusA, focusB]
@@ -314,6 +375,20 @@ export function useHuddleRingControls({
     activeSpeakerId,
     pinnedBeat,
     pinnedPrompt,
+    /**
+     * The pinned line is the answer to your question, and it should be read as
+     * well as heard: a remark you are re-hearing hides its bubble while voiced,
+     * but an answer is new, so captions or a missing voice show it.
+     */
+    showPinnedText:
+      Boolean(pinnedSpeakerId && answers[pinnedSpeakerId] === pinnedBeat) &&
+      (snapshot.captions || typeof narrateLine !== 'function'),
+    /** The teammate you raised a hand to, while you type the question. */
+    askingSpeakerId,
+    /** Who a raised hand would stop right now, or null. */
+    canRaiseHandFor: askingSpeakerId || typeof onAskSpeaker !== 'function' ? null : holder,
+    raiseHand,
+    askSpeaker,
     /** How many beats have been revealed (1-based). Used for active-line sync. */
     visibleLines: pacingActive ? visibleLines : 0,
     showText,

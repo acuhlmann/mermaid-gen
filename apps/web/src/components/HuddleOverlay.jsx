@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useMemo, useRef } from 'react';
 import { officeChromeCopy, officeSenderInfo } from '../utils/officeCast.js';
 import {
   HUDDLE_SEAT_STAGGER_MS,
@@ -6,6 +6,9 @@ import {
   useHuddleRingControls
 } from '../hooks/useHuddleRingControls.js';
 import { formatLocale } from '../i18n/formatLocale.js';
+import { useHuddleStaging } from '../hooks/useHuddleStaging.js';
+import { usePairGesture } from '../hooks/usePairGesture.js';
+import { huddleLookTargets } from '../utils/officeHuddleGaze.js';
 import OfficePairReply from './OfficePairReply.jsx';
 import { PersonaFace } from './personaFaces/index.jsx';
 
@@ -38,10 +41,23 @@ const SEAT_SLOTS = [
  */
 const PAIR_SLOT = { side: 'right', pos: '48%' };
 
-function seatFor(index, pairing = false) {
-  if (pairing) return PAIR_SLOT;
+/**
+ * Where a seat sits. A pair's chair moves (`useHuddleStaging` docks it beside
+ * the box the moment is about, and off anything you are working on); a mob's
+ * ring is fixed, because six people have nowhere free to shuffle to.
+ *
+ * @param {number} index
+ * @param {boolean} pairing
+ * @param {{ side: 'left' | 'right', pos: number } | null} [dock]
+ */
+function seatFor(index, pairing = false, dock = null) {
+  if (pairing) return dock ? { side: dock.side, pos: `${dock.pos * 100}%` } : PAIR_SLOT;
   return SEAT_SLOTS[index % SEAT_SLOTS.length];
 }
+
+const EMPTY_FOCUS_IDS = [];
+/** The reply chips that are also questions; the ask strip offers only these. */
+const ASK_CHIP_IDS = ['why', 'show'];
 
 /**
  * Team huddle (docs/office-parody.md) — desk renderer #1. The floor version is
@@ -54,6 +70,8 @@ export default function HuddleOverlay({
   onHardStop,
   onAdoptPrompt,
   onRequestSuggestion,
+  /** Mob only: a question for the teammate you stopped with a raised hand. */
+  onAskSpeaker,
   /** Pairing only: what you said back to the person in the chair. */
   onPairReply,
   narrateLine,
@@ -66,6 +84,7 @@ export default function HuddleOverlay({
     onHardStop,
     onAdoptPrompt,
     onRequestSuggestion,
+    onAskSpeaker,
     narrateLine,
     prefetchLine,
     onCancelNarration,
@@ -85,6 +104,12 @@ export default function HuddleOverlay({
     pinnedBeat,
     pinnedPrompt,
     showText,
+    activeFocusIds = EMPTY_FOCUS_IDS,
+    askingSpeakerId = null,
+    canRaiseHandFor = null,
+    showPinnedText = false,
+    raiseHand,
+    askSpeaker,
     unpin,
     handleDoIt,
     handleSeatClick
@@ -93,6 +118,36 @@ export default function HuddleOverlay({
   const handleShadeClick = useCallback(() => {
     if (pinnedSpeakerId) unpin();
   }, [pinnedSpeakerId, unpin]);
+
+  /*
+   * Faces that look at somebody. The mob turns to whoever has the floor and
+   * the one talking looks at the box they mean; the pair looks at the box the
+   * moment is about — the one they just nodded or glanced at, else the one
+   * they are pointing to.
+   */
+  const layerRef = useRef(/** @type {HTMLDivElement | null} */ (null));
+  const gesture = usePairGesture(huddle);
+  const attendees = huddle?.attendees ?? EMPTY_FOCUS_IDS;
+  const floorId = pinnedSpeakerId ?? activeSpeakerId;
+  const gestureFocusId = gesture?.focusId ?? null;
+  const lookTargets = useMemo(
+    () =>
+      huddleLookTargets({
+        attendees,
+        pairing,
+        floorId,
+        focusIds: activeFocusIds,
+        gestureFocusId
+      }),
+    [attendees, pairing, floorId, activeFocusIds, gestureFocusId]
+  );
+  const staging = useHuddleStaging({
+    layerRef,
+    active: Boolean(huddle) && !watching,
+    pairing: Boolean(pairing),
+    lookTargets,
+    dockFocusId: gestureFocusId ?? activeFocusIds[0] ?? null
+  });
 
   if (!huddle) return null;
 
@@ -119,6 +174,7 @@ export default function HuddleOverlay({
 
   return (
     <div
+      ref={layerRef}
       className={[
         'office-huddle-layer',
         'is-anchor-canvas',
@@ -141,7 +197,10 @@ export default function HuddleOverlay({
         data-testid={pinnedSpeakerId ? 'office-huddle-shade' : undefined}
       />
       {huddle.attendees.map((id, index) => {
-        const slot = seatFor(index, pairing);
+        const slot = seatFor(index, pairing, staging.dock);
+        const gaze = staging.gaze[id];
+        const yielding = staging.yielding.includes(id);
+        const nodding = pairing && gesture?.kind === 'nod';
         const person = officeSenderInfo(id);
         const isSpeaking = activeSpeakerId === id;
         const isPinned = pinnedSpeakerId === id;
@@ -149,16 +208,20 @@ export default function HuddleOverlay({
         const isRepeating = repeatingSpeakerId === id;
         const beat = isPinned ? pinnedBeat : isSpeaking ? activeBeat : null;
         const hideRemarkText =
-          (isPinned && (isRepeating || isFetching)) || ((isSpeaking || isPinned) && !showText);
+          (isPinned && ((isRepeating && !showPinnedText) || isFetching)) ||
+          ((isSpeaking || isPinned) && !showText);
         const showRemarkText = Boolean(beat?.text) && !hideRemarkText;
         const showFetching = isFetching && !beat?.text;
         const showBubble = showRemarkText || showFetching;
         return (
           <div
-            key={id}
+            // A pair that changes sides leans in again from the new edge.
+            key={pairing ? `${id}:${slot.side}` : id}
             className={[
               'office-huddle-seat',
               `is-side-${slot.side}`,
+              yielding ? 'is-yielding' : '',
+              nodding ? 'is-nodding' : '',
               isSpeaking ? 'is-speaking' : '',
               activeSpeakerId && !isSpeaking && !isPinned ? 'is-listening' : '',
               isPinned ? 'is-pinned' : '',
@@ -171,8 +234,11 @@ export default function HuddleOverlay({
             style={{
               '--huddle-pos': slot.pos,
               '--huddle-accent': person.accentColor,
+              '--gaze-x': `${gaze?.x ?? 0}px`,
+              '--gaze-y': `${gaze?.y ?? 0}px`,
               animationDelay: `${index * HUDDLE_SEAT_STAGGER_MS}ms`
             }}
+            data-seat-id={id}
             data-testid={isPinned ? `office-huddle-pinned-${id}` : `office-huddle-seat-${id}`}
             data-speaking={isSpeaking ? 'true' : undefined}
             data-pinned={isPinned ? 'true' : undefined}
@@ -191,7 +257,13 @@ export default function HuddleOverlay({
                 }
               )}
             >
-              <PersonaFace id={id} size={52} className="office-huddle-face" />
+              <PersonaFace
+                // Remounted per nod so each one replays.
+                key={nodding ? `nod-${gesture.seq}` : 'face'}
+                id={id}
+                size={52}
+                className="office-huddle-face"
+              />
               <span className="office-huddle-name">{person.name}</span>
             </button>
             {showBubble ? (
@@ -261,7 +333,36 @@ export default function HuddleOverlay({
             doItTitle={copy.delegateTitle}
           />
         ) : null}
+        {askingSpeakerId && typeof askSpeaker === 'function' ? (
+          <OfficePairReply
+            partnerName={officeSenderInfo(askingSpeakerId).name}
+            copy={{
+              ...copy,
+              pairReplyLabel: copy.askLabel ?? 'Ask {name}',
+              pairReplyPlaceholder: formatLocale(copy.askPlaceholder ?? 'Ask {name} something…', {
+                name: officeSenderInfo(askingSpeakerId).name
+              })
+            }}
+            busy={fetchingSpeakerId === askingSpeakerId}
+            onReply={(text) => void askSpeaker(text)}
+            testIdPrefix="office-huddle-ask"
+            chipIds={ASK_CHIP_IDS}
+          />
+        ) : null}
         <div className="office-huddle-chrome-actions">
+          {canRaiseHandFor && typeof raiseHand === 'function' ? (
+            <button
+              type="button"
+              className="office-huddle-raise-hand"
+              data-testid="office-huddle-raise-hand"
+              onClick={() => raiseHand()}
+              title={formatLocale(copy.raiseHandTitle ?? 'Stop {name} and ask them something', {
+                name: officeSenderInfo(canRaiseHandFor).name
+              })}
+            >
+              <span aria-hidden="true">🙋</span> {copy.raiseHand ?? 'Hold on'}
+            </button>
+          ) : null}
           {delegatePrompt ? (
             <button
               type="button"

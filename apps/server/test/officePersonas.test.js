@@ -925,6 +925,31 @@ test('pair prompt reacts to your edit or speaks up unprompted when cued', () => 
   assert.match(quiet, /working quietly for a while/);
 });
 
+test('pair prompt answers a question raised mid-stand-up, and notices a taken suggestion', () => {
+  const turns = [
+    { role: 'partner', text: 'Billing should own its own tokens.' },
+    { role: 'you', text: 'Why not Auth?' }
+  ];
+  const ask = buildPairSystemPrompt({ attendee: 'gilfoyle', turns, cue: 'ask' });
+  assert.match(ask, /EXACTLY 1 beat from "gilfoyle": their answer to the question/);
+  assert.match(ask, /stopped the team stand-up/);
+  const user = buildHuddleUserPrompt({
+    contentType: 'mermaid',
+    diagramSource: 'flowchart TD\n  Auth --> Billing',
+    visibleLabels: ['Auth', 'Billing'],
+    turns,
+    cue: 'ask'
+  });
+  assert.match(user, /stopped the stand-up to ask you that/);
+
+  const edit = buildPairSystemPrompt({
+    attendee: 'gilfoyle',
+    turns: [{ role: 'edit', text: 'added a box "Cache". You had suggested: "Add a Cache"' }],
+    cue: 'edit'
+  });
+  assert.match(edit, /pleased if they took it, a raised eyebrow if they went another way/);
+});
+
 test('parsePairScript keeps a focusId the client can resolve and drops one it cannot', () => {
   const raw = JSON.stringify({
     beats: [
@@ -1095,6 +1120,22 @@ test('buildHuddleSystemPrompt names every attendee and forbids a facilitator', (
   assert.match(prompt, /speakerId "dinesh"/);
   assert.match(prompt, /EXACTLY one beat per person/);
   assert.match(prompt, /No facilitation/);
+  // A stand-up hands over: a remark can end on the next person's name.
+  assert.match(prompt, /PASS THE WORD/);
+});
+
+test('buildHuddleSystemPrompt lets each teammate point only when there are ids', () => {
+  const withIds = buildHuddleSystemPrompt({
+    attendees: ['gilfoyle', 'dinesh'],
+    visibleIds: ['flowchart-Auth-0']
+  });
+  assert.match(withIds, /POINT AT WHAT YOU MEAN/);
+  assert.match(withIds, /"focusId": string \(optional\), "alsoFocusId": string \(optional\)/);
+  assert.match(withIds, /disagrees with the one before\s+them points at their own box AND/);
+
+  // Offering a field the canvas cannot use only invites a made-up id.
+  const without = buildHuddleSystemPrompt({ attendees: ['gilfoyle', 'dinesh'] });
+  assert.doesNotMatch(without, /focusId/i);
 });
 
 test('buildHuddleSystemPrompt refresh mode only scripts remaining teammates', () => {

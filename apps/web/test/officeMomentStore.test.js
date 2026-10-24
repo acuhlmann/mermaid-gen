@@ -368,6 +368,14 @@ describe('officeMomentStore', () => {
     expect(getOfficeSnapshot().huddle.phase).toBe('speaking');
   });
 
+  it('hands a pair back to listening after a Do-it run, not to a replayed line', () => {
+    const id = startOfficeHuddle(['gilfoyle'], { mode: 'pair' });
+    setOfficeHuddleBeats(id, [{ speakerId: 'gilfoyle', text: 'Split Auth.' }]);
+    pauseOfficeHuddleForWatching(id);
+    resumeOfficeHuddleSpeaking(id);
+    expect(getOfficeSnapshot().huddle.phase).toBe('listening');
+  });
+
   it('stores on-spot suggestions beside the spoken queue', () => {
     const id = startOfficeHuddle(['gilfoyle', 'dinesh']);
     setOfficeHuddleBeats(id, [{ speakerId: 'gilfoyle', text: 'hi' }]);

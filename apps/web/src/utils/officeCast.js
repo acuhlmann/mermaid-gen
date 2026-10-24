@@ -2058,7 +2058,11 @@ export const OFFICE_CHROME_COPY = {
     pairReplyChipShow: 'Show me',
     pairReplyChipWhy: 'Why that?',
     pairReplyChipAgree: 'Yeah, agreed',
-    pairHandover: 'Over to you'
+    /** A raised hand mid-stand-up: stop whoever has the floor and ask them. */
+    raiseHand: 'Hold on',
+    raiseHandTitle: 'Stop {name} and ask them something',
+    askLabel: 'Ask {name}',
+    askPlaceholder: 'Ask {name} something…'
   },
   coffee: {
     kindLabel: 'Coffee run',

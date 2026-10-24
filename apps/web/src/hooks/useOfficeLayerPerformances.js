@@ -30,6 +30,7 @@ import { useScenePacing } from './useScenePacing.js';
  *     onHardStop?: () => void,
  *     onAdoptPrompt?: (prompt: string, colleagueId: string) => void,
  *     onRequestSuggestion?: (speakerId: string) => Promise<any>,
+ *     onAskSpeaker?: (speakerId: string, question: string) => Promise<any>,
  *     narrateLine?: (line: any) => Promise<{ spoken?: boolean }>,
  *     prefetchLine?: (line: any) => void,
  *     onCancelNarration?: () => void
@@ -133,6 +134,7 @@ export function useOfficeLayerPerformances({
     onHardStop: huddleHandlers.onHardStop,
     onAdoptPrompt: huddleHandlers.onAdoptPrompt,
     onRequestSuggestion: huddleHandlers.onRequestSuggestion,
+    onAskSpeaker: huddleHandlers.onAskSpeaker,
     narrateLine: huddleHandlers.narrateLine,
     prefetchLine: huddleHandlers.prefetchLine,
     onCancelNarration: huddleHandlers.onCancelNarration

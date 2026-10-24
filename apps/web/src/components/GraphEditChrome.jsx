@@ -109,7 +109,9 @@ export default function GraphEditChrome({
           <input
             ref={inputRef}
             defaultValue={labelSession.draft}
-            placeholder={labelCopy.renamePlaceholder}
+            placeholder={
+              labelSession.created ? labelCopy.nameNodeTitle : labelCopy.renamePlaceholder
+            }
             aria-label={
               labelSession.created ? labelCopy.nameNodeTitle : labelCopy.renamePlaceholder
             }
