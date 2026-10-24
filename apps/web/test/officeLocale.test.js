@@ -273,24 +273,27 @@ describe('office locale bundles', () => {
   });
 
   /*
-   * Slice 16: the filled state of every prop that can show you your own work.
-   * `lineYours` is what `FloorPropCard` branches on, so a locale missing it
-   * quietly keeps showing the empty state — the architecture from two re-orgs
-   * ago, or the 2023 print queue — even with your diagram in front of you, and
-   * `{count}` / `{labels}` are the whole point of the line, so a translation
-   * that drops them loses the specificity the joke runs on.
+   * Slice 16, re-scoped by § 6a: the *filled* state of every prop whose whole
+   * use is looking at it. A locale missing one quietly keeps showing the empty
+   * state — the architecture from two re-orgs ago, or the 2023 print queue —
+   * forever, in that language only.
    *
-   * **Swept over the derived set, not over the whiteboard.** This case named
-   * one prop while the rule was about a class, which is the failure the
-   * shop-talk bank check already paid for once (a sweep narrower than its
-   * invariant only ever fails inside the filter). The class is: a prop you can
-   * walk to whose whole use is *looking at it* — usable, and with no `verb`,
-   * since a prop that pours a coffee is answering a different question. That
-   * is the same derivation `officeFloorPropsTable.test.js` sweeps for the log
-   * sentences, and it is what makes a third one impossible to ship in English
-   * only.
+   * There are two filled states now, and the sweep asserts a prop has exactly
+   * one of them rather than naming which prop is which. The printer **reflects
+   * your work** (`lineYours`, whose `{count}` / `{labels}` are the whole point
+   * of the line); the whiteboard **carries the room's own record** (`notes`,
+   * whose per-colleague bank and `{label}` slot are the same kind of hole when
+   * a translation drops them). A prop declaring neither is a prop reading you
+   * somebody else's print queue in that locale.
+   *
+   * **Swept over the derived set, not over a named prop.** This case named one
+   * prop while the rule was about a class, which is the failure the shop-talk
+   * bank check already paid for once (a sweep narrower than its invariant only
+   * ever fails inside the filter). The class is: a prop you can walk to whose
+   * whole use is *looking at it* — usable, and with no `verb`, since a prop
+   * that pours a coffee is answering a different question.
    */
-  it.each(LOCALES)('carries the board-aware copy for props that show your work (%s)', (locale) => {
+  it.each(LOCALES)('carries the filled copy for props you can only look at (%s)', (locale) => {
     const items = getUiLocaleBundle(locale).office.OFFICE_CHROME_COPY.floor.props.items;
     const reflective = usablePropKinds().filter((kind) => !propUseFor(kind)?.verb);
     // The companion non-empty assertion: a sweep over a derived set that came
@@ -299,15 +302,30 @@ describe('office locale bundles', () => {
     for (const kind of reflective) {
       const item = items[kind];
       const en = OFFICE_CHROME_COPY.floor.props.items[kind];
-      expect(item?.lineYours, `${locale} ${kind}.lineYours`).toBeTruthy();
-      expect(item.lineYours, `${locale} ${kind}.lineYours {count}`).toContain('{count}');
-      expect(item.detailsYours?.length ?? 0, `${locale} ${kind}.detailsYours`).toBe(
-        en.detailsYours.length
+      expect(Boolean(en.lineYours) !== Boolean(en.notes), `${kind} declares one camp`).toBe(true);
+
+      if (en.lineYours) {
+        expect(item?.lineYours, `${locale} ${kind}.lineYours`).toBeTruthy();
+        expect(item.lineYours, `${locale} ${kind}.lineYours {count}`).toContain('{count}');
+        expect(item.detailsYours?.length ?? 0, `${locale} ${kind}.detailsYours`).toBe(
+          en.detailsYours.length
+        );
+        expect(
+          item.detailsYours.some((d) => d.includes('{labels}')),
+          `${locale} ${kind}.detailsYours {labels}`
+        ).toBe(true);
+        continue;
+      }
+
+      expect(item?.notes?.stale, `${locale} ${kind}.notes.stale`).toBeTruthy();
+      expect(item.notes.heardAboutYours, `${locale} ${kind}.notes.heardAboutYours`).toContain(
+        '{label}'
       );
-      expect(
-        item.detailsYours.some((d) => d.includes('{labels}')),
-        `${locale} ${kind}.detailsYours {labels}`
-      ).toBe(true);
+      // Keyed by colleague, so a missing author is a note the board can never
+      // put up in that language — the same hole, one person wide.
+      for (const author of Object.keys(en.notes.open)) {
+        expect(item.notes.open?.[author], `${locale} ${kind}.notes.open.${author}`).toBeTruthy();
+      }
     }
   });
 

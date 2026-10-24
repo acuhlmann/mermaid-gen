@@ -1585,17 +1585,19 @@ export const OFFICE_ZH_CN = {
             useLabel: '白板 — 读读上面写的',
             useTitle: '走过去读一下',
             line: '两轮重组前的架构，油性笔写的。三个框、一根箭头，还有被划了两道的 SYNERGY。',
-            // Slice 16 — see the note on the default bundle. `line` and
-            // `details` stay the empty state; these two take over once your
-            // diagram is on the board.
-            lineYours:
-              '有人把旧架构擦了。现在上面是你的——{count} 个框，油性笔写的，已经被袖子蹭花了一处。',
-            detailsYours: [
-              '框上写着：{labels}。其中一个被画了星号。没人知道是谁画的，也不知道指的是哪个。',
-              '多了一根你那版上没有的箭头。它从一个框出发，又回到同一个框。',
-              '下面另一种笔迹写着「这个归谁管」。没有箭头说明是哪一个。',
-              'SYNERGY 还活在角落里，被划了两道。它总是活着。'
-            ],
+            // § 6a — the board's own record; see the note on the default
+            // bundle. `line` and `details` are the old board nobody erased,
+            // and the mirror copy is retired.
+            notes: {
+              stale: 'SYNERGY，油性笔写的，划了两道。两轮重组前留下的。没人敢擦。',
+              open: {
+                gilfoyle: '一份迁移方案，字小而愤怒，审批日期那一栏是空的。',
+                scrumMaster: '「待议：箭头到底归谁管」——复盘会上写的，用的是别人都不用的颜色。',
+                hr: '合规培训 — 本周五，划了三道，还画了个笑脸。'
+              },
+              heardAboutYours:
+                '有人凭听说画了一版「{label}」：三个框，彼此不相连，其中一个词还写错了。'
+            },
             details: [
               '右下角小字：「这只是临时的」。日期是四年前。',
               '第四个框被擦掉了一半。还能认出 BILLING 这个词。',

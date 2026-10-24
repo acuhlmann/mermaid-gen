@@ -12,6 +12,7 @@
  */
 
 import { BOARD_INK } from '../../utils/officeFloorBoard.js';
+import { boardNoteMarks } from '../../utils/officeFloorNotes.js';
 import { TILE_H, TILE_W } from '../../utils/officeFloorPlan.js';
 
 /** Half-tile screen deltas: one tile along +x is (UX, UY), along +y is (−UX, UY). */
@@ -445,15 +446,17 @@ export function DeskFurniture({ part, you = false, look, board = null }) {
  * one entry and never touches control flow. Every prop is boxes; the comedy is
  * in the labels, not the polygons.
  *
- * `board` is what *you* are working on, and reaches exactly the two props that
- * can honestly show it: the whiteboard and the glass room's table. Every other
- * entry ignores it, which is why it rides the same options object rather than
- * becoming a second parameter.
+ * `board` is what *you* are working on, and reaches exactly the one prop that
+ * can honestly show it: the glass room's table, in a meeting about it. `notes`
+ * is what the *room* has written on its own whiteboard (§ 6a). Both ride the
+ * same options object rather than becoming parameters, and every other entry
+ * ignores both.
  *
  * @type {Record<string, (opts: {
  *   span: number,
  *   axis: 'x' | 'y',
- *   board: import('../../utils/officeFloorBoard.js').BoardState | null
+ *   board: import('../../utils/officeFloorBoard.js').BoardState | null,
+ *   notes: import('../../utils/officeFloorNotes.js').BoardNote[]
  * }) => import('react').ReactNode>}
  */
 const PROP_ART = {
@@ -471,29 +474,36 @@ const PROP_ART = {
     </g>
   ),
   /*
-   * The board carries *your* diagram when you have one, and the architecture
-   * from two re-orgs ago when you do not (§ 5 slice 16). The ink goes on last,
-   * over the shading wash rather than under it: a 8% dark wash across a 1.4 px
-   * stroke is the difference between a diagram and a smudge.
+   * The board carries what the *room* has written on it (§ 6a), not a third
+   * copy of your diagram: the re-org nobody undid, somebody's standing item,
+   * and a sketch of your work by somebody who only heard about it. The marks
+   * are `boardNoteMarks`'s, and they carry no connectors — a board with a
+   * topology on it would be the mirror again.
+   *
+   * The ink goes on last, over the shading wash rather than under it: an 8%
+   * dark wash across a 1.4 px stroke is the difference between handwriting and
+   * a smudge.
    */
-  whiteboard: ({ board }) => (
-    <g>
-      <IsoBox w={0.1} d={1.5} h={12} color={DARK} />
-      <IsoPanel span={1.5} axis="y" h={62} color="#f8fafc" opacity={0.95} />
-      <IsoPanel span={1.5} axis="y" h={62} color={DARK} opacity={0.08} />
-      {board?.mini?.nodes?.length ? (
-        <IsoPanelInk
-          span={1.5}
-          axis="y"
-          h={62}
-          boxes={board.mini.nodes}
-          edges={board.mini.edges}
-          boxColor={BOARD_INK.box}
-          edgeColor={BOARD_INK.edge}
-        />
-      ) : null}
-    </g>
-  ),
+  whiteboard: ({ notes }) => {
+    const marks = boardNoteMarks(notes ?? []);
+    return (
+      <g>
+        <IsoBox w={0.1} d={1.5} h={12} color={DARK} />
+        <IsoPanel span={1.5} axis="y" h={62} color="#f8fafc" opacity={0.95} />
+        <IsoPanel span={1.5} axis="y" h={62} color={DARK} opacity={0.08} />
+        {marks.length ? (
+          <IsoPanelInk
+            span={1.5}
+            axis="y"
+            h={62}
+            boxes={marks}
+            boxColor={BOARD_INK.box}
+            edgeColor={BOARD_INK.edge}
+          />
+        ) : null}
+      </g>
+    );
+  },
   serverRack: () => (
     <g>
       <IsoBox w={0.62} d={0.7} h={74} color="#39424f" />
@@ -559,9 +569,10 @@ const PROP_ART = {
  *   kind: string,
  *   span?: number,
  *   axis?: 'x' | 'y',
- *   board?: import('../../utils/officeFloorBoard.js').BoardState | null
+ *   board?: import('../../utils/officeFloorBoard.js').BoardState | null,
+ *   notes?: import('../../utils/officeFloorNotes.js').BoardNote[]
  * }} props
  */
-export function FloorPropArt({ kind, span = 2, axis = 'x', board = null }) {
-  return PROP_ART[kind]?.({ span, axis, board }) ?? null;
+export function FloorPropArt({ kind, span = 2, axis = 'x', board = null, notes = [] }) {
+  return PROP_ART[kind]?.({ span, axis, board, notes }) ?? null;
 }
