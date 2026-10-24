@@ -1023,6 +1023,70 @@ describe('App simplified controls', { timeout: 20_000 }, () => {
     globalThis.matchMedia = previousMatchMedia;
   }, 15000);
 
+  it('converts a generated deliverable into the format just picked and restores the original from cache', async () => {
+    const mermaidWithTopic = {
+      ...initialState,
+      revisionId: 2,
+      diagramSource: 'flowchart TD\n  Sun --> Planets',
+      lastUserPrompt: 'Solar system',
+      updatedAt: '2026-05-10T08:30:00.000Z'
+    };
+    const chartSlot = {
+      ...createInitialDiagramState('chart'),
+      revisionId: 9,
+      diagramSource: '{"mark":"bar"}',
+      lastUserPrompt: 'Solar system',
+      updatedAt: '2026-05-10T09:30:00.000Z'
+    };
+
+    fetchSessionDiagramStateMock.mockResolvedValue({
+      activeContentType: 'mermaid',
+      mermaid: mermaidWithTopic,
+      chart: createInitialDiagramState('chart'),
+      infographic: createInitialDiagramState('infographic')
+    });
+
+    streamDiagramAgentMock.mockImplementation(async (payload, onEvent) => {
+      if (payload.operation === 'intent' && payload.contentType === 'chart') {
+        onEvent?.({
+          type: 'final',
+          revisionChanged: true,
+          state: chartSlot,
+          message: 'Applied.'
+        });
+      }
+    });
+
+    render(<App />);
+    await waitForControlsReady();
+
+    pickContentMode('Chart');
+
+    await waitFor(() => {
+      const intentCalls = streamDiagramAgentMock.mock.calls.filter(
+        (call) => call[0]?.operation === 'intent' && call[0]?.contentType === 'chart'
+      );
+      expect(intentCalls).toHaveLength(1);
+      expect(intentCalls[0][0].peerContext?.contentType).toBe('mermaid');
+      expect(intentCalls[0][0].peerContext?.diagramSource).toContain('Sun');
+    });
+
+    fetchSessionDiagramStateMock.mockResolvedValue({
+      activeContentType: 'chart',
+      mermaid: mermaidWithTopic,
+      chart: chartSlot,
+      infographic: createInitialDiagramState('infographic')
+    });
+    streamDiagramAgentMock.mockClear();
+
+    pickContentMode('Diagram');
+    await waitForControlsReady();
+
+    expect(
+      streamDiagramAgentMock.mock.calls.filter((call) => call[0]?.operation === 'intent')
+    ).toHaveLength(0);
+  });
+
   it('auto-submits intent with peerContext when switching to infographic after Refine without lastUserPrompt', async () => {
     const mermaidFromRefine = {
       ...initialState,
@@ -1178,6 +1242,55 @@ describe('App simplified controls', { timeout: 20_000 }, () => {
     expect(screen.getByRole('menuitem', { name: /^Auto/i }).getAttribute('aria-current')).toBe(
       'true'
     );
+  });
+
+  it('keeps a Deliverable pick when Auto has not created a server session yet', async () => {
+    window.localStorage.setItem('archislop:content-mode-v2', 'auto');
+    window.history.replaceState({}, '', '/sessions/missing-room');
+    const notFound = new Error('Session not found');
+    notFound.code = 'SESSION_NOT_FOUND';
+    fetchSessionDiagramStateMock.mockRejectedValueOnce(notFound);
+
+    render(<App />);
+    await waitFor(() => {
+      expect(screen.getByTestId('desk-os-menubar')).toBeTruthy();
+    });
+
+    pickContentMode('Chart');
+
+    await waitFor(() => {
+      expect(window.location.pathname).toBe('/sessions/fresh-recovered-session');
+    });
+    openDeliverableMenu();
+    expect(screen.getByRole('menuitem', { name: /^Chart/i }).getAttribute('aria-current')).toBe(
+      'true'
+    );
+    expect(
+      screen.getByRole('menuitem', { name: /^Auto/i }).getAttribute('aria-current')
+    ).toBeNull();
+  });
+
+  it('keeps a Deliverable pick on a client-minted room that 404s', async () => {
+    window.localStorage.removeItem('archislop:content-mode-v2');
+    window.history.replaceState({}, '', '/');
+    const notFound = new Error('Session not found');
+    notFound.code = 'SESSION_NOT_FOUND';
+    fetchSessionDiagramStateMock.mockRejectedValueOnce(notFound);
+
+    render(<App />);
+    await waitFor(() => {
+      expect(screen.getByTestId('desk-os-menubar')).toBeTruthy();
+    });
+
+    pickContentMode('Infographic');
+
+    await waitFor(() => {
+      expect(syncClientDiagramStateMock).toHaveBeenCalled();
+    });
+    openDeliverableMenu();
+    expect(
+      screen.getByRole('menuitem', { name: /^Infographic/i }).getAttribute('aria-current')
+    ).toBe('true');
   });
 
   it('does not let a slot Auto resolved to pin the next fresh visit', async () => {

@@ -16,6 +16,7 @@ export {
   isSlotInSyncForTopic,
   isValidModeSwitchSource,
   mergeLeavingSlotSnapshot,
+  modeSwitchSource,
   needsModeSwitchPeerSync,
   peerRequiresModeSwitchTranslation,
   pickPrimaryPeerMode,

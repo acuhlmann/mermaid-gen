@@ -19,18 +19,21 @@ import {
   readDiagramCache,
   SESSION_NOT_FOUND_CODE,
   shouldAutoSubmitModeSwitchIntent,
+  modeSwitchSource,
   syncClientDiagramState
 } from '../../state/diagramStore.js';
 import { markAppReady } from '../../utils/appReadySignal.js';
-import { sessionPathFor } from '../../utils/appSessionLocation.js';
+import { CONTENT_MODE_STORAGE_KEY, sessionPathFor } from '../../utils/appSessionLocation.js';
 import { createInitialDiagramState } from '@archislop/shared';
 import { isConcreteContentMode } from '../../utils/renderModeAction.js';
 
 /**
  * Session hydrate effect: fetch server state on session/mode change, handle 404 rotation,
  * and auto-submit mode-switch intents when peer slots need translation.
- * A missing existing room resets to Auto and gets a new session id; a missing
- * freshly minted room keeps its id and resets to Mermaid with best-effort priming.
+ * A missing room you opened (the format did not just change) resets to Auto and
+ * gets a new session id, or keeps a client-minted id and primes it. A format
+ * you just picked is kept: Auto never registers a server session, so the first
+ * concrete pick 404s and must not snap the menu back.
  * Other fetch failures are reported through `setError`.
  *
  * @param {{
@@ -92,6 +95,7 @@ export function useSessionHydrate({
 }) {
   const {
     previousContentModeRef,
+    lastLeftModeRef,
     sourceRevisionAtViewRef,
     leavingSlotSnapshotRef,
     crossModeSyncRef,
@@ -122,11 +126,11 @@ export function useSessionHydrate({
     // Capture the textarea state at the moment the user toggled mode. Used below to gate
     // auto-rerun: if the user is actively typing a different prompt, don't clobber it.
     const promptAtSwitch = promptRef.current;
-    const sourceMode =
-      previousContentModeRef.current !== contentMode &&
-      isConcreteContentMode(previousContentModeRef.current)
-        ? previousContentModeRef.current
-        : null;
+    const sourceMode = modeSwitchSource({
+      previous: previousContentModeRef.current,
+      next: contentMode,
+      lastLeft: lastLeftModeRef.current
+    });
     const sourceRevisionAtLastView =
       sourceMode != null ? (sourceRevisionAtViewRef.current[sourceMode] ?? null) : null;
     // Keep loading true across the hydrate → auto-submit microtask gap so an empty sibling
@@ -151,8 +155,11 @@ export function useSessionHydrate({
     }
 
     // Mid-stream Auto → concrete resolve: update the picker without re-hydrating.
+    // The suppress flag was armed for this pass. Consume it here so the next
+    // Deliverable change can still convert the diagram that just landed.
     if (skipHydrateOnceRef.current) {
       skipHydrateOnceRef.current = false;
+      suppressNextModeSwitchRerunRef.current = false;
       setSessionHydrated(true);
       return undefined;
     }
@@ -333,6 +340,7 @@ export function useSessionHydrate({
           sourceRevisionAtViewRef.current[contentMode] = data.revisionId ?? 0;
         }
         previousContentModeRef.current = contentMode;
+        if (lastLeftModeRef.current === sourceMode) lastLeftModeRef.current = null;
       })
       .catch(async (err) => {
         if (cancelled) return;
@@ -356,20 +364,34 @@ export function useSessionHydrate({
           //  (a) Stale URL/bookmark after a server restart — rotate to a new room id + wipe storage.
           //  (b) Client-minted id on first visit — 404 is expected; keep id and prime the server.
           const wasFreshlyMinted = freshlyMintedSessionIdsRef.current.has(activeSessionId);
-          // A dead room starts over on the default, Auto. A client-minted room only
-          // gets here with a concrete format already picked, and keeps the old reset.
-          setContentMode(wasFreshlyMinted ? 'mermaid' : 'auto');
+          // Opening a dead room still starts on Auto. Changing Deliverable is
+          // different: Auto never creates a server session, so the pick itself
+          // is what 404s. Resetting here put the menu back on Auto.
+          const userJustPicked =
+            previousContentModeRef.current !== contentMode && isConcreteContentMode(contentMode);
+          const emptySlot = createInitialDiagramState(userJustPicked ? contentMode : 'mermaid');
+          if (!userJustPicked) {
+            setContentMode(wasFreshlyMinted ? 'mermaid' : 'auto');
+          }
           let targetId = activeSessionId;
           if (!wasFreshlyMinted) {
-            const fresh = createInitialDiagramState('mermaid');
-            stateRef.current = fresh;
-            setState(fresh);
+            stateRef.current = emptySlot;
+            setState(emptySlot);
             try {
               targetId = await mintFreshServerSession();
             } catch {
               targetId = normalizeSessionId(createSessionId()) ?? `session-${Date.now()}`;
             }
             freshlyMintedSessionIdsRef.current.add(targetId);
+            // mintFreshServerSession wipes the saved format. Put the pick back
+            // so a refresh does not return the menu to Auto.
+            if (userJustPicked) {
+              try {
+                window.localStorage.setItem(CONTENT_MODE_STORAGE_KEY, contentMode);
+              } catch {
+                // ignore quota / privacy mode
+              }
+            }
           } else {
             try {
               await Promise.all([
@@ -417,9 +439,8 @@ export function useSessionHydrate({
             setActiveSessionId(targetId);
           } else {
             freshlyMintedSessionIdsRef.current.delete(targetId);
-            const fresh = createInitialDiagramState('mermaid');
-            stateRef.current = fresh;
-            setState(fresh);
+            stateRef.current = emptySlot;
+            setState(emptySlot);
           }
           return;
         }

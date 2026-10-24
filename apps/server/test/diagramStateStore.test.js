@@ -65,6 +65,27 @@ test('store accepts empty client sync source as cleared mermaid diagram', async 
   assert.equal(result.state.diagramSource, '');
 });
 
+test('store does not bump mermaid revision when client re-syncs the same source and style', async () => {
+  const store = createDiagramStateStore();
+  const applied = await store.applyDiagramSource({
+    contentType: 'mermaid',
+    diagramSource: 'flowchart TD\n  Login --> Home',
+    reason: 'seed'
+  });
+  const before = applied.state;
+
+  const result = await store.syncClientDiagramSource({
+    contentType: 'mermaid',
+    diagramSource: before.diagramSource,
+    styleConfig: before.styleConfig
+  });
+
+  assert.equal(result.accepted, true);
+  assert.equal(result.state, before);
+  assert.equal(result.state.revisionId, 1);
+  assert.equal(store.getSlot('mermaid').updatedAt, before.updatedAt);
+});
+
 test('store keeps infographic slot independent of mermaid mutations', async () => {
   const store = createDiagramStateStore();
   const infographicBefore = store.getSlot('infographic');

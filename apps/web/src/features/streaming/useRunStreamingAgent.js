@@ -213,6 +213,10 @@ export function useRunStreamingAgent({
           modeSwitchSync,
           modeSwitchPeerRevisionId,
           modeSwitchPeerMode,
+          modeSwitchPeerDiagramSource:
+            modeSwitchSync && typeof payload.peerContext?.diagramSource === 'string'
+              ? payload.peerContext.diagramSource
+              : null,
           animateAcceptedSource,
           pendingAutoDiagramHighlightRef,
           pendingAutoDiagramHighlightTimeoutRef,

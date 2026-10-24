@@ -80,6 +80,19 @@ function syncMarkerMatches(marker, peerMode, peerRevisionId, targetRevisionId) {
 }
 
 /**
+ * True when this marker converted the peer's current diagram text.
+ * Revision counters move when a mode switch re-syncs an unchanged slot, so the
+ * text is the cache key. A missing `peerDiagramSource` (older markers) does not match.
+ */
+function syncMarkerSourceUnchanged(marker, peerMode, peerDiagramSource) {
+  return (
+    marker?.peerMode === peerMode &&
+    typeof marker.peerDiagramSource === 'string' &&
+    marker.peerDiagramSource === peerDiagramSource
+  );
+}
+
+/**
  * Overlay the slot snapshot captured when the user left `sourceMode` onto fetched session
  * state when the client is ahead of GET /session-state (debounced editor sync, hydrate
  * racing a just-finished stream write). Without this, mode-switch peer detection sees an
@@ -234,21 +247,52 @@ export function peerRequiresModeSwitchTranslation({
 
   const peerRevision = revisionOf(peer);
   const targetRevision = revisionOf(target);
+  const peerSource = typeof peer.diagramSource === 'string' ? peer.diagramSource : '';
+  const targetSource = typeof target.diagramSource === 'string' ? target.diagramSource : '';
+  const markers = syncMarkers ?? {};
 
-  // Target already has content at least as new as the source and the mode we switched
-  // from has not changed since we last viewed it — keep the cached slot.
+  // The slot we are opening was already produced from this exact peer text.
+  // A later sync can bump the peer's revision and timestamp without changing
+  // that text; that must not throw the cached deliverable away.
+  if (syncMarkerSourceUnchanged(markers[contentMode], peerMode, peerSource)) {
+    return false;
+  }
+  // The reverse marker: this target's text is what produced the peer, and the
+  // peer text is still that result. Keeps the original when switching back.
+  const reverse = markers[peerMode];
   if (
-    sourceMode &&
+    syncMarkerSourceUnchanged(reverse, contentMode, targetSource) &&
+    (typeof reverse.targetDiagramSource !== 'string' || reverse.targetDiagramSource === peerSource)
+  ) {
+    return false;
+  }
+
+  // The mode we left has not changed since we last viewed it. Keep the cached
+  // slot unless that slot is explicitly about a different topic than the source.
+  // Revision counters are per slot, and the carried candidate is often a
+  // conversion sentence rather than the original topic — neither means the
+  // cached deliverable is stale.
+  const peerTopic = slotLastTopic(peer);
+  const targetTopic = slotLastTopic(target);
+  const topicsConflict = Boolean(peerTopic && targetTopic && peerTopic !== targetTopic);
+  const sourceUnchanged =
+    Boolean(sourceMode) &&
     sourceRevisionAtLastView != null &&
     peerRevision === sourceRevisionAtLastView &&
-    targetRevision >= peerRevision
+    !topicsConflict;
+  // Same-slot revision numbers are not a clock across formats. A target whose
+  // own counter is already at least the source's, or whose timestamp is, has
+  // not fallen behind. A converted slot with a higher counter still round-trips
+  // through the sync marker below.
+  if (
+    sourceUnchanged &&
+    (targetRevision >= peerRevision || updatedAtOf(target) >= updatedAtOf(peer))
   ) {
     return false;
   }
 
   // A marker in either direction recording this exact revision pair means the translation
   // already ran; running it again is the return-trip ping-pong.
-  const markers = syncMarkers ?? {};
   if (syncMarkerMatches(markers[contentMode], peerMode, peerRevision, targetRevision)) {
     return false;
   }
@@ -353,19 +397,30 @@ export function needsModeSwitchPeerSync({
   if (!pair) return false;
   const { target } = pair;
   if (!isSlotCustomized(target)) return true;
-  if (
-    peerRequiresModeSwitchTranslation({
-      contentMode,
-      session,
-      candidate,
-      syncMarkers,
-      sourceMode,
-      sourceRevisionAtLastView
-    })
-  ) {
-    return true;
-  }
-  return Boolean(candidate) && !isSlotInSyncForTopic(target, candidate);
+  // A slot that already has this deliverable stays cached. Topic-string
+  // mismatches (a conversion prompt versus the original) must not regenerate it.
+  return peerRequiresModeSwitchTranslation({
+    contentMode,
+    session,
+    candidate,
+    syncMarkers,
+    sourceMode,
+    sourceRevisionAtLastView
+  });
+}
+
+/**
+ * Which concrete slot a Deliverable change is leaving.
+ * Auto is not a slot: after Auto resolves, or after a pick that never
+ * hydrated, the mode just left is the conversion source.
+ *
+ * @param {{ previous?: string | null, next?: string | null, lastLeft?: string | null }} args
+ * @returns {string | null}
+ */
+export function modeSwitchSource({ previous, next, lastLeft } = {}) {
+  if (previous && previous !== next && CONTENT_MODES.includes(previous)) return previous;
+  if (lastLeft && lastLeft !== next && CONTENT_MODES.includes(lastLeft)) return lastLeft;
+  return null;
 }
 
 /**

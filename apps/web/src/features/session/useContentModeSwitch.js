@@ -20,6 +20,7 @@ import { recordUxSignal } from '../../state/uxSignalsClient.js';
  * @typedef {object} ContentModeSwitchRefs
  * @property {import('react').MutableRefObject<string>} previousContentModeRef
  * @property {import('react').MutableRefObject<Record<string, number>>} sourceRevisionAtViewRef
+ * @property {import('react').MutableRefObject<string | null>} lastLeftModeRef
  * @property {import('react').MutableRefObject<Record<string, object>>} leavingSlotSnapshotRef
  * @property {import('react').MutableRefObject<object>} crossModeSyncRef
  * @property {import('react').MutableRefObject<boolean>} suppressNextModeSwitchRerunRef
@@ -80,6 +81,10 @@ export function useContentModeSwitch({
 }) {
   const [contentMode, setContentMode] = useState(() => readStoredContentMode({ freshSession }));
   const previousContentModeRef = useRef(contentMode);
+  // Concrete mode the Deliverable menu just left. Auto is not a slot, so the
+  // hydrate path cannot recover the conversion source from previousContentModeRef
+  // alone after Auto resolves or a pick that never hydrated.
+  const lastLeftModeRef = useRef(null);
   // Whether the current concrete mode is one Auto resolved to (vs. a pick).
   const autoResolvedRef = useRef(readContentModeAutoResolved());
   const sourceRevisionAtViewRef = useRef({});
@@ -154,8 +159,10 @@ export function useContentModeSwitch({
       if (isConcreteContentMode(contentMode) && !wasTypewriterPreview) {
         leavingSlotSnapshotRef.current[contentMode] = { ...stateRef.current };
         sourceRevisionAtViewRef.current[contentMode] = stateRef.current.revisionId ?? 0;
+        lastLeftModeRef.current = contentMode;
       } else if (isConcreteContentMode(contentMode)) {
         sourceRevisionAtViewRef.current[contentMode] = stateRef.current.revisionId ?? 0;
+        lastLeftModeRef.current = contentMode;
       }
       streamAgentAbortRef.current?.abort();
       setLiveDraftSource('');
@@ -202,10 +209,13 @@ export function useContentModeSwitch({
       suppressNextModeSwitchRerunRef.current = true;
       autoResolvedRef.current = true;
       setLiveDraftContentType(nextMode);
+      // The canvas is now this slot. The next Deliverable pick converts from it.
+      previousContentModeRef.current = nextMode;
+      sourceRevisionAtViewRef.current[nextMode] = stateRef.current?.revisionId ?? 0;
       setContentMode(nextMode);
       bumpRendererRefreshKey();
     },
-    [bumpRendererRefreshKey, contentMode, setLiveDraftContentType]
+    [bumpRendererRefreshKey, contentMode, setLiveDraftContentType, stateRef]
   );
 
   const renderSelectionInMode = useCallback(
@@ -257,6 +267,7 @@ export function useContentModeSwitch({
   /** @type {ContentModeSwitchRefs} */
   const hydrateRefs = {
     previousContentModeRef,
+    lastLeftModeRef,
     sourceRevisionAtViewRef,
     leavingSlotSnapshotRef,
     crossModeSyncRef,

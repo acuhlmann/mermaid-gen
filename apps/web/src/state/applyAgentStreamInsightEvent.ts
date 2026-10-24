@@ -149,6 +149,8 @@ export type InsightEventContext = {
   modeSwitchSync?: boolean;
   modeSwitchPeerRevisionId?: number | null;
   modeSwitchPeerMode?: string | null;
+  /** Peer diagram text at submit time. The cache key; revision counters are not. */
+  modeSwitchPeerDiagramSource?: string | null;
   animateAcceptedSource: (
     state: unknown,
     onDone?: () => void,
@@ -227,6 +229,7 @@ export function applyAgentStreamInsightEvent(
     crossModeSyncRef,
     modeSwitchSync,
     modeSwitchPeerRevisionId,
+    modeSwitchPeerDiagramSource,
     modeSwitchPeerMode,
     animateAcceptedSource,
     pendingAutoDiagramHighlightRef,
@@ -670,7 +673,13 @@ export function applyAgentStreamInsightEvent(
           [contentType]: {
             peerMode: modeSwitchPeerMode,
             peerRevisionId: modeSwitchPeerRevisionId,
-            targetRevisionId: finalState.revisionId ?? 0
+            targetRevisionId: finalState.revisionId ?? 0,
+            ...(typeof modeSwitchPeerDiagramSource === 'string'
+              ? { peerDiagramSource: modeSwitchPeerDiagramSource }
+              : {}),
+            ...(typeof finalState.diagramSource === 'string'
+              ? { targetDiagramSource: finalState.diagramSource }
+              : {})
           }
         };
       } else if (!modeSwitchSync) {

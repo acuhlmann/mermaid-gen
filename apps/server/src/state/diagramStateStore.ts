@@ -66,10 +66,18 @@ export function createDiagramStateStore(
       return { accepted: true, state: next };
     }
 
-    // Short-circuit: if the client is syncing the exact source we already hold (and no new
-    // styleConfig is requested), skip strict JSDOM validation entirely.
-    if (!styleConfig && slot.diagramSource && candidate === slot.diagramSource.trim()) {
-      return { accepted: true, state: slot };
+    // Re-syncing the source we already hold must not bump revision or updatedAt.
+    // A Deliverable change flushes the slot it is leaving, and a newer timestamp
+    // would make every cached sibling look stale and regenerate. Style is part of
+    // that identity: the same source with the same style is a no-op, including
+    // when the client resends the style object it just read.
+    if (slot.diagramSource && candidate === slot.diagramSource.trim()) {
+      const styleUnchanged =
+        styleConfig == null ||
+        JSON.stringify(styleConfig) === JSON.stringify(slot.styleConfig ?? null);
+      if (styleUnchanged) {
+        return { accepted: true, state: slot };
+      }
     }
 
     const parsedStyle = styleConfig

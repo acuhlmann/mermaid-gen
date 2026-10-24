@@ -12,6 +12,7 @@ import {
   isSlotCustomized,
   isSlotInSyncForTopic,
   mergeLeavingSlotSnapshot,
+  modeSwitchSource,
   needsModeSwitchPeerSync,
   peerRequiresModeSwitchTranslation,
   pickPrimaryPeerMode,
@@ -1088,6 +1089,151 @@ describe('mode switch peer context', () => {
         sourceRevisionAtLastView: chartFromInfographic.revisionId
       })
     ).toBe(false);
+  });
+
+  it('peerRequiresModeSwitchTranslation keeps a cached slot when the source revision is unchanged even if that counter is higher', () => {
+    const m = createInitialDiagramState('mermaid');
+    const cachedMermaid = {
+      ...m,
+      revisionId: 2,
+      diagramSource: 'flowchart TD\n  Sun --> Planets',
+      lastUserPrompt: 'Solar system',
+      updatedAt: '2026-05-10T08:30:00.000Z'
+    };
+    const c = createInitialDiagramState('chart');
+    const chartFromMermaid = {
+      ...c,
+      revisionId: 9,
+      diagramSource: '{"mark":"bar"}',
+      lastUserPrompt: 'Solar system',
+      updatedAt: '2026-05-10T09:30:00.000Z'
+    };
+    const session = { mermaid: cachedMermaid, chart: chartFromMermaid };
+    const syncMarkers = {
+      mermaid: null,
+      chart: { peerMode: 'mermaid', peerRevisionId: 2, targetRevisionId: 9 }
+    };
+    expect(
+      peerRequiresModeSwitchTranslation({
+        contentMode: 'mermaid',
+        session,
+        candidate: 'Convert the current chart into an equivalent Mermaid architecture diagram.',
+        syncMarkers,
+        sourceMode: 'chart',
+        sourceRevisionAtLastView: 9
+      })
+    ).toBe(false);
+    expect(
+      needsModeSwitchPeerSync({
+        contentMode: 'mermaid',
+        session,
+        candidate: 'Convert the current chart into an equivalent Mermaid architecture diagram.',
+        syncMarkers,
+        sourceMode: 'chart',
+        sourceRevisionAtLastView: 9
+      })
+    ).toBe(false);
+  });
+
+  it('peerRequiresModeSwitchTranslation keeps a cached slot when a sync bumps the source revision but not its text', () => {
+    const mermaidSource = 'flowchart TD\n  Login --> Home';
+    const infographicSource = 'infographic relation-dagre-flow\n  title Login';
+    const m = createInitialDiagramState('mermaid');
+    const bumpedMermaid = {
+      ...m,
+      revisionId: 5,
+      diagramSource: mermaidSource,
+      lastUserPrompt: 'Two boxes: Login then Home',
+      updatedAt: '2026-10-24T09:10:00.000Z'
+    };
+    const i = createInitialDiagramState('infographic');
+    const cachedInfographic = {
+      ...i,
+      revisionId: 2,
+      diagramSource: infographicSource,
+      lastUserPrompt: 'Two boxes: Login then Home',
+      updatedAt: '2026-10-24T09:03:00.000Z'
+    };
+    const session = { mermaid: bumpedMermaid, infographic: cachedInfographic };
+    const syncMarkers = {
+      mermaid: null,
+      infographic: {
+        peerMode: 'mermaid',
+        peerRevisionId: 4,
+        targetRevisionId: 2,
+        peerDiagramSource: mermaidSource,
+        targetDiagramSource: infographicSource
+      }
+    };
+    expect(
+      peerRequiresModeSwitchTranslation({
+        contentMode: 'infographic',
+        session,
+        candidate: 'Two boxes: Login then Home',
+        syncMarkers,
+        sourceMode: 'mermaid',
+        sourceRevisionAtLastView: 4
+      })
+    ).toBe(false);
+    expect(
+      needsModeSwitchPeerSync({
+        contentMode: 'infographic',
+        session,
+        candidate: 'Two boxes: Login then Home',
+        syncMarkers,
+        sourceMode: 'mermaid',
+        sourceRevisionAtLastView: 4
+      })
+    ).toBe(false);
+  });
+
+  it('peerRequiresModeSwitchTranslation reconverts when the source diagram text changed', () => {
+    const m = createInitialDiagramState('mermaid');
+    const editedMermaid = {
+      ...m,
+      revisionId: 6,
+      diagramSource: 'flowchart TD\n  Login --> Home --> Settings',
+      lastUserPrompt: 'Two boxes: Login then Home',
+      updatedAt: '2026-10-24T09:12:00.000Z'
+    };
+    const i = createInitialDiagramState('infographic');
+    const cachedInfographic = {
+      ...i,
+      revisionId: 2,
+      diagramSource: 'infographic relation-dagre-flow\n  title Login',
+      lastUserPrompt: 'Two boxes: Login then Home',
+      updatedAt: '2026-10-24T09:03:00.000Z'
+    };
+    expect(
+      peerRequiresModeSwitchTranslation({
+        contentMode: 'infographic',
+        session: { mermaid: editedMermaid, infographic: cachedInfographic },
+        candidate: 'Two boxes: Login then Home',
+        syncMarkers: {
+          infographic: {
+            peerMode: 'mermaid',
+            peerRevisionId: 4,
+            targetRevisionId: 2,
+            peerDiagramSource: 'flowchart TD\n  Login --> Home',
+            targetDiagramSource: cachedInfographic.diagramSource
+          }
+        },
+        sourceMode: 'mermaid',
+        sourceRevisionAtLastView: 6
+      })
+    ).toBe(true);
+  });
+
+  it('modeSwitchSource uses the concrete mode just left when the previous mode was Auto', () => {
+    expect(modeSwitchSource({ previous: 'auto', next: 'chart', lastLeft: 'mermaid' })).toBe(
+      'mermaid'
+    );
+    expect(modeSwitchSource({ previous: 'mermaid', next: 'chart', lastLeft: 'infographic' })).toBe(
+      'mermaid'
+    );
+    expect(modeSwitchSource({ previous: 'chart', next: 'chart', lastLeft: 'mermaid' })).toBe(
+      'mermaid'
+    );
   });
 
   it('peerRequiresModeSwitchTranslation still updates mermaid when infographic peer advanced', () => {
