@@ -16,6 +16,11 @@
  * used to ride the bubble, where it repeated the line they had just said aloud
  * and sat over the canvas; here it is one more thing you can say back — "fine,
  * hand me the keyboard" — and it only exists while it is your turn.
+ *
+ * When they made several points in one go, the strip leads with one chip per
+ * point (`topics`). Picking one is how you steer: the hand moves to it, and
+ * Do it, the chips and anything you type are about that point rather than
+ * silently about their last one.
  */
 
 import { useCallback, useState } from 'react';
@@ -27,6 +32,7 @@ import { formatLocale } from '../i18n/formatLocale.js';
  * than merging, so a bundle that predates the reply strip must still render one.
  */
 const REPLY_COPY = {
+  topics: 'Their points',
   label: 'Answer {name}',
   placeholder: 'Say something back…',
   send: 'Say it',
@@ -47,6 +53,7 @@ const REPLY_COPY = {
 function resolveReplyCopy(copy) {
   const source = copy ?? {};
   return {
+    topics: source.pairTopicsLabel ?? REPLY_COPY.topics,
     label: source.pairReplyLabel ?? REPLY_COPY.label,
     placeholder: source.pairReplyPlaceholder ?? REPLY_COPY.placeholder,
     send: source.pairReplySend ?? REPLY_COPY.send,
@@ -67,7 +74,10 @@ function resolveReplyCopy(copy) {
  *   doItLabel?: string,
  *   doItTitle?: string,
  *   testIdPrefix?: string,
- *   chipIds?: string[] | null
+ *   chipIds?: string[] | null,
+ *   topics?: Array<{ label: string, title?: string }> | null,
+ *   topicIndex?: number,
+ *   onSelectTopic?: ((index: number) => void) | null
  * }} props `busy` is true between sending and their answer landing, which is
  *   also when the strip must not accept a second question. `onDoIt` is null
  *   when their last line carries nothing to hand over. `chipIds` keeps only
@@ -83,7 +93,10 @@ export default function OfficePairReply({
   doItLabel = 'Do it',
   doItTitle = '',
   testIdPrefix = 'office-pair-reply',
-  chipIds = null
+  chipIds = null,
+  topics = null,
+  topicIndex = -1,
+  onSelectTopic = null
 }) {
   const [text, setText] = useState('');
   const resolved = resolveReplyCopy(copy);
@@ -108,6 +121,33 @@ export default function OfficePairReply({
       data-testid={testIdPrefix}
       data-busy={busy ? 'true' : undefined}
     >
+      {Array.isArray(topics) && topics.length > 1 && typeof onSelectTopic === 'function' ? (
+        <div
+          className="office-pair-reply-topics"
+          role="group"
+          aria-label={resolved.topics}
+          data-testid={`${testIdPrefix}-topics`}
+        >
+          <span className="office-pair-reply-topics-label" aria-hidden="true">
+            {resolved.topics}
+          </span>
+          {topics.map((topic, index) => (
+            <button
+              // One per point, in the order they made them; two can share a label.
+              key={`${index}:${topic.label}`}
+              type="button"
+              className={`office-pair-reply-topic${index === topicIndex ? ' is-active' : ''}`}
+              aria-pressed={index === topicIndex}
+              disabled={busy}
+              title={topic.title || undefined}
+              data-testid={`${testIdPrefix}-topic-${index}`}
+              onClick={() => onSelectTopic(index)}
+            >
+              {topic.label}
+            </button>
+          ))}
+        </div>
+      ) : null}
       <label className="sr-only" htmlFor={inputId}>
         {formatLocale(resolved.label, { name: partnerName ?? '' })}
       </label>

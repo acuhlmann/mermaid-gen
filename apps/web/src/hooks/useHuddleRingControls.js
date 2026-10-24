@@ -172,6 +172,40 @@ export function useHuddleRingControls({
     onDone: pairing ? handleTurnDone : onHardStop
   });
 
+  /*
+   * The live line, and it outlives the pacing loop on purpose. `listening` has
+   * no running scene, so reading only `speaking || watching` would blank the
+   * bubble at exactly the moment they have said something and are waiting to
+   * hear what you make of it — the beat clamps because a fresh turn can hold a
+   * shorter script than the index the last one left behind.
+   */
+  const saidCount = Math.min(visibleLines || beats.length, beats.length);
+  const heldIndex = Math.max(0, saidCount - 1);
+
+  /*
+   * A pair's opening raises several points in a row, and "Do it" or "Why
+   * that?" afterwards used to mean only the last one, with nothing on screen
+   * saying so. Each point they actually got to is a topic you can pick: the
+   * hand, the bubble, Do it, the reply chips and a click on their face all
+   * follow the one you picked. Keyed by turn, so a new line from them starts
+   * from what they just said rather than from an old pick.
+   */
+  const turnKey = `${huddle?.id ?? ''}:${turnIndex}`;
+  const [topicPick, setTopicPick] = useState({ key: '', index: -1 });
+  const topicPicked =
+    pairing && listening && topicPick.key === turnKey && topicPick.index < saidCount;
+  const topicIndex = topicPicked ? topicPick.index : heldIndex;
+  const topics = pairing && listening && saidCount > 1 ? beats.slice(0, saidCount) : [];
+  const selectTopic = useCallback(
+    (index) => {
+      if (!Number.isInteger(index) || index < 0) return;
+      setTopicPick({ key: turnKey, index });
+    },
+    [turnKey]
+  );
+  /** The pair's line a click on their face repeats: the topic in play. */
+  const topicBeat = pairing ? (beats[topicIndex] ?? null) : null;
+
   useEffect(() => {
     if (disabled || !huddle?.id || !pacingActive) return;
     setOfficeHuddleActiveLineIndex(huddle.id, Math.max(0, visibleLines - 1));
@@ -267,7 +301,7 @@ export function useHuddleRingControls({
       setRepeatingSpeakerId(null);
       onCancelNarration?.();
 
-      const existing = beatForSpeaker(huddle, speakerId);
+      const existing = topicBeat ?? beatForSpeaker(huddle, speakerId);
       if (existing?.text) {
         void repeatPinnedBeat(speakerId, existing, generation);
         return;
@@ -294,19 +328,13 @@ export function useHuddleRingControls({
       onCancelNarration,
       repeatPinnedBeat,
       onRequestSuggestion,
-      fetchingSpeakerId
+      fetchingSpeakerId,
+      topicBeat
     ]
   );
 
-  /*
-   * The live line, and it outlives the pacing loop on purpose. `listening` has
-   * no running scene, so reading only `speaking || watching` would blank the
-   * bubble at exactly the moment they have said something and are waiting to
-   * hear what you make of it — the beat clamps because a fresh turn can hold a
-   * shorter script than the index the last one left behind.
-   */
-  const heldIndex = Math.max(0, Math.min(visibleLines || beats.length, beats.length) - 1);
-  const activeBeat = speaking || watching || listening ? (beats[heldIndex] ?? null) : null;
+  const shownIndex = pairing && listening ? topicIndex : heldIndex;
+  const activeBeat = speaking || watching || listening ? (beats[shownIndex] ?? null) : null;
   const activeSpeakerId = watching || pinnedSpeakerId ? null : (activeBeat?.speakerId ?? null);
   /*
    * A raised hand: "hold on — Dinesh, why that?". The speaker finishes the
@@ -326,7 +354,7 @@ export function useHuddleRingControls({
   }, [pairing, watching, holder]);
 
   const pinnedBeat = pinnedSpeakerId
-    ? (answers[pinnedSpeakerId] ?? beatForSpeaker(huddle, pinnedSpeakerId))
+    ? (answers[pinnedSpeakerId] ?? topicBeat ?? beatForSpeaker(huddle, pinnedSpeakerId))
     : null;
   const pinnedPrompt = pinnedSpeakerId
     ? adoptPromptFor(pinnedBeat, { fallbackToText: true })
@@ -383,6 +411,12 @@ export function useHuddleRingControls({
     showPinnedText:
       Boolean(pinnedSpeakerId && answers[pinnedSpeakerId] === pinnedBeat) &&
       (snapshot.captions || typeof narrateLine !== 'function'),
+    /** A pair's points from this turn, when there is more than one to pick from. */
+    topics,
+    /** Which of `topics` is in play, and whether you picked it (vs. their last line). */
+    topicIndex,
+    topicPicked,
+    selectTopic,
     /** The teammate you raised a hand to, while you type the question. */
     askingSpeakerId,
     /** Who a raised hand would stop right now, or null. */
