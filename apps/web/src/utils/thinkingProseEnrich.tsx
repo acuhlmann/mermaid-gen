@@ -89,7 +89,7 @@ function hexLuminance(hex: string | null | undefined): number {
 export function ColorSwatch({
   hex,
   label,
-  keyPrefix = 'sw'
+  keyPrefix: _keyPrefix = 'sw'
 }: {
   hex?: string;
   label?: string;
@@ -162,7 +162,7 @@ export function ThemeVarPill({ name, keyPrefix = 'tv' }: { name: string; keyPref
 
 export function IconChip({
   faClasses,
-  keyPrefix = 'ic'
+  keyPrefix: _keyPrefix = 'ic'
 }: {
   faClasses?: string;
   keyPrefix?: string;

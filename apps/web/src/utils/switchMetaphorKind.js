@@ -1,5 +1,5 @@
 import { METAPHOR_BASE_KINDS, METAPHOR_KINDS, sanitizeMetaphorDsl } from '@archislop/shared';
-import { MAGNITUDE_DOMAIN, fitMagnitudesForKind } from './metaphorMagnitudeFit.js';
+import { fitMagnitudesForKind } from './metaphorMagnitudeFit.js';
 
 /** Human-readable labels for the fullscreen metaphor switcher. */
 export const METAPHOR_KIND_LABELS = {

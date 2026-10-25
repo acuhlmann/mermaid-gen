@@ -257,6 +257,9 @@ describe('planFusedCompositeWorld', () => {
     expect(plan.sites).toHaveLength(2);
     expect(plan.sites.every((site) => site.primitive === 'island')).toBe(true);
     expect(plan.nodes.filter((node) => node.kind === 'city')).toHaveLength(2);
+    expect(plan.nodes.length, 'fused plan produced no nodes — this proves nothing').toBeGreaterThan(
+      0
+    );
     expect(plan.nodes.every((node) => plan.sites.some((site) => site.id === node.attachedTo))).toBe(
       true
     );

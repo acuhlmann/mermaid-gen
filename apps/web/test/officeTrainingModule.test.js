@@ -41,6 +41,10 @@ describe('buildCannedTrainingForm', () => {
       .map((component) => component.label)
       .filter((label) => typeof label === 'string');
     expect(labels.some((label) => label.includes('your diagram'))).toBe(true);
+    expect(
+      labels.length,
+      'canned training form exposed no labels — this proves nothing'
+    ).toBeGreaterThan(0);
     // A label quoting an empty subject ("") reads as a bug rather than a joke.
     // Checked on labels, not the raw JSON — the seeded data model is *supposed*
     // to hold empty strings for the unfilled fields.

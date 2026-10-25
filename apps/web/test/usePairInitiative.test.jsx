@@ -274,6 +274,10 @@ describe('usePairInitiative (through useHuddlePlayback)', () => {
 
     const [body] = laterBodies(fetchMock);
     expect(body.cue).toBe('lull');
+    expect(
+      body.turns.length,
+      'lull transcript produced no turns — this proves nothing'
+    ).toBeGreaterThan(0);
     expect(body.turns.every((t) => t.role === 'partner')).toBe(true);
   });
 
