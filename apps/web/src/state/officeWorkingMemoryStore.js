@@ -20,9 +20,15 @@
  * everyone on a board-sample edge would be omniscience.
  *
  * "Few" is a rule about the *edge*, not a count — each writer is a moment the
- * user aimed at one named person, which is why the set has grown twice since
- * v1's dwell-and-talk pair (an interruption, then an email) without the rule
- * moving. An ambient moment must still never write here.
+ * user aimed at one named person, which is why the set has grown three times
+ * since v1's dwell-and-talk pair (an interruption, an email, then a dropped
+ * errand) without the rule moving. An ambient moment must still never write
+ * here.
+ *
+ * The dropped errand is the clearest case of why the rule is about the edge: a
+ * press on _Not today_ is aimed at the person who asked, so the beat lands on
+ * **them** and on nobody else. The colleague you were sent to never heard the
+ * message and must not remember it.
  */
 
 import {
@@ -69,7 +75,23 @@ const MEDIUM_PROMPT_LINES = Object.freeze({
 
 const SPOKEN_PROMPT_LINES = Object.freeze({ yours: 'you said:', theirs: 'they said:' });
 
-/** @typedef {{ at: number, theirs?: string, yours?: string, pitchTaken?: boolean, interrupted?: 'gotIt' | 'gaveUp', medium?: 'email' }} WorkingMemoryBeat */
+/**
+ * What dropping their errand reads like to the model
+ * (`docs/automations/office-life.md` queue 13).
+ *
+ * Written on the **asker**, never on the person you were sent to: they were
+ * never told, and a colleague who remembers a conversation that did not reach
+ * them is the fabrication the situation rule warns about. The asker is the one
+ * who knows, because they are the one still waiting.
+ *
+ * It states the circumstance and stops, for `INTERRUPTION_PROMPT_LINES`'
+ * reason: naming the consequence ("so they are annoyed with you") hands the
+ * next line a mood the prompt cannot check, and a situation that states a delta
+ * is measurably how a moment ends up inventing one.
+ */
+const ERRAND_DROPPED_PROMPT_LINE = 'they sent you to have a word with somebody; you let it go';
+
+/** @typedef {{ at: number, theirs?: string, yours?: string, pitchTaken?: boolean, errandDropped?: boolean, interrupted?: 'gotIt' | 'gaveUp', medium?: 'email' }} WorkingMemoryBeat */
 /** @typedef {{ beats: WorkingMemoryBeat[], boardFingerprint?: string }} WorkingMemoryRow */
 
 /** @type {{ [colleagueId: string]: WorkingMemoryRow }} */
@@ -187,10 +209,12 @@ export function listWorkingMemoryColleagueIds() {
 /**
  * @param {string} colleagueId
  * @param {{ theirs?: string, yours?: string, pitchTaken?: boolean,
- *   interrupted?: 'gotIt' | 'gaveUp', medium?: 'email', now?: number }} beat
- *   `interrupted` is the one beat field that is not something either of you
- *   said: you walked into their errand and it ended because of you. It is still
- *   only a record — writing it schedules nothing (ADR-0010) — but it is what
+ *   errandDropped?: boolean, interrupted?: 'gotIt' | 'gaveUp', medium?: 'email',
+ *   now?: number }} beat
+ *   `interrupted` and `errandDropped` are the beat fields that are not
+ *   something either of you said — the first is their errand ending because of
+ *   you, the second is yours ending because you dropped it. Both are still
+ *   only a record — writing one schedules nothing (ADR-0010) — but it is what
  *   makes `hasWorkingMemoryFact` true for somebody you have never spoken to,
  *   which is the whole point: the next time you stand next to them, the office
  *   has something *about you* to say. Since the dwell gate became a reserve it
@@ -262,6 +286,7 @@ export function workingMemoryPromptLines(colleagueId) {
      * about. Same reason `yours` precedes `theirs`.
      */
     if (beat.interrupted) lines.push(INTERRUPTION_PROMPT_LINES[beat.interrupted]);
+    if (beat.errandDropped) lines.push(ERRAND_DROPPED_PROMPT_LINE);
     const quote = MEDIUM_PROMPT_LINES[beat.medium] ?? SPOKEN_PROMPT_LINES;
     if (beat.yours) lines.push(`${quote.yours} ${beat.yours}`);
     if (beat.theirs) lines.push(`${quote.theirs} ${beat.theirs}`);

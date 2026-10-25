@@ -587,7 +587,7 @@ export const OFFICE_WORKING_MEMORY_MEDIUMS = Object.freeze(['email']);
  * @param {Record<string, unknown>} beat
  * @param {number} at
  * @returns {{ at: number, theirs?: string, yours?: string, pitchTaken?: boolean,
- *   interrupted?: string, medium?: string } | null}
+ *   errandDropped?: boolean, interrupted?: string, medium?: string } | null}
  */
 export function normalizeWorkingMemoryBeat(beat, at) {
   const next = { at };
@@ -599,10 +599,13 @@ export function normalizeWorkingMemoryBeat(beat, at) {
     next.yours = quote(beat.yours);
   }
   if (beat.pitchTaken === true) next.pitchTaken = true;
+  if (beat.errandDropped === true) next.errandDropped = true;
   if (OFFICE_WORKING_MEMORY_INTERRUPTIONS.includes(beat.interrupted)) {
     next.interrupted = beat.interrupted;
   }
-  if (!next.theirs && !next.yours && !next.pitchTaken && !next.interrupted) return null;
+  if (!next.theirs && !next.yours && !next.pitchTaken && !next.errandDropped && !next.interrupted) {
+    return null;
+  }
   /*
    * After the emptiness check, not before it: the medium says how a beat
    * happened and is never itself the thing worth remembering, so a beat

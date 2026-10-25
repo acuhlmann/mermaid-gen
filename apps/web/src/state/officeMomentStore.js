@@ -858,10 +858,23 @@ export function settleOfficeErrand(colleagueId) {
   return settled;
 }
 
-/** Drop it. Soft means droppable — an errand you cannot refuse is a ticket. */
+/**
+ * Drop it. Soft means droppable — an errand you cannot refuse is a ticket.
+ *
+ * Returns the errand it dropped, for `settleOfficeErrand`'s reason and no
+ * other: `fromId` is what a caller needs and it is gone from the store a line
+ * later. **Still not a payout** — nothing here writes memory, awards anything
+ * or speaks. The one funnel rule holds for a refusal exactly as it holds for a
+ * discharge, which is why this returns the fact instead of acting on it.
+ *
+ * @param {string} [id]
+ * @returns {{id: string, fromId: string, colleagueId: string, createdAt: number} | null}
+ */
 export function dismissOfficeErrand(id) {
-  if (!state.errand || (id != null && state.errand.id !== id)) return;
+  if (!state.errand || (id != null && state.errand.id !== id)) return null;
+  const dropped = state.errand;
   update({ errand: null });
+  return dropped;
 }
 
 export function pushOfficeCoffeeInvite({ lines }) {

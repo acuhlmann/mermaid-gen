@@ -175,6 +175,45 @@ describe('an errand you walked into is a fact about you', () => {
     expect(getWorkingMemoryWith('intern')).toBeNull();
   });
 
+  /**
+   * The dropped errand (`docs/automations/office-life.md` queue 13). Same shape
+   * as `interrupted` — a beat neither of you said — and the same two properties
+   * worth pinning: it is a fact on its own, and it survives the reload that a
+   * field taught to one validator does not.
+   */
+  it('remembers a refusal as a fact of its own, ahead of anything either of you said', async () => {
+    const { hasWorkingMemoryFact, rememberWorkingMemoryBeat, workingMemoryPromptLines } =
+      await freshStore();
+    rememberWorkingMemoryBeat('hr', { errandDropped: true, now: at(9, 0) });
+    expect(hasWorkingMemoryFact('hr')).toBe(true);
+    expect(workingMemoryPromptLines('hr')).toEqual([
+      'they sent you to have a word with somebody; you let it go'
+    ]);
+
+    rememberWorkingMemoryBeat('hr', {
+      errandDropped: true,
+      theirs: 'No, no. Totally fine.',
+      now: at(9, 5)
+    });
+    // What you did, then what they said about it — `interrupted`'s ordering,
+    // for the same reason: the quote read first is a non-sequitur.
+    expect(workingMemoryPromptLines('hr')).toEqual([
+      'they sent you to have a word with somebody; you let it go',
+      'they sent you to have a word with somebody; you let it go',
+      'they said: No, no. Totally fine.'
+    ]);
+  });
+
+  it('keeps a refusal across a reload, which the write side alone cannot promise', async () => {
+    const first = await freshStore();
+    first.rememberWorkingMemoryBeat('hr', { errandDropped: true });
+    const second = await freshStore();
+    expect(second.hasWorkingMemoryFact('hr')).toBe(true);
+    expect(second.workingMemoryPromptLines('hr')).toEqual([
+      'they sent you to have a word with somebody; you let it go'
+    ]);
+  });
+
   it('is still there after a reload, which the write side alone cannot promise', async () => {
     /*
      * A beat passes two validators — `rememberWorkingMemoryBeat` on the way in
