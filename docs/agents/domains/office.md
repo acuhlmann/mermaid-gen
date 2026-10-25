@@ -75,6 +75,27 @@ it names. Merging the two into a single pass is worth doing and is not urgent �
   rung in `FloorCardSlot` and its narration replaces only the **at-rest** line: it is the first
   durable entry in two orderings built for momentary ones, so ranking it higher suppresses
   every transient offer and stops the live region reporting movement.
+- **A refusal is a fact, and the asker is the only one entitled to hold it.** _Not today_ on an
+  errand card called `dismissOfficeErrand` and that was the whole of it: Linda asked you to have a
+  word with Chad, you declined, and nothing in the office held the fact that she had asked — so the
+  one colleague with a reason to mention you had no fact to mention. Every other refusal in the room
+  already had content (a declined break plays out in the kitchen without you, a declined battle
+  too, walking into somebody's errand writes a beat they still have five minutes later), which made
+  this the odd one out rather than the honest default. The beat is written on **`fromId` and nobody
+  else**: Chad was never told, and a colleague who remembers a conversation that never reached them
+  is the fabrication the situation rule below was measured on, arriving through memory instead of
+  through a prompt. Three mechanics worth not re-deriving. `dismissOfficeErrand` **returns the
+  errand it dropped**, for `settleOfficeErrand`'s reason — `fromId` is gone from the store a line
+  later — and still writes nothing itself, because memory has one writer per edge.
+  `apps/web/src/utils/officeErrandMemory.js` is that writer, a function rather than two lines in the
+  floor's handler, so a desk-side drop costs no second derivation (ADR-0011 rule 1) — the press is
+  on the floor today but what a refusal costs is renderer-agnostic. And it still owns **no timer**:
+  the beat changes the next exchange with the asker if you start one, and cannot start one itself
+  (ADR-0010 consequence #4), which is why a dropped errand is droppable in one press with no
+  confirmation and no second ask. **The sweep is the number to re-measure, not the beat**: of the
+  five player-side refusals the room has, four now leave something behind — declining a meeting
+  invite (`dismissOfficeMeetingInvite`, which also clears the store and keeps nothing) is the
+  remaining instance, and it is the same shape at a different surface.
 - **Declining a set piece leaves it running, and how it then _ends_ differs per scene.** Slice
   28 did this for the coffee break, slice 30 for the cubicle battle, and the second one is where
   the reusable rule is. A declined scene stays in the store, so it counts toward

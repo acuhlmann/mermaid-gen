@@ -60,13 +60,13 @@ import {
 import { deskWorkFor } from '../utils/officeDeskWork.js';
 import { floorActivityFor } from '../utils/officeFloorActivity.js';
 import { sceneJoinOfferFor } from '../utils/officeFloorSceneJoin.js';
+import { dropOfficeErrandWithMemory } from '../utils/officeErrandMemory.js';
 import { floorRunContextFor } from '../utils/officeFloorRunIdle.js';
 import { tierOf } from '../utils/castTiers.js';
 import { resolveUserName, subscribe as subscribeUserName } from '../state/userIdentityStore.js';
 import { getOfficeViewMode, subscribe as subscribeViewMode } from '../state/officeViewModeStore.js';
 import { useFloorViewPhase } from './officeFloor/viewTransition.js';
 import {
-  dismissOfficeErrand,
   getOfficeSnapshot,
   setOfficeCaptions,
   subscribe as subscribeOffice
@@ -846,13 +846,14 @@ function OfficeFloorView({ bridge, viewPhase }) {
             : sceneHandlers?.onJoinCoffee?.()
         }
         // Slice 26. The same verb a third time — an errand is a walk, so it
-        // gets no machinery of its own. Dropping it is the store's business and
-        // nothing else's: the errand does not belong to the floor, and speaking
-        // to them settles it back on `OfficeLayer`'s side (ADR-0011 — one
-        // wiring point for what an office event costs).
+        // gets no machinery of its own. The errand does not belong to the floor:
+        // speaking to them settles it back on `OfficeLayer`'s side, and dropping
+        // it goes through `officeErrandMemory.js` so that what a refusal costs
+        // is written in one renderer-agnostic place (ADR-0011 rule 1) rather
+        // than beside this button. Queue 13: the asker is left knowing.
         errand={errandOffer}
         onErrandTalk={(id) => activity.startTalk(id, errandOffer?.mark)}
-        onDropErrand={() => dismissOfficeErrand()}
+        onDropErrand={() => dropOfficeErrandWithMemory()}
         // The same handler the walker's bubble gets — one adopt path for the
         // whole floor, so a pitch runs your pipeline identically wherever it
         // was offered (ADR-0012).

@@ -28,6 +28,13 @@ import {
   pushOfficeWalkBy,
   settleOfficeErrand
 } from '../src/state/officeMomentStore.js';
+import {
+  _resetOfficeWorkingMemoryForTests,
+  getWorkingMemoryWith,
+  hasWorkingMemoryFact,
+  workingMemoryPromptLines
+} from '../src/state/officeWorkingMemoryStore.js';
+import { dropOfficeErrandWithMemory } from '../src/utils/officeErrandMemory.js';
 import { _resetDeskCommsUiForTests, openDeskCommsPanel } from '../src/state/deskCommsUiStore.js';
 import {
   _resetOfficeViewModeForTests,
@@ -39,6 +46,7 @@ import {
   createInitialState
 } from '../src/state/runGamificationStore.js';
 import { OFFICE_LOG_KINDS, buildOfficeLogDigest } from '../src/utils/officeLogDigest.js';
+import { renderFloor, unpinOfficeFloorDeterminism } from './helpers/officeFloorTestUtils.jsx';
 import { OFFICE_CHROME_COPY, officeEmailTemplates } from '../src/utils/officeCast.js';
 
 const copy = OFFICE_CHROME_COPY.floor;
@@ -47,14 +55,22 @@ beforeEach(() => {
   _resetForTests();
   _resetOfficeViewModeForTests();
   _resetDeskCommsUiForTests();
+  _resetOfficeWorkingMemoryForTests();
+  window.localStorage.clear();
 });
 
 afterEach(() => {
   cleanup();
+  // Before `useRealTimers`, and in the shared hook rather than in the one test
+  // that mounts: a floor mount pins the wall clock and `Math.random`, and a
+  // failed assertion must not leave them pinned for the rest of the file.
+  unpinOfficeFloorDeterminism();
   vi.useRealTimers();
   _resetForTests();
   _resetOfficeViewModeForTests();
   _resetDeskCommsUiForTests();
+  _resetOfficeWorkingMemoryForTests();
+  window.localStorage.clear();
 });
 
 describe('the errand slice never schedules anything (ADR-0010 consequence #4)', () => {
@@ -102,6 +118,106 @@ describe('the errand slice never schedules anything (ADR-0010 consequence #4)', 
     pushOfficeErrand({ fromId: 'hr', colleagueId: 'intern' });
     dismissOfficeErrand();
     expect(getOfficeSnapshot().errand).toBeNull();
+  });
+
+  /*
+   * Queue 13's own rule, asserted rather than trusted: a refusal may be
+   * *noticed* and may never be *chased*. The beat below is the noticing; this
+   * case is the half that keeps it on the record side of ADR-0010.
+   */
+  it('still owns no timer once it has been refused', () => {
+    vi.useFakeTimers();
+    pushOfficeErrand({ fromId: 'hr', colleagueId: 'intern' });
+    dropOfficeErrandWithMemory();
+
+    vi.advanceTimersByTime(10 * 60_000);
+
+    // No card came back, and nothing re-raised it.
+    expect(getOfficeSnapshot().errand).toBeNull();
+    expect(hasActiveOfficeSurface()).toBe(false);
+  });
+});
+
+/**
+ * Dropping it (`docs/automations/office-life.md` queue 13).
+ *
+ * The office could already notice every other refusal — a declined coffee
+ * break plays out without you, a declined battle too, walking into somebody's
+ * errand writes a beat they still have five minutes later. _Not today_ on an
+ * errand card was the one that vanished: Linda asked, you said no, and nothing
+ * anywhere held the fact that she had asked.
+ */
+describe('refusing an errand', () => {
+  it('hands back the errand it dropped, because fromId is gone a line later', () => {
+    pushOfficeErrand({ fromId: 'hr', colleagueId: 'intern' });
+
+    const dropped = dismissOfficeErrand();
+    // The object rather than `undefined`, for `settleOfficeErrand`'s reason.
+    expect(dropped?.fromId).toBe('hr');
+    expect(dropped?.colleagueId).toBe('intern');
+    expect(getOfficeSnapshot().errand).toBeNull();
+    // And a second press is not a second refusal.
+    expect(dismissOfficeErrand()).toBeNull();
+  });
+
+  it('leaves the mark on whoever asked, and on nobody else', () => {
+    pushOfficeErrand({ fromId: 'hr', colleagueId: 'intern' });
+    dropOfficeErrandWithMemory();
+
+    expect(hasWorkingMemoryFact('hr')).toBe(true);
+    expect(workingMemoryPromptLines('hr')).toEqual([
+      'they sent you to have a word with somebody; you let it go'
+    ]);
+    /*
+     * The half that is a fiction rule rather than a wiring one: Chad was never
+     * told, so a memory on Chad would be a colleague remembering a conversation
+     * that never reached him — the fabrication the situation rule in
+     * `docs/agents/domains/office.md` was measured on, arriving through memory
+     * instead of through a prompt.
+     */
+    expect(hasWorkingMemoryFact('intern')).toBe(false);
+  });
+
+  it('writes nothing when the press dropped nothing', () => {
+    expect(dropOfficeErrandWithMemory()).toBeNull();
+    expect(hasWorkingMemoryFact('hr')).toBe(false);
+
+    // And an id aimed at an errand that is no longer current is the same case.
+    pushOfficeErrand({ fromId: 'hr', colleagueId: 'intern' });
+    expect(dropOfficeErrandWithMemory('errand-from-two-visits-ago')).toBeNull();
+    expect(hasWorkingMemoryFact('hr')).toBe(false);
+    expect(getOfficeSnapshot().errand?.colleagueId).toBe('intern');
+  });
+
+  /*
+   * Settling and refusing must not look the same in memory. The run already
+   * has a trace — an `errandRun` line in the shared office log, naming who
+   * sent you — so a beat written on both paths would make Linda's next line
+   * unable to tell the two apart.
+   */
+  it('is the opposite of settling it, which writes no beat at all', () => {
+    pushOfficeErrand({ fromId: 'hr', colleagueId: 'intern' });
+    expect(settleOfficeErrand('intern')).toBeTruthy();
+    expect(hasWorkingMemoryFact('hr')).toBe(false);
+    expect(getWorkingMemoryWith('hr')).toBeNull();
+  });
+
+  /*
+   * And the press itself, on the real card in the real room — the half a unit
+   * test cannot promise. A green unit test in front of a handler still wired to
+   * the bare store is exactly the shape this playbook's § 15 warns about: a case
+   * that documents an absence looks finished.
+   */
+  it('lands the mark when the button on the floor is the thing pressed', () => {
+    pushOfficeErrand({ fromId: 'hr', colleagueId: 'gilfoyle' });
+    renderFloor();
+
+    fireEvent.click(screen.getByRole('button', { name: copy.errand.drop }));
+
+    expect(getOfficeSnapshot().errand).toBeNull();
+    expect(workingMemoryPromptLines('hr')).toEqual([
+      'they sent you to have a word with somebody; you let it go'
+    ]);
   });
 });
 
