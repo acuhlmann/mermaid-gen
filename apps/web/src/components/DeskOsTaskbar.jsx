@@ -26,7 +26,7 @@ const MAX_PANEL_WIDTH_PX = 352; // ~22rem
  * The level panel used to hang *below* the brand chip. From the taskbar it has
  * to rise, like every other tray popover — same clamp, flipped axis.
  *
- * @param {DOMRect} anchorRect
+ * @param {DOMRect | null} anchorRect
  * @returns {import('react').CSSProperties}
  */
 function computeTrayPanelStyle(anchorRect) {
@@ -36,7 +36,11 @@ function computeTrayPanelStyle(anchorRect) {
   // Phone has no XP chip to anchor to (it retires below PHONE_MEDIA_QUERY —
   // Admin still opens progression, per the doc comment above). Center it as a
   // bottom sheet instead of anchoring to a tray element that doesn't exist.
-  if (!anchorRect) {
+  // Wide-mobile and foldables hide the chip with CSS instead (`display: none`),
+  // so it is mounted but measures 0×0 at the origin — anchoring to that put the
+  // panel a full viewport above the screen and Admin → HR progression looked
+  // dead. A box with no size is no anchor.
+  if (!anchorRect || (anchorRect.width === 0 && anchorRect.height === 0)) {
     return {
       position: 'fixed',
       left: Math.max(SAFE_INSET_PX, (viewportWidth - maxWidth) / 2),
