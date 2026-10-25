@@ -19,7 +19,7 @@ describe('renderModeAction helpers', () => {
       'Mermaid architecture graph',
       'AntV narrative layout',
       'Three.js spatial scene',
-      'Vega-Lite data view',
+      'Flint data view',
       'Endless A2UI intake forms',
       'HTML/CSS/JS sandbox'
     ]);

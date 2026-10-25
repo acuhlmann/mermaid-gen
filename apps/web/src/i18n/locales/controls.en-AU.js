@@ -247,7 +247,7 @@ export const CONTROLS_EN_AU = {
     metaphor3dSubtitle: 'Three.js spatial scene',
     chart: 'Chart',
     chartShort: 'Chart',
-    chartSubtitle: 'Vega-Lite data view',
+    chartSubtitle: 'Flint data view',
     anything: 'Anything page',
     anythingShort: 'Anything',
     anythingSubtitle: 'HTML/CSS/JS sandbox',

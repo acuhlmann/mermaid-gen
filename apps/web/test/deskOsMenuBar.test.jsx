@@ -4,12 +4,24 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import DeskOsMenuBar from '../src/components/DeskOsMenuBar.jsx';
 import { CONTROLS_EN } from '../src/i18n/locales/controls.en.js';
 import { resetOverlayStackForTests } from '../src/state/overlayStack.js';
+import { _resetChartRendererForTests, getChartRenderer } from '../src/state/chartRendererStore.js';
 
 const MODES = [
   { id: 'auto', label: 'Auto', techLabel: 'Pick for me' },
   { id: 'mermaid', label: 'Diagram', techLabel: 'Mermaid' },
-  { id: 'chart', label: 'Chart', techLabel: 'Vega-Lite' }
+  { id: 'chart', label: 'Chart', techLabel: 'Flint' }
 ];
+
+const FLINT_CHART = JSON.stringify({
+  archislopVersion: 1,
+  theme: 'whiteboard',
+  flint: {
+    data: { values: [{ region: 'North', sales: 3 }] },
+    chart_spec: { chartType: 'Bar Chart', encodings: { x: 'region', y: 'sales' } }
+  },
+  spec: { mark: 'bar', data: { values: [{ region: 'North', sales: 3 }] } }
+});
+const PLAIN_CHART = JSON.stringify({ theme: 'whiteboard', spec: { mark: 'bar' } });
 
 const MENU = CONTROLS_EN.menuBar;
 
@@ -42,6 +54,33 @@ function openMenu(id) {
 afterEach(() => {
   cleanup();
   resetOverlayStackForTests();
+  _resetChartRendererForTests();
+});
+
+describe('DeskOsMenuBar chart renderer', () => {
+  it('offers the Flint renderers for a Flint-sourced chart and remembers the pick', () => {
+    setup({ currentMode: 'chart', contentType: 'chart', diagramSource: FLINT_CHART });
+    openMenu('deliverable');
+    expect(screen.getByText(MENU.rendererSection)).toBeTruthy();
+    for (const id of ['vegalite', 'echarts', 'chartjs', 'plotly']) {
+      expect(screen.getByTestId(`menubar-chart-renderer-${id}`)).toBeTruthy();
+    }
+    expect(screen.getByTestId('menubar-chart-renderer-vegalite').getAttribute('aria-pressed')).toBe(
+      'true'
+    );
+    fireEvent.click(screen.getByTestId('menubar-chart-renderer-echarts'));
+    expect(getChartRenderer()).toBe('echarts');
+  });
+
+  it('hides the renderer choice for a plain Vega-Lite chart and for other modes', () => {
+    setup({ currentMode: 'chart', contentType: 'chart', diagramSource: PLAIN_CHART });
+    openMenu('deliverable');
+    expect(screen.queryByTestId('menubar-chart-renderer-echarts')).toBeNull();
+    cleanup();
+    setup({ contentType: 'mermaid', diagramSource: 'flowchart TD\nA-->B' });
+    openMenu('deliverable');
+    expect(screen.queryByTestId('menubar-chart-renderer-echarts')).toBeNull();
+  });
 });
 
 describe('DeskOsMenuBar', () => {

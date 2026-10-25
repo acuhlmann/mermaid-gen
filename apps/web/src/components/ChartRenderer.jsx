@@ -1,14 +1,18 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { parseChartDsl } from '@archislop/shared';
 import embed from 'vega-embed';
 import { applyChartThemeToSpec, resolveChartThemePreset } from '../utils/chartThemePresets.js';
 import { expressionInterpreter } from 'vega-interpreter';
 import { isMermaidInfrastructureError } from '../utils/mermaidRenderErrors.js';
 import { useUiCopy } from '../i18n/useUiLocale.js';
+import { useChartRenderer } from '../state/chartRendererStore.js';
 import {
+  dataUrlToBlob,
   registerViewportPngExporter,
   unregisterViewportPngExporter
 } from '../utils/viewportPngExport.js';
+
+const FlintChartView = lazy(() => import('./FlintChartView.jsx'));
 
 /** Default rendered dimensions when the spec doesn't set width/height. Picked to feel
  *  presentation-sized inside the viewport so the first render isn't a tiny square. */
@@ -56,7 +60,7 @@ function withDefaultSize(spec, compact = false) {
   };
 }
 
-export default function ChartRenderer({ diagramSource, compact = false, selectedNode = null }) {
+function VegaChartRenderer({ diagramSource, compact = false, selectedNode = null }) {
   const containerRef = useRef(null);
   const viewRef = useRef(null);
   const lastSelectedElRef = useRef(null);
@@ -127,12 +131,7 @@ export default function ChartRenderer({ diagramSource, compact = false, selected
       if (!view) {
         throw new Error('Chart is not ready to export — wait for it to render.');
       }
-      const url = await view.toImageURL('png');
-      const response = await fetch(url);
-      if (!response.ok) {
-        throw new Error('Chart PNG export failed');
-      }
-      return response.blob();
+      return dataUrlToBlob(await view.toImageURL('png'));
     };
     registerViewportPngExporter('chart', exporter);
     return () => unregisterViewportPngExporter('chart', exporter);
@@ -182,5 +181,38 @@ export default function ChartRenderer({ diagramSource, compact = false, selected
     <div className="chart-renderer-root">
       <div ref={containerRef} className="chart-embed-container" />
     </div>
+  );
+}
+
+/** The chart's Flint input when it has one the other backends can draw, else null. */
+function flintSourceOf(diagramSource) {
+  if (!diagramSource || !diagramSource.trim()) return null;
+  const result = parseChartDsl(diagramSource);
+  if (!result.ok) return null;
+  const flint = /** @type {any} */ (result.dsl.flint);
+  if (!flint || !Array.isArray(flint.data?.values) || !flint.chart_spec?.chartType) return null;
+  return { flint, theme: result.dsl.theme };
+}
+
+/**
+ * Vega-Lite by default; a Flint-sourced chart can be drawn by ECharts, Chart.js or Plotly
+ * instead when the viewer picks one (chartRendererStore.js, Deliverable → Renderer).
+ */
+export default function ChartRenderer(props) {
+  const renderer = useChartRenderer();
+  const source = useMemo(
+    () => (renderer === 'vegalite' ? null : flintSourceOf(props.diagramSource)),
+    [renderer, props.diagramSource]
+  );
+  if (!source) return <VegaChartRenderer {...props} />;
+  return (
+    <Suspense fallback={<div className="chart-renderer-root" aria-busy="true" />}>
+      <FlintChartView
+        flint={source.flint}
+        theme={source.theme}
+        backend={renderer}
+        compact={props.compact}
+      />
+    </Suspense>
   );
 }

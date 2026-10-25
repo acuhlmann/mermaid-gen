@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react';
 import ConcentrationControl from './ConcentrationControl.jsx';
 import DeskAttributionStrip from './DeskAttributionStrip.jsx';
+import DeskOsChartRendererSection from './DeskOsChartRendererSection.jsx';
 import DeskOsMenu, { DeskOsMenuItem, DeskOsMenuSection } from './DeskOsMenu.jsx';
 import IntroLocaleToggle from './IntroLocaleToggle.jsx';
 import OutboxDock from './OutboxDock.jsx';
@@ -25,7 +26,9 @@ function DeliverableMenu({ menu, copy, controls, actions, desk, options }) {
     clearDisabled,
     editorOpen,
     onToggleEditor,
-    canToggleEditor
+    canToggleEditor,
+    contentType,
+    diagramSource
   } = options;
   return (
     <DeskOsMenu
@@ -56,6 +59,12 @@ function DeliverableMenu({ menu, copy, controls, actions, desk, options }) {
               );
             })}
           </DeskOsMenuSection>
+          <DeskOsChartRendererSection
+            copy={copy}
+            contentType={contentType}
+            diagramSource={diagramSource}
+            close={close}
+          />
           {typeof onToggleEditor === 'function' ? (
             <DeskOsMenuSection label={copy.viewSection ?? copy.view ?? 'View'}>
               <DeskOsMenuItem
@@ -438,7 +447,9 @@ export default function DeskOsMenuBar({
           clearDisabled,
           editorOpen,
           onToggleEditor,
-          canToggleEditor
+          canToggleEditor,
+          contentType,
+          diagramSource
         }}
       />
       <MailroomMenu

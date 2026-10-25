@@ -86,6 +86,23 @@ async function captureViewportPngFromDom(contentType) {
 }
 
 /**
+ * Decode a `data:` URL without `fetch`: the production CSP's `connect-src` does not list
+ * `data:`, so `fetch(dataUrl)` is refused there (Vega's and Plotly's PNG exports return one).
+ * @param {string} dataUrl
+ * @returns {Blob}
+ */
+export function dataUrlToBlob(dataUrl) {
+  const match = /^data:([^;,]*)(;base64)?,(.*)$/s.exec(dataUrl);
+  if (!match) throw new Error('Not a data URL');
+  const [, mime, base64, payload] = match;
+  if (!base64) return new Blob([decodeURIComponent(payload)], { type: mime || 'text/plain' });
+  const binary = atob(payload);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
+  return new Blob([bytes], { type: mime || 'application/octet-stream' });
+}
+
+/**
  * @param {SVGSVGElement} svg
  * @param {{ scale?: number, background?: string }} [options]
  * @returns {Promise<Blob>}
