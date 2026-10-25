@@ -129,6 +129,18 @@ describe('DeskOsTaskbar', () => {
     expect(screen.getByTestId('levelup-info-panel')).toBeTruthy();
   });
 
+  // Wide-mobile / foldable CSS hides the chip (`display: none`) without
+  // unmounting it, so it measures 0×0 — jsdom reports the same. Anchoring to
+  // that rect pushed the panel a viewport above the screen, so Admin → HR
+  // progression opened nothing visible. A sizeless anchor means bottom sheet.
+  it('docks the level panel as a bottom sheet when the XP chip has no size', () => {
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 844 });
+    render(<DeskOsTaskbar gamification={GAMIFICATION} xpInfoPanelOpen />);
+    const mount = document.getElementById('levelup-info-panel');
+    expect(screen.getByTestId('desk-os-taskbar').querySelector('.desk-os-taskbar-xp')).toBeTruthy();
+    expect(mount.style.bottom).toContain('calc(');
+  });
+
   // The metaphor3d canvas is full-bleed behind this bar, and the measurement
   // that keeps its panels clear of the bar is by attribute — an unmarked
   // taskbar is invisible to it, so the whole reservation is silently dead and
