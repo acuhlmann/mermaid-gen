@@ -299,6 +299,10 @@ describe('daylight surface floor', () => {
     const grounds = LOCKED_DARK_THEMES.map(
       (themeId) => resolveMetaphorSceneTheme({ themeId, kind: 'river', moodId: null }).groundColor
     );
+    expect(
+      LOCKED_DARK_THEMES.length,
+      'no locked dark themes — this proves nothing'
+    ).toBeGreaterThan(1);
     expect(new Set(grounds).size).toBe(LOCKED_DARK_THEMES.length);
   });
 
@@ -491,6 +495,7 @@ describe('space sky lock', () => {
       (themeId) =>
         resolveMetaphorSceneTheme({ themeId, kind: 'galaxy', moodId: null }).skyHorizonColor
     );
+    expect(THEMES.length, 'no themes registered — this proves nothing').toBeGreaterThan(1);
     expect(new Set(skies).size).toBe(THEMES.length);
   });
 });
