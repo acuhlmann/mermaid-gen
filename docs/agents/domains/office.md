@@ -674,6 +674,26 @@ test:floor`; the floor test map is [`docs/agents/isometric-floor-tests.md`](../.
   the front, never whether a standing item exists. `FloorProps.jsx` samples
   `getOfficeLogSnapshot()` and does **not** subscribe; both surfaces that read the board call the
   one pure composer, which is the `floorActivityFor` habit (many callers, one composer).
+- **A board fact reaches a prompt through a second bank, never a second derivation.** Note text is
+  localized UI copy in four bundles; `officeLogDigest.js`'s header says the prompt side is
+  **always English** ("localizing the digest would translate the input twice"). So
+  `officeFloorNotes.js` keeps `BOARD_NOTE_PROMPT_COPY` beside the locale bank and runs it through
+  the **same** `boardNotesFor` — the split `officeDeskWork.js`'s `LOOK_PROMPT_LINES` already uses.
+  Two faces, one derivation, so the model can only quote what is on the panel, in the order it is
+  up there. The drift this invites (a note added to the bundles and not to the prompt bank is a
+  mark no colleague can ever mention) is swept in `officeFloorProps.test.jsx`, and the lines name
+  **cast ids, not display names**, because those are what every server prompt builder speaks.
+- **`officeBoard` is the one `/moment` field keyed on nobody, and its hit rate is the thing to
+  watch.** Every other context block is a memory somebody carries; the board is an object on a
+  wall, so the same lines go to every speaker and the block's instruction leans on "everybody has
+  walked past it". Measured 2026-10-26 (deepseek-v4-flash, 4 samples/arm, control arm, one fixed
+  diagram): **11 of 12** board-bearing samples point at it in half a clause, **0 of 12** recite it
+  or claim a diagram delta — against **0 of 8** in the two control arms, which cannot. Both halves
+  matter: the block works, and it fires more often than the office log's ("most of the time it is
+  not"). The lever that would lower it is the log block's `ONLY if a reference lands naturally`
+  clause, and adding it here would be a **second prohibition** — the shape measured inert in the
+  desk-work block and now pinned at one guard in `officePersonas.test.js`. So if the board starts
+  eating a visit, cut the notes, not the register.
 
 ## Full findings
 
@@ -1601,6 +1621,38 @@ test:floor`; the floor test map is [`docs/agents/isometric-floor-tests.md`](../.
   connectors were the tell that a _topology_ was up there. Measured in real Chromium (4×, animations
   at `endTime`): the panel's polygons went 8 → 10 on a quiet log and 8 → 12 once somebody had
   pitched, while your own diagram stopped changing it at all.
+- **Making the board quotable is a second bank, not a second derivation — and the blocker was a
+  collision between two rules, not plumbing.** § 6a deliberately made the notes `text` rather than
+  pixels so a prompt could carry them, and for one slice nothing did, because the note words are
+  localized UI copy in four bundles while `officeLogDigest.js`'s own header says the prompt side is
+  **always English** ("localizing the digest would translate the input twice and give the model a
+  second language to be confused by"). Sending the localized words breaks that rule; translating
+  them on the server breaks it twice. The way through is the split `officeDeskWork.js`'s
+  `LOOK_PROMPT_LINES` already uses: the row carries the fact, and there are two faces for it.
+  `BOARD_NOTE_PROMPT_COPY` is the English face and it runs through the **same** `boardNotesFor`,
+  so the prompt can only ever name a note that is on the panel, in the order it is up there — a
+  parallel derivation would let a colleague quote a board nobody is looking at. The drift the split
+  invites has its own sweep (`BOARD_NOTE_PROMPT_KEYS` against the locale bank's keys in
+  `officeFloorProps.test.jsx`): a note kind or an author added to the four bundles and not to the
+  prompt bank is a mark on the wall no colleague can ever mention, and nothing else would fail.
+- **`officeBoard` is the first `/moment` context field keyed on nobody, and the measurement says
+  to watch its hit rate rather than its wording.** `officeLog` is what the room lived through,
+  `officeRelationship` is what this speaker shares with you, `officeDeskWork` is their own
+  afternoon — all three are memories somebody carries. The board is an **object**: public,
+  identical for every speaker, and older than today, which is why `buildOfficeBoardBlock` sits
+  furthest from the closing instruction (broadest first) and why its one guard is "scenery you
+  share and never news you are breaking" rather than anything about accuracy. Audition, the method
+  this domain already pays for (throwaway script replicating the route, one fixed diagram,
+  4 samples/arm, **control arms**, deepseek-v4-flash, 2026-10-26): board-bearing arms referenced it
+  **11 of 12** — 4/4 provoked with the hearsay note, 3/4 with standing items only, 4/4 on an
+  ambient cold open — with **0 of 12** recitations and **0 of 12** fabricated diagram deltas,
+  against 0 of 8 in the two control arms, which have nothing to reference. Read both halves: the
+  block lands, and it lands more often than the office log's block, whose rate is held down by
+  `ONLY if a reference lands naturally`. Copying that clause here would make a **second**
+  prohibition, which is the exact shape measured inert in the desk-work block (0 of 12 either side
+  until it was cut to one guard, then 6 of 12) and is now pinned at one in
+  `officePersonas.test.js`. So if the board starts eating a visit, **shorten the notes, not the
+  register.**
 - **`resolveChromium()`'s path assumes one of the two Playwright layouts.**
   `apps/web/test/officeVisitTrace.mjs` builds `<browsersPath>/chromium-<n>/chrome-linux/chrome`. On
   the current cloud image the directory is **`chrome-linux64`**, so that path does not exist and

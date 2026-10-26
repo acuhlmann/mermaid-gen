@@ -36,6 +36,12 @@
  * is a constant below rather than the bank's key order: a translator may
  * reorder keys, and the board's reading order is not theirs to change.
  *
+ * **There are two faces and one derivation.** `boardNotesFor` is also handed an
+ * English-only bank — `BOARD_NOTE_PROMPT_COPY` at the foot of this file — so a
+ * colleague can quote the board in a prompt without the office log's
+ * always-English rule being broken. Same inputs, same order, same three notes;
+ * only the words differ.
+ *
  * **Pure and DOM-free**, like its sibling `officeFloorBoard.js` — the caller
  * samples `getOfficeLogSnapshot()` and hands it over. The floor must not
  * subscribe to anything that repaints sixteen figures, and a board that
@@ -243,5 +249,110 @@ export function boardNoteMarks(notes) {
   });
   return marks;
 }
+
+/**
+ * The board's **English** prompt face — the same notes, in the language every
+ * office prompt is written in.
+ *
+ * § 15 ruled the board *quotable both ways*, and the notes were deliberately
+ * made text rather than pixels so a prompt could carry them. What stood in the
+ * way was not plumbing but a collision of two rules: note text above is
+ * localized UI copy (`officeChromeCopy()`, four bundles), while
+ * `officeLogDigest.js`'s own header says the prompt digest **is always
+ * English** — "localizing the digest would translate the input twice and give
+ * the model a second language to be confused by". Sending the localized words
+ * would have broken that; translating them on the server would have broken it
+ * twice.
+ *
+ * So the board gets the split `officeDeskWork.js`'s `LOOK_PROMPT_LINES` already
+ * uses: the row carries the *fact*, and there are two faces for it — one for
+ * the reader, one for the model. The derivation is **not** duplicated. These
+ * lines go through `boardNotesFor` with this bank in place of the locale one,
+ * so the prompt can only ever say what is actually on the panel, in the order
+ * it is up there. A note added to the locale bank and not to this one quietly
+ * stops reaching the model, which is what the key sweep in
+ * `officeFloorProps.test.jsx` is for.
+ *
+ * Two conventions borrowed wholesale from the digest, because the model reads
+ * this beside it: **cast ids, not display names** (`gilfoyle`, not "Gilfoyle"
+ * — the ids every server prompt builder already speaks), and plain sentences
+ * rather than UI fragments. These are the model's memory, not its material.
+ *
+ * @type {{ stale: string, open: Record<string, string>, heardAboutYours: string }}
+ */
+const BOARD_NOTE_PROMPT_COPY = Object.freeze({
+  stale:
+    'an architecture from two re-orgs ago is still up there in permanent marker, with SYNERGY underlined twice',
+  open: Object.freeze({
+    gilfoyle:
+      "gilfoyle's migration plan is up there in small furious handwriting, with the date it was approved left blank",
+    scrumMaster:
+      'a parked item from a retro is up there in a colour nobody else uses: revisit who owns the arrows',
+    hr: 'hr has written COMPLIANCE TRAINING - FRIDAY up there, underlined three times, with a smiley face'
+  }),
+  heardAboutYours:
+    'somebody has had a go at drawing "{label}" up there from memory, three boxes with nothing joining them and one of the words wrong'
+});
+
+/**
+ * Both-sides-must-match caps for the `officeBoard` field.
+ *
+ * `BOARD_NOTE_PROMPT_LINE_MAX_CHARS` mirrors the route's per-line cap
+ * (`OfficeBoardField` in `apps/server/src/routes/office.js`) for the reason
+ * `officeLogDigest.js` states about its own: a client that drifts past a cap
+ * becomes a 400 the user experiences as *the office went quiet*, and the only
+ * line here that can grow is the hearsay note, because it interpolates a label
+ * off the user's own diagram. `visibleLabels` allows 200 characters each, so
+ * that one note could have carried the whole cap by itself.
+ *
+ * The label is cut first and much shorter, because a note on a whiteboard is
+ * short by nature — somebody wrote it standing up, from memory. Truncating the
+ * sentence instead would drop the clause that makes it a *bad* sketch, which is
+ * the whole content of that note.
+ */
+const BOARD_NOTE_PROMPT_LINE_MAX_CHARS = 200;
+const BOARD_NOTE_LABEL_MAX_CHARS = 60;
+
+/**
+ * What the whiteboard says, for the prompt — at most `BOARD_MAX_NOTES` English
+ * lines, or none.
+ *
+ * Takes `labels` rather than a `BoardState` because the caller that has a
+ * reason to send this is the moment funnel, and what it holds is the visible
+ * labels it is already shipping (`ctx.labels`). The hearsay note needs exactly
+ * one of them and nothing else from the board, and asking the funnel to build a
+ * `BoardState` it has no other use for would be a second derivation of the same
+ * fact.
+ *
+ * Empty when the board bank has nothing to say, so the server drops the block
+ * rather than printing a heading over nothing.
+ *
+ * @param {{ officeLog?: Array<{kind?: string, colleagueId?: string}>,
+ *   labels?: string[] }} [params]
+ * @returns {string[]}
+ */
+export function boardNotePromptLines({ officeLog = [], labels = [] } = {}) {
+  const list = Array.isArray(labels)
+    ? labels
+        .filter((label) => typeof label === 'string')
+        .map((label) => label.slice(0, BOARD_NOTE_LABEL_MAX_CHARS))
+    : [];
+  return boardNotesFor({
+    officeLog,
+    board: list.length > 0 ? { labels: list } : null,
+    copy: BOARD_NOTE_PROMPT_COPY
+  }).map((note) => note.text.slice(0, BOARD_NOTE_PROMPT_LINE_MAX_CHARS));
+}
+
+/**
+ * The prompt bank itself, for the sweep that keeps the two faces in step.
+ *
+ * Exported for `officeFloorProps.test.jsx` rather than for a renderer: nothing
+ * in the app reads this bank except `boardNotePromptLines` above.
+ */
+export const BOARD_NOTE_PROMPT_KEYS = Object.freeze({
+  top: Object.freeze(Object.keys(BOARD_NOTE_PROMPT_COPY)),
+  open: Object.freeze(Object.keys(BOARD_NOTE_PROMPT_COPY.open))
+});
 
 export default boardNotesFor;
