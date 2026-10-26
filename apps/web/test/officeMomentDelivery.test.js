@@ -211,6 +211,37 @@ describe('deliverLlmMoment carries a pitch to every surface', () => {
     expect(String(jared.officeDeskWork)).toContain('printouts');
   });
 
+  it('sends what the room has written on its own whiteboard, keyed on nobody', async () => {
+    // The one context field on this request that belongs to neither the user
+    // nor the speaker: a thing on a wall that the whole floor has read, so the
+    // same lines go to everybody and the server block says so out loud.
+    _resetOfficeLogForTests();
+    recordOfficeLogEntry('pitch', { colleagueId: 'gilfoyle' });
+
+    const fetchMock = vi.fn(async () => ({
+      ok: true,
+      json: async () => ({ moment: { body: 'ping', colleagueId: 'gilfoyle', kind: 'im' } })
+    }));
+    globalThis.fetch = fetchMock;
+
+    await deliverLlmMoment('im', CTX, { memory: memory(), colleagueId: 'gilfoyle' });
+    const sent = JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body ?? '{}'));
+    expect(sent.officeBoard.length).toBeGreaterThan(1);
+    expect(sent.officeBoard.length).toBeLessThanOrEqual(3);
+    // Standing items plus the sketch somebody drew of your work from hearsay —
+    // which needs a visible label, so it is the proof the funnel's own context
+    // reached the derivation rather than a bank being read out.
+    expect(String(sent.officeBoard)).toMatch(/two re-orgs ago/);
+    expect(String(sent.officeBoard)).toContain('Auth');
+
+    await deliverLlmMoment('im', CTX, { memory: memory(), colleagueId: 'hr' });
+    const other = JSON.parse(String(fetchMock.mock.calls[1]?.[1]?.body ?? '{}'));
+    // Public means public: unlike `officeDeskWork` and `officeRelationship`,
+    // this field does not change with the speaker.
+    expect(other.officeBoard).toEqual(sent.officeBoard);
+    _resetOfficeLogForTests();
+  });
+
   it('sends working-memory beats and can strip a pitch on initiation', async () => {
     const {
       stampWorkingMemoryBoard,

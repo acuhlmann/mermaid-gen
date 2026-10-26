@@ -101,6 +101,17 @@ const OfficeWorkingMemoryField = z.array(z.string().max(200)).max(6).default([])
  */
 const OfficeDeskWorkField = z.array(z.string().max(200)).max(2).default([]);
 
+/**
+ * What the room has written on its own whiteboard, built client-side by
+ * `officeFloorNotes.js`. Same both-sides-must-match reasoning as the three
+ * fields above; the cap is 3 because that is `BOARD_MAX_NOTES` — a board is a
+ * 62 px panel and a fourth mark is one nobody could tell from the third.
+ *
+ * The one field on this request that is about neither the user nor the speaker:
+ * it is public, and the whole floor has already read it.
+ */
+const OfficeBoardField = z.array(z.string().max(200)).max(3).default([]);
+
 const ModelProfileField = ModelProfileSchema.optional();
 
 const OfficeMomentRequestSchema = z.object({
@@ -114,6 +125,7 @@ const OfficeMomentRequestSchema = z.object({
   officeRelationship: OfficeRelationshipField,
   officeWorkingMemory: OfficeWorkingMemoryField,
   officeDeskWork: OfficeDeskWorkField,
+  officeBoard: OfficeBoardField,
   uiLocale: UiLocaleField,
   userName: z.string().max(80).optional(),
   userMessage: z.string().max(400).optional(),

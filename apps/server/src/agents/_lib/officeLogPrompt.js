@@ -29,6 +29,8 @@ const RELATIONSHIP_MAX_LINES = 3;
 const WORKING_MEMORY_MAX_LINES = 6;
 /** One screen line + one hands line from the client's `officeDeskWork.js`. */
 const DESK_WORK_MAX_LINES = 2;
+/** Mirrors `BOARD_MAX_NOTES` in the client's `officeFloorNotes.js`. */
+const BOARD_MAX_LINES = 3;
 
 /**
  * The closing instruction is the load-bearing half of this block. Handed a list
@@ -166,6 +168,48 @@ export function buildOfficeDeskWorkBlock(officeDeskWork) {
     'Answer them from inside that. Let it show — half a clause is plenty: what your hands are',
     'busy with, what you are looking away from to say this, what you are about to get back to.',
     'The one thing your own work never is: something that touched their diagram.'
+  ];
+}
+
+/**
+ * The whiteboard by the pod — the one fact on a moment request that is neither
+ * the user's nor the speaker's.
+ *
+ * Every other block here is a memory somebody carries: what the office lived
+ * through, what this speaker shares with the user, what they were in the middle
+ * of themselves. This one is an *object in the room*. It is public — the whole
+ * floor has read it — which is what makes it quotable from across the room and
+ * also what makes it useless as news, and that asymmetry is the whole
+ * instruction below.
+ *
+ * Built client-side by `officeFloorNotes.js`'s `boardNotePromptLines` and
+ * shipped as `officeBoard`. The notes are derived from the office log and a
+ * fixed bank rather than stored (ADR-0011 rule 1), so nothing here is a second
+ * truth about the room.
+ *
+ * Shaped by the same finding as the block above: **lead with the register in
+ * the imperative, keep exactly one guard, offer no hatch.** The guard is the
+ * one this block needs — a model handed a list of facts recites them, and a
+ * whiteboard read out loud is a colleague describing furniture.
+ *
+ * @param {string[] | undefined} officeBoard
+ * @returns {string[] | null} null when empty, so the caller drops the heading.
+ */
+export function buildOfficeBoardBlock(officeBoard) {
+  const lines = Array.isArray(officeBoard)
+    ? officeBoard
+        .filter((line) => typeof line === 'string' && line.trim())
+        .slice(0, BOARD_MAX_LINES)
+    : [];
+  if (lines.length === 0) return null;
+  return [
+    '',
+    'On the whiteboard by the pod, where the whole office can read it:',
+    ...lines.map((line) => `- ${line.slice(0, LOG_LINE_MAX_CHARS)}`),
+    '',
+    'Point at one of these the way you point at something on a wall — half a clause, mid-sentence,',
+    'as the shortest way to say what you were going to say anyway. It has been up there a while and',
+    'everybody has walked past it, so it is scenery you share and never news you are breaking.'
   ];
 }
 

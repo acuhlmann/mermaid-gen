@@ -25,6 +25,7 @@ import {
 } from '@archislop/shared';
 import { llmUsageFromReply } from './_lib/llmUsageFromReply.js';
 import {
+  buildOfficeBoardBlock,
   buildOfficeDeskWorkBlock,
   buildOfficeLogBlock,
   buildOfficeRelationshipBlock,
@@ -780,6 +781,7 @@ export function buildMomentUserPrompt({
   officeRelationship,
   officeWorkingMemory,
   officeDeskWork,
+  officeBoard,
   uiLocale,
   userName,
   userMessage,
@@ -836,6 +838,11 @@ export function buildMomentUserPrompt({
     '',
     'Recent moments (avoid repetition):',
     recent,
+    /* Broadest first. The ordering argument below is about how *narrow* a
+       memory is, and the board is not a memory at all — it is a thing on a wall
+       that predates today and that everybody in the room has read, so it sits
+       furthest from the instruction that closes the prompt. */
+    buildOfficeBoardBlock(officeBoard),
     buildOfficeLogBlock(officeLog),
     /* The office's memory, then this speaker's. Ordered shared-before-private
        so the narrower block sits closer to the instruction that follows it —

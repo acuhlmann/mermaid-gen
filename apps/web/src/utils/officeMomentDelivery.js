@@ -17,7 +17,12 @@ import { OFFICE_DIAGRAM_SOURCE_MAX_CHARS } from '@archislop/shared';
 import { getAdvisorVisibleLabels } from './advisorVisibleLabels.js';
 import { writeOfficeCadenceMemory } from './officeAmbienceStorage.js';
 import { deskWorkPromptLines } from './officeDeskWork.js';
-import { getOfficeLogDigest, getOfficeRelationshipWith } from '../state/officeLogStore.js';
+import { boardNotePromptLines } from './officeFloorNotes.js';
+import {
+  getOfficeLogDigest,
+  getOfficeLogSnapshot,
+  getOfficeRelationshipWith
+} from '../state/officeLogStore.js';
 import {
   boardFingerprintOf,
   rememberWorkingMemoryBeat,
@@ -515,6 +520,18 @@ export async function deliverLlmMoment(kind, ctx, options) {
         // that is theirs — the fiction that makes a colleague on the phone
         // sound different from one with a stack of printouts.
         officeDeskWork: deskWorkPromptLines(colleagueId),
+        // What the room has written on its own whiteboard (§ 6a / § 15). The
+        // one fact in this request that is *public* — not a memory somebody
+        // carries but a thing on a wall that the whole floor has read, which is
+        // why it is keyed on nobody and goes to every speaker alike. The notes
+        // are derived, never stored (ADR-0011 rule 1), so this costs no call
+        // and no second truth; `boardNotePromptLines` is the same derivation the
+        // panel draws, read through an English bank because the prompt side is
+        // always English (`officeLogDigest.js`).
+        officeBoard: boardNotePromptLines({
+          officeLog: getOfficeLogSnapshot(),
+          labels: ctx.labels
+        }),
         uiLocale: officeDialogueLocale(),
         userName: ctx.userName || undefined,
         userMessage: userMessage || undefined,

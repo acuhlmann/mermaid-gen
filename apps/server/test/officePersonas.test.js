@@ -34,6 +34,7 @@ import {
   isSpokenMomentSituation
 } from '../src/agents/officePersonas.js';
 import {
+  buildOfficeBoardBlock,
   buildOfficeDeskWorkBlock,
   buildOfficeLogBlock,
   buildOfficeRelationshipBlock,
@@ -1369,6 +1370,70 @@ test('buildOfficeDeskWorkBlock asks them to answer from inside their own day', (
   );
   // And no escape hatch — the model takes that branch every time.
   assert.doesNotMatch(block, /if nothing earns it|say nothing/i);
+});
+
+test('buildOfficeBoardBlock hands over a landmark, not news', () => {
+  const block = buildOfficeBoardBlock([
+    'an architecture from two re-orgs ago is still up there in permanent marker',
+    "gilfoyle's migration plan is up there with the date it was approved left blank",
+    'somebody has had a go at drawing "Billing" up there from memory'
+  ]).join('\n');
+  assert.match(block, /whole office can read it/);
+  assert.match(block, /Point at one of these/);
+
+  /*
+   * Same shape rule as the desk-work block above, and asserted for the same
+   * measured reason: two prohibitions against one hedged permission auditioned
+   * indistinguishable from the control arm. The one guard here is the one this
+   * block needs — handed three facts with no instruction a model recites them,
+   * and a whiteboard read out loud is a colleague describing furniture.
+   */
+  const prohibitions = block.match(/\b(never|do not|don't)\b/gi) ?? [];
+  assert.equal(prohibitions.length, 1, `board block carries ${prohibitions.length} prohibitions`);
+  assert.doesNotMatch(block, /if nothing earns it|say nothing/i);
+
+  // Three is `BOARD_MAX_NOTES`; a client that drifts past it is already a 400
+  // at the route, and this side truncates rather than printing a fourth mark.
+  const long = buildOfficeBoardBlock(['a', 'b', 'c', 'd']).filter((line) => line.startsWith('- '));
+  assert.equal(long.length, 3);
+});
+
+test('buildMomentUserPrompt puts the board furthest from the closing instruction', () => {
+  const prompt = buildMomentUserPrompt({
+    contentType: 'mermaid',
+    diagramSource: 'graph TD; A-->B;',
+    visibleLabels: [],
+    recentMoments: [],
+    officeBoard: ['an architecture from two re-orgs ago is still up there'],
+    officeLog: ['you ran the diagram and gilfoyle watched'],
+    officeDeskWork: ['you have been heads-down typing'],
+    uiLocale: 'en-US'
+  });
+  // Broadest first: the board is not a memory anybody carries, it is a thing on
+  // a wall older than today, so it reads before the day and before the
+  // speaker's own afternoon. The ordering is the argument the comment at the
+  // call site makes, and an accidental reorder would quietly invert it.
+  assert.ok(
+    prompt.indexOf('whole office can read it') < prompt.indexOf('Earlier today, in this office'),
+    'board block should precede the office log'
+  );
+  assert.ok(
+    prompt.indexOf('Earlier today, in this office') < prompt.indexOf('your own work, nobody asked'),
+    'office log should precede the desk-work block'
+  );
+});
+
+test('buildMomentUserPrompt omits the board block when the room has written nothing', () => {
+  const prompt = buildMomentUserPrompt({
+    contentType: 'mermaid',
+    diagramSource: 'graph TD; A-->B;',
+    visibleLabels: [],
+    recentMoments: [],
+    uiLocale: 'en-US'
+  });
+  // A heading over nothing reads as an absence worth remarking on, and "the
+  // whiteboard is blank" is the one thing this floor's whiteboard never is.
+  assert.doesNotMatch(prompt, /whole office can read it/);
 });
 
 test('buildMomentUserPrompt omits the desk-work block when the client sends none', () => {

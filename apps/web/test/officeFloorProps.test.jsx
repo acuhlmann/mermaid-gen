@@ -3,12 +3,19 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import OfficeFloor from '../src/components/OfficeFloor.jsx';
 import { FloorPropCard } from '../src/components/officeFloor/FloorProps.jsx';
-import { isOfficeColleagueId, officeChromeCopy } from '../src/utils/officeCast.js';
+import {
+  isOfficeColleagueId,
+  officeChromeCopy,
+  setActiveOfficeBundle
+} from '../src/utils/officeCast.js';
+import { getUiLocaleBundle } from '../src/i18n/getUiLocaleBundle.js';
 import { deskWorkFor } from '../src/utils/officeDeskWork.js';
 import {
   BOARD_MAX_NOTES,
   BOARD_NOTE_KINDS,
+  BOARD_NOTE_PROMPT_KEYS,
   boardNoteMarks,
+  boardNotePromptLines,
   boardNotesFor
 } from '../src/utils/officeFloorNotes.js';
 import { usablePropKinds } from '../src/utils/officeFloorMovement.js';
@@ -42,6 +49,9 @@ afterEach(() => {
   unpinOfficeFloorDeterminism();
   _resetOfficeViewModeForTests();
   _resetOfficeLogForTests();
+  // The prompt-face suite at the foot of this file switches the chrome bundle
+  // to prove the board's prompt lines do *not* follow it.
+  setActiveOfficeBundle(null);
   window.localStorage.clear();
 });
 
@@ -673,5 +683,101 @@ describe('the whiteboard’s own record (§ 6a)', () => {
       expect(mark.x + mark.w).toBeLessThanOrEqual(1);
       expect(mark.y + mark.h).toBeLessThanOrEqual(1);
     }
+  });
+});
+
+/**
+ * The board's prompt face — § 15's "quotable both ways", now that something
+ * sends it.
+ *
+ * The notes were made text rather than pixels so a colleague could quote them,
+ * and for one slice nothing did. What stood in the way was a collision rather
+ * than plumbing: note text is localized UI copy in four bundles, while
+ * `officeLogDigest.js`'s own header says the prompt side is always English. So
+ * there are two banks and exactly one derivation, and these are the assertions
+ * that keep that true — a second derivation would let the model quote a note
+ * that is not on the panel.
+ */
+describe('what a colleague can quote off the board (§ 15)', () => {
+  const bank = () => officeChromeCopy().floor.props.items.whiteboard.notes;
+  const labels = ['Client', 'API Gateway'];
+
+  it('says the same notes, in the same order, as the panel draws', () => {
+    recordOfficeLogEntry('pitch', { colleagueId: 'gilfoyle' });
+    const log = getOfficeLogSnapshot();
+    const drawn = boardNotesFor({ officeLog: log, board: { labels }, copy: bank() });
+    const spoken = boardNotePromptLines({ officeLog: log, labels });
+
+    // Same count and same order: one derivation, two sets of words. A prompt
+    // that can name a fourth note, or name them in another order, is quoting a
+    // board nobody is looking at.
+    expect(spoken).toHaveLength(drawn.length);
+    expect(spoken.length).toBeGreaterThan(1);
+    expect(spoken.length).toBeLessThanOrEqual(BOARD_MAX_NOTES);
+    expect(spoken[0]).toMatch(/two re-orgs ago/);
+    expect(spoken[spoken.length - 1]).toContain('Client');
+  });
+
+  it('stays English when the office is not, and names cast ids rather than people', () => {
+    setActiveOfficeBundle(getUiLocaleBundle('zh-CN').office);
+    // The reader's board really is translated — that is the control for the
+    // assertion after it.
+    expect(bank().stale).toMatch(/[\u4e00-\u9fff]/);
+
+    recordOfficeLogEntry('meeting', { colleagueId: 'gilfoyle' });
+    const spoken = boardNotePromptLines({ officeLog: getOfficeLogSnapshot(), labels });
+    expect(spoken.length).toBeGreaterThan(0);
+    for (const line of spoken) {
+      // Localizing the prompt would translate the input twice and hand the
+      // model a second language to be confused by (`officeLogDigest.js`).
+      expect(line, line).not.toMatch(/[\u4e00-\u9fff]/);
+      // The digest's other convention: ids, not display names, because those
+      // are what every server prompt builder already speaks.
+      expect(line, line).not.toMatch(/\bGilfoyle\b/);
+      expect(line.length, line).toBeLessThanOrEqual(200);
+    }
+    expect(spoken.join(' ')).toMatch(/gilfoyle/);
+  });
+
+  it('keeps a note on the reader board from silently never reaching a prompt', () => {
+    const reader = bank();
+    // The sweep that catches the drift this split invites: a note kind, or an
+    // author, added to the locale bundles and not to the prompt bank is a mark
+    // on the wall that no colleague can ever mention.
+    expect([...BOARD_NOTE_PROMPT_KEYS.top].sort()).toEqual(Object.keys(reader).sort());
+    expect([...BOARD_NOTE_PROMPT_KEYS.open].sort()).toEqual(Object.keys(reader.open).sort());
+  });
+
+  it('cannot write a line the route would reject', () => {
+    // The hearsay note interpolates a label off the user's own diagram, and
+    // `visibleLabels` allows 200 characters each — so before the cap this one
+    // note could carry the whole field budget by itself and the request came
+    // back a 400, which the user reads as the office going quiet.
+    recordOfficeLogEntry('run', { colleagueId: 'gilfoyle' });
+    const spoken = boardNotePromptLines({
+      officeLog: getOfficeLogSnapshot(),
+      labels: ['N'.repeat(200)]
+    });
+    expect(spoken.some((line) => line.includes('from memory'))).toBe(true);
+    for (const line of spoken) expect(line.length, line).toBeLessThanOrEqual(200);
+    // And the cut lands on the label, not on the sentence: the clause that says
+    // the sketch is *wrong* is the whole content of that note.
+    expect(spoken[spoken.length - 1]).toMatch(/one of the words wrong$/);
+  });
+
+  it('sends nothing rather than a bare board when nobody could have heard about your work', () => {
+    // No log at all: the standing notes are still up there (a board is never
+    // blank) and the hearsay sketch is refused, because the office does not get
+    // to invent a witness.
+    const cold = boardNotePromptLines({ labels });
+    expect(cold.length).toBeGreaterThan(0);
+    expect(cold.some((line) => line.includes('Client'))).toBe(false);
+    // And with no labels there is nothing to have misremembered either.
+    recordOfficeLogEntry('run', { colleagueId: 'dinesh' });
+    expect(
+      boardNotePromptLines({ officeLog: getOfficeLogSnapshot() }).some((line) =>
+        line.includes('from memory')
+      )
+    ).toBe(false);
   });
 });
