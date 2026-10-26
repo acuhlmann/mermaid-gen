@@ -108,7 +108,9 @@ describe('dismiss stops narration', () => {
       await Promise.resolve();
     });
     // The Hard stop lands after the voice was cut, as it does in the app.
-    rerender({ active: false });
+    await act(async () => {
+      rerender({ active: false });
+    });
     await act(async () => {
       await vi.advanceTimersByTimeAsync(3000 + 100);
     });

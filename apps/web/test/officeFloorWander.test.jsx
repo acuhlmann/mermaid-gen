@@ -5,7 +5,7 @@ import OfficeFloor from '../src/components/OfficeFloor.jsx';
 import FloorWanderer from '../src/components/officeFloor/FloorWanderer.jsx';
 import { useFloorWander } from '../src/components/officeFloor/useFloorWander.js';
 import { officeChromeCopy } from '../src/utils/officeCast.js';
-import { renderFloor } from './helpers/officeFloorTestUtils.jsx';
+import { OFFICE_FLOOR_TEST_MIDDAY, renderFloor } from './helpers/officeFloorTestUtils.jsx';
 import {
   _resetWanderHabitsForTests,
   wanderHabitFor,
@@ -25,7 +25,7 @@ import {
   projectIso,
   seatFor
 } from '../src/utils/officeFloorPlan.js';
-import { _resetOfficeViewModeForTests, standUp } from '../src/state/officeViewModeStore.js';
+import { _resetOfficeViewModeForTests } from '../src/state/officeViewModeStore.js';
 import {
   _resetOfficeWorkingMemoryForTests,
   getWorkingMemoryWith,
@@ -390,12 +390,12 @@ describe('the trip machine', () => {
 describe('the floor with somebody up and about', () => {
   beforeEach(() => {
     vi.useFakeTimers();
+    vi.setSystemTime(OFFICE_FLOOR_TEST_MIDDAY);
     stubRandom();
   });
 
   it('empties their desk while they are out and fills it again after', () => {
-    standUp();
-    const view = render(<OfficeFloor />);
+    const view = renderFloor({}, { pinDeterminism: false });
     const seat = () => view.container.querySelector('[data-seat="gilfoyle"]');
 
     expect(seat()?.dataset.vacant).toBeUndefined();
@@ -412,8 +412,7 @@ describe('the floor with somebody up and about', () => {
   });
 
   it('says nothing about it', () => {
-    standUp();
-    render(<OfficeFloor />);
+    renderFloor({}, { pinDeterminism: false });
     const region = screen.getByTestId('office-floor-narration');
     const before = region.textContent;
 
@@ -430,8 +429,7 @@ describe('the floor with somebody up and about', () => {
   });
 
   it('walks them from their own desk', () => {
-    standUp();
-    const view = render(<OfficeFloor />);
+    const view = renderFloor({}, { pinDeterminism: false });
     act(() => vi.advanceTimersByTime(9_000));
 
     const desk = seatFor('gilfoyle');
