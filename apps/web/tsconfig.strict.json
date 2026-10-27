@@ -38,6 +38,8 @@
     "src/utils/planPreviewDedupe.ts",
     "src/utils/radialSelectionIntroStorage.ts",
     "src/utils/usageSignalsStorage.ts",
+    "src/utils/insightStatusLocale.ts",
+    "src/utils/officeCanvasGrace.ts",
     "src/utils/seededHash.ts",
     "src/utils/thinkingProseEnrich.tsx",
     "src/state/diagramWireTypes.ts",
