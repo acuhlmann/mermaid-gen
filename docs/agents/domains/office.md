@@ -93,9 +93,26 @@ it names. Merging the two into a single pass is worth doing and is not urgent �
   the beat changes the next exchange with the asker if you start one, and cannot start one itself
   (ADR-0010 consequence #4), which is why a dropped errand is droppable in one press with no
   confirmation and no second ask. **The sweep is the number to re-measure, not the beat**: of the
-  five player-side refusals the room has, four now leave something behind — declining a meeting
-  invite (`dismissOfficeMeetingInvite`, which also clears the store and keeps nothing) is the
-  remaining instance, and it is the same shape at a different surface.
+  five player-side refusals the room has, **all five** now leave something behind — the meeting
+  invite closed the list on 2026-10-27 at the same shape and a different surface
+  (`apps/web/src/utils/officeInviteMemory.js`, the beat on the **organizer**, because a calendar
+  decline is the one thing on this list that reaches exactly one person).
+- **A dismissal is not an answer, so the store must not guess which one it was.** The invite half of
+  the rule above is where this becomes visible: `dismissOfficeMeetingInvite` has **four** callers
+  and only one of them is a refusal — accepting clears the toast on the way into the glass room, and
+  calling or picking your own meeting clears it to get it out of the way. A store function that
+  wrote the beat itself would have told the next `/moment` you skipped a meeting you were walking
+  into. So the store returns the dismissed invite and writes nothing, and the one caller that knows
+  the press was a no owns the write; the negative case (accepting leaves no mark) is pinned beside
+  the positive one, because it is the half a wiring mistake silently inverts. The same reading
+  decides the **copy**: the toast has two refusals, the decline button and the propose-new-time gag
+  where the organizer turns your counter-offer down 2.6 s later, and they differ in whose no it was.
+  One line covers both by stating only what the office can see — the meeting was on your calendar
+  and you did not go to it. A line that named which refusal it was would need a field the beat does
+  not carry, which is `INTERRUPTION_PROMPT_LINES`' stated failure mode. It names **no meeting
+  title**, for the lesson the whiteboard's hearsay note learned: an invite `title` is free text, a
+  prompt line is capped at 200 characters on both sides, and a fixed sentence cannot spend somebody
+  else's budget.
 - **Declining a set piece leaves it running, and how it then _ends_ differs per scene.** Slice
   28 did this for the coffee break, slice 30 for the cubicle battle, and the second one is where
   the reusable rule is. A declined scene stays in the store, so it counts toward

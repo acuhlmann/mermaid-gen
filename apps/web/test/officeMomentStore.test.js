@@ -271,6 +271,27 @@ describe('officeMomentStore', () => {
     expect(hasActiveOfficeSurface()).toBe(false);
   });
 
+  /*
+   * Queue 13's second instance. The store still writes no memory — it hands
+   * back the organizer, who is gone from the state a line later, so that the
+   * one caller which knows the dismissal was a refusal can leave them a beat
+   * (`officeInviteMemory.js`). `dismissOfficeErrand`'s reason, same shape.
+   */
+  it('hands back the invite it cleared, so a decline can name the organizer', () => {
+    pushOfficeMeetingInvite({
+      colleagueId: 'scrumMaster',
+      title: 'WG: Diagram Alignment Sync (recurring)',
+      body: 'Agenda: alignment.',
+      attendees: ['scrumMaster', 'intern']
+    });
+    const dismissed = dismissOfficeMeetingInvite();
+    expect(dismissed?.colleagueId).toBe('scrumMaster');
+    expect(dismissed?.attendees).toEqual(['scrumMaster', 'intern']);
+    expect(getOfficeSnapshot().meetingInvite).toBeNull();
+    // A press with nothing on screen is not a refusal, and must not read as one.
+    expect(dismissOfficeMeetingInvite()).toBeNull();
+  });
+
   it('persists Focus Time and notifies subscribers', () => {
     const seen = vi.fn();
     const unsubscribe = subscribe(seen);
