@@ -2,7 +2,7 @@
  * Maps canonical English status strings (from the server or client fallbacks)
  * to `controls.insights.nowStatus` keys for locale substitution.
  */
-export const INSIGHT_NOW_STATUS_ALIASES = {
+export const INSIGHT_NOW_STATUS_ALIASES: Record<string, string> = {
   'Repairing diagram syntax…': 'repairingSyntax',
   'Repairing diagram syntax...': 'repairingSyntax',
   'Still working…': 'stillWorking',
@@ -33,8 +33,10 @@ export const INSIGHT_NOW_STATUS_ALIASES = {
   'Working on your request…': 'workingOnRequest'
 };
 
-/** @param {string} raw @param {Record<string, string> | undefined} nowStatusCopy */
-export function localizeInsightNowStatusText(raw, nowStatusCopy) {
+export function localizeInsightNowStatusText(
+  raw: string,
+  nowStatusCopy?: Record<string, string>
+): string {
   const trimmed = String(raw ?? '').trim();
   if (!trimmed || !nowStatusCopy) return trimmed;
   const key = INSIGHT_NOW_STATUS_ALIASES[trimmed];
