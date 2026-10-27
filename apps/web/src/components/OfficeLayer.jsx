@@ -114,6 +114,7 @@ import {
 import { duckRoomTone, unduckRoomTone } from '../utils/officeRoomTone.js';
 import { isSpokenLine, threadTranscriptFor } from '../utils/officeImThreads.js';
 import { officeStatusOf } from '../utils/officePresence.js';
+import { declineOfficeMeetingInviteWithMemory } from '../utils/officeInviteMemory.js';
 import { officeSpeakerSting } from '../utils/officeSpeakerStings.js';
 import { getDeskSlotElement, subscribeDeskSlotElement } from '../state/deskSlotStore.js';
 import {
@@ -1814,7 +1815,13 @@ export default function OfficeLayer({
             <MeetingInviteToast
               invite={snapshot.meetingInvite}
               onAccept={handleAcceptInvite}
-              onDecline={dismissOfficeMeetingInvite}
+              // Queue 13: the organizer is left knowing. Declining and
+              // proposing a new time both end here and both end the invite,
+              // so the refusal is written once in `officeInviteMemory.js`
+              // rather than beside this toast (ADR-0011 rule 1). The other
+              // three callers of the bare store dismiss are not answers to
+              // the invite and deliberately leave no mark.
+              onDecline={declineOfficeMeetingInviteWithMemory}
             />
           ) : null}
         </>

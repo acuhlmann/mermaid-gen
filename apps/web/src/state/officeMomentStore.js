@@ -1102,9 +1102,26 @@ export function pushOfficeMeetingInvite({ colleagueId, title, body, attendees, a
   return meetingInvite.id;
 }
 
+/**
+ * Take the invite off the screen, however it ended.
+ *
+ * Returns the invite it cleared, for `dismissOfficeErrand`'s reason and no
+ * other: `colleagueId` is the organizer a caller needs and it is gone from the
+ * store a line later. **It still writes nothing.** Three of its four callers
+ * are not refusals at all — accepting clears the toast on the way into the
+ * glass room, and calling or picking your own meeting clears it to get it out
+ * of the way — so the store cannot know whether this was a no, and the one
+ * caller that does know owns what that costs
+ * (`apps/web/src/utils/officeInviteMemory.js`, ADR-0011 rule 1).
+ *
+ * @returns {{id: string, colleagueId: string, title: string, body: string,
+ *   attendees: string[], audience?: string[], createdAt: number} | null}
+ */
 export function dismissOfficeMeetingInvite() {
-  if (!state.meetingInvite) return;
+  if (!state.meetingInvite) return null;
+  const dismissed = state.meetingInvite;
   update({ meetingInvite: null });
+  return dismissed;
 }
 
 export function _resetForTests() {

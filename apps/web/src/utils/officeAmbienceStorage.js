@@ -587,7 +587,8 @@ export const OFFICE_WORKING_MEMORY_MEDIUMS = Object.freeze(['email']);
  * @param {Record<string, unknown>} beat
  * @param {number} at
  * @returns {{ at: number, theirs?: string, yours?: string, pitchTaken?: boolean,
- *   errandDropped?: boolean, interrupted?: string, medium?: string } | null}
+ *   errandDropped?: boolean, inviteDeclined?: boolean, interrupted?: string,
+ *   medium?: string } | null}
  */
 export function normalizeWorkingMemoryBeat(beat, at) {
   const next = { at };
@@ -600,10 +601,18 @@ export function normalizeWorkingMemoryBeat(beat, at) {
   }
   if (beat.pitchTaken === true) next.pitchTaken = true;
   if (beat.errandDropped === true) next.errandDropped = true;
+  if (beat.inviteDeclined === true) next.inviteDeclined = true;
   if (OFFICE_WORKING_MEMORY_INTERRUPTIONS.includes(beat.interrupted)) {
     next.interrupted = beat.interrupted;
   }
-  if (!next.theirs && !next.yours && !next.pitchTaken && !next.errandDropped && !next.interrupted) {
+  if (
+    !next.theirs &&
+    !next.yours &&
+    !next.pitchTaken &&
+    !next.errandDropped &&
+    !next.inviteDeclined &&
+    !next.interrupted
+  ) {
     return null;
   }
   /*
@@ -618,7 +627,7 @@ export function normalizeWorkingMemoryBeat(beat, at) {
 /**
  * @param {unknown} beat
  * @returns {{ at: number, theirs?: string, yours?: string, pitchTaken?: boolean,
- *   interrupted?: string } | null}
+ *   errandDropped?: boolean, inviteDeclined?: boolean, interrupted?: string } | null}
  */
 function sanitizeWorkingMemoryBeat(beat) {
   if (!beat || typeof beat !== 'object') return null;

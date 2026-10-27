@@ -214,6 +214,44 @@ describe('an errand you walked into is a fact about you', () => {
     ]);
   });
 
+  /*
+   * The declined invite (`docs/automations/office-life.md` queue 13, second
+   * instance). Same two properties as the dropped errand: it is a fact on its
+   * own, and it survives the reload a field taught to one validator does not.
+   * The line names no meeting title on purpose — see the constant's header.
+   */
+  it('remembers a declined meeting as a fact of its own', async () => {
+    const { hasWorkingMemoryFact, rememberWorkingMemoryBeat, workingMemoryPromptLines } =
+      await freshStore();
+    rememberWorkingMemoryBeat('scrumMaster', { inviteDeclined: true, now: at(14, 0) });
+    expect(hasWorkingMemoryFact('scrumMaster')).toBe(true);
+    expect(workingMemoryPromptLines('scrumMaster')).toEqual([
+      'they put a meeting on your calendar; you did not go to it'
+    ]);
+
+    rememberWorkingMemoryBeat('scrumMaster', {
+      inviteDeclined: true,
+      theirs: 'No worries! I will send a recap.',
+      now: at(14, 5)
+    });
+    // What you did, then what they said about it — `interrupted`'s ordering.
+    expect(workingMemoryPromptLines('scrumMaster')).toEqual([
+      'they put a meeting on your calendar; you did not go to it',
+      'they put a meeting on your calendar; you did not go to it',
+      'they said: No worries! I will send a recap.'
+    ]);
+  });
+
+  it('keeps a declined meeting across a reload', async () => {
+    const first = await freshStore();
+    first.rememberWorkingMemoryBeat('scrumMaster', { inviteDeclined: true });
+    const second = await freshStore();
+    expect(second.hasWorkingMemoryFact('scrumMaster')).toBe(true);
+    expect(second.workingMemoryPromptLines('scrumMaster')).toEqual([
+      'they put a meeting on your calendar; you did not go to it'
+    ]);
+  });
+
   it('is still there after a reload, which the write side alone cannot promise', async () => {
     /*
      * A beat passes two validators — `rememberWorkingMemoryBeat` on the way in

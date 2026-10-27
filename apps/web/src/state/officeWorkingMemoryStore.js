@@ -91,7 +91,32 @@ const SPOKEN_PROMPT_LINES = Object.freeze({ yours: 'you said:', theirs: 'they sa
  */
 const ERRAND_DROPPED_PROMPT_LINE = 'they sent you to have a word with somebody; you let it go';
 
-/** @typedef {{ at: number, theirs?: string, yours?: string, pitchTaken?: boolean, errandDropped?: boolean, interrupted?: 'gotIt' | 'gaveUp', medium?: 'email' }} WorkingMemoryBeat */
+/**
+ * What declining their meeting reads like to the model
+ * (`docs/automations/office-life.md` queue 13, the second instance).
+ *
+ * Written on the **organizer** and on nobody else. A calendar decline reaches
+ * the person who sent the invite; the other attendees are not told, and giving
+ * one of them a memory of your answer is the fabrication the situation rule in
+ * `docs/agents/domains/office.md` warns about, arriving through memory instead
+ * of through a prompt.
+ *
+ * **One line for both exits.** The toast ends two ways — the decline button,
+ * and "Propose new time", where the organizer turns your counter-offer down
+ * 2.6 s later and the invite closes itself. They differ in whose no it was and
+ * agree on the only thing the office can see: the meeting was on your calendar
+ * and you did not go to it. Saying that much is the circumstance; saying which
+ * refusal it was would need a field the beat does not carry, and a line that
+ * guesses is `INTERRUPTION_PROMPT_LINES`' failure mode.
+ *
+ * It names no title, for the reason the hearsay note on the whiteboard had to
+ * learn twice: an invite's `title` is free text, a prompt line is capped at
+ * 200 characters on both sides, and a fixed sentence cannot spend somebody
+ * else's budget.
+ */
+const INVITE_DECLINED_PROMPT_LINE = 'they put a meeting on your calendar; you did not go to it';
+
+/** @typedef {{ at: number, theirs?: string, yours?: string, pitchTaken?: boolean, errandDropped?: boolean, inviteDeclined?: boolean, interrupted?: 'gotIt' | 'gaveUp', medium?: 'email' }} WorkingMemoryBeat */
 /** @typedef {{ beats: WorkingMemoryBeat[], boardFingerprint?: string }} WorkingMemoryRow */
 
 /** @type {{ [colleagueId: string]: WorkingMemoryRow }} */
@@ -209,11 +234,12 @@ export function listWorkingMemoryColleagueIds() {
 /**
  * @param {string} colleagueId
  * @param {{ theirs?: string, yours?: string, pitchTaken?: boolean,
- *   errandDropped?: boolean, interrupted?: 'gotIt' | 'gaveUp', medium?: 'email',
- *   now?: number }} beat
- *   `interrupted` and `errandDropped` are the beat fields that are not
- *   something either of you said — the first is their errand ending because of
- *   you, the second is yours ending because you dropped it. Both are still
+ *   errandDropped?: boolean, inviteDeclined?: boolean,
+ *   interrupted?: 'gotIt' | 'gaveUp', medium?: 'email', now?: number }} beat
+ *   `interrupted`, `errandDropped` and `inviteDeclined` are the beat fields
+ *   that are not something either of you said — the first is their errand
+ *   ending because of you, the second is yours ending because you dropped it,
+ *   the third is their meeting ending because you would not go. Both are still
  *   only a record — writing one schedules nothing (ADR-0010) — but it is what
  *   makes `hasWorkingMemoryFact` true for somebody you have never spoken to,
  *   which is the whole point: the next time you stand next to them, the office
@@ -287,6 +313,7 @@ export function workingMemoryPromptLines(colleagueId) {
      */
     if (beat.interrupted) lines.push(INTERRUPTION_PROMPT_LINES[beat.interrupted]);
     if (beat.errandDropped) lines.push(ERRAND_DROPPED_PROMPT_LINE);
+    if (beat.inviteDeclined) lines.push(INVITE_DECLINED_PROMPT_LINE);
     const quote = MEDIUM_PROMPT_LINES[beat.medium] ?? SPOKEN_PROMPT_LINES;
     if (beat.yours) lines.push(`${quote.yours} ${beat.yours}`);
     if (beat.theirs) lines.push(`${quote.theirs} ${beat.theirs}`);
