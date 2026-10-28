@@ -5,12 +5,13 @@ new tools here instead of growing the hub file.
 
 ## Extracted so far
 
-| Module                           | Tools                                                                                       |
-| -------------------------------- | ------------------------------------------------------------------------------------------- |
-| `registerGetMcpBinding.js`       | `get_mcp_binding`                                                                           |
-| `registerGetSessionBootstrap.js` | `get_session_bootstrap`                                                                     |
-| `registerOpenSessionPairing.js`  | `open_session_pairing`                                                                      |
-| `registerHumanOnlyAppTools.js`   | `resolve_handshake`, `resolve_proposal`, `request_proposal_changes`, `request_critique_fix` |
+| Module                           | Tools                                                                                          |
+| -------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `registerGetMcpBinding.js`       | `get_mcp_binding`                                                                              |
+| `registerGetSessionBootstrap.js` | `get_session_bootstrap`                                                                        |
+| `registerOpenSessionPairing.js`  | `open_session_pairing`                                                                         |
+| `registerAgentHandshakeTools.js` | `register_agent`, `get_handshake_status`, `subscribe_session_events`, `wait_for_session_event` |
+| `registerHumanOnlyAppTools.js`   | `resolve_handshake`, `resolve_proposal`, `request_proposal_changes`, `request_critique_fix`    |
 
 Shared binding JSON lives in `apps/server/src/mcp/mcpBindingSnapshot.js`.
 

@@ -2,7 +2,7 @@
 
 Where **archislop** should invest modularity work, ranked with Vlad Khononov's [Balanced Coupling Model](https://coupling.dev). This is the repo-specific companion to [`modularity.md`](modularity.md) (how to run a review) and the static sensors in [`sensors.md`](sensors.md).
 
-**Last reviewed:** 2026-10-24
+**Last reviewed:** 2026-10-28
 
 ## How to use this doc
 
@@ -125,7 +125,7 @@ Split **on contact** when a feature already requires editing the file. Pattern: 
 | ------------------------------------------- | ----- | ----------------------------------------------------------------------------------------------------------------------------- |
 | `apps/web/src/components/InsightsPane.jsx`  | 1,835 | Thinking pane + critique + explain + timeline                                                                                 |
 | `apps/web/src/components/DiagramCanvas.jsx` | 1,864 | Renderer + selection + diff + highlight                                                                                       |
-| `apps/server/src/mcp/mcpServer.js`          | 1,406 | Tool registration hub (`register*.js` pattern started)                                                                        |
+| `apps/server/src/mcp/mcpServer.js`          | 1,182 | Tool registration hub (`register*.js` pattern; agent handshake tools extracted 2026-10-28)                                    |
 | `apps/server/src/routes/copilot.ts`         | 404   | Core router + agent-stream SSE; diagram REST in `copilotDiagramHandlers.ts`, collaboration in `copilotCollaborationRoutes.ts` |
 | `apps/web/src/state/officeMomentStore.js`   | 938   | Growing office hub — extract mutators when adding set pieces                                                                  |
 

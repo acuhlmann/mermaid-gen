@@ -31,16 +31,17 @@ they need access to outer-closure state.
 
 ## Progress
 
-### `mcpServer.js` (~1 542 → ~1 406 LOC)
+### `mcpServer.js` (~1 542 → ~1 182 LOC)
 
 - ✅ Helpers extracted to `apps/server/src/mcp/mcpHelpers.js`
   (`textResult`, `jsonResult`, `safeError`, `humanOnlyMcpToolBlocked`,
   `originFromMcpEntry`, `requireRegisteredAgent`, `pairingFailureMessage`).
 - ✅ Binding snapshot extracted to `apps/server/src/mcp/mcpBindingSnapshot.js`.
-- ✅ First per-tool modules under `apps/server/src/mcp/tools/`:
+- ✅ Per-tool modules under `apps/server/src/mcp/tools/`:
   `registerGetMcpBinding`, `registerGetSessionBootstrap`,
-  `registerOpenSessionPairing`, `registerHumanOnlyAppTools` (four human-only
-  stubs). Remaining tools still inline; continue the
+  `registerOpenSessionPairing`, `registerAgentHandshakeTools` (agent registration,
+  handshake polling, session-event subscribe/wait), `registerHumanOnlyAppTools`
+  (four human-only stubs). Remaining tools still inline; continue the
   `register{ToolName}(server, ctx)` pattern from `tools/README.md`.
 
 ### Shared repair ladder (agent maintainability)
