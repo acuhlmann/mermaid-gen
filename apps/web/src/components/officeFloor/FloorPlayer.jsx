@@ -28,6 +28,7 @@ import { YOU_SEAT_ID, depthOf, walkPathBetween } from '../../utils/officeFloorPl
  *   testId?: string,
  *   elementRef?: { current: HTMLElement | null },
  *   activity?: { pose?: string, hold?: string | null, headwear?: string | null } | null,
+ *   sheet?: import('../../utils/officeFloorBoard.js').PrintoutState | null,
  *   speaking?: boolean,
  *   children?: import('react').ReactNode
  * }} props `children` ride above the figure inside its anchor (a speech
@@ -36,6 +37,8 @@ import { YOU_SEAT_ID, depthOf, walkPathBetween } from '../../utils/officeFloorPl
  *   `onStep` fires per leg — this actor is always you, so it always says so.
  *   `activity` is what you are visibly doing while you are up: your headphones
  *   if the posture is on, the coffee you are stood at the machine drinking.
+ *   `sheet` is what is on the page a prop put in your hand (§ 6b) — absent
+ *   here for the arrival ceremony, which has walked past no printer yet.
  */
 export function FloorPlayer({
   from,
@@ -47,6 +50,7 @@ export function FloorPlayer({
   testId,
   elementRef,
   activity = null,
+  sheet = null,
   speaking = false,
   children
 }) {
@@ -75,6 +79,7 @@ export function FloorPlayer({
           accent="var(--accent)"
           isYou
           activity={activity}
+          sheet={sheet}
           walking={walking && !arrived}
         />
       </div>

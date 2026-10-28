@@ -13,6 +13,8 @@
  * row a seated figure's desk does not hide, which is the whole design envelope.
  */
 
+import { PRINTOUT_MAX_ROWS } from '../../utils/officeFloorBoard.js';
+
 const ACCENT = 'var(--floor-accent, #64748b)';
 
 /** Paper, porcelain and plastic — three neutrals the accent never eats. */
@@ -21,10 +23,86 @@ const SHADOW = 'rgba(15, 23, 42, 0.22)';
 const DEVICE = '#26303f';
 
 /**
- * @param {{ hold: string | null, skin: string }} props `hold` is one of
- *   `FLOOR_HOLDS` (`officeFloorActivity.js`); anything else draws nothing.
+ * The readable band of the `papers` sheet, in this module's local units.
+ *
+ * The sheet is `x 1.4` over `9.6` wide and `y 9.6` over `10.4` tall, and the
+ * hand drawn across its foot (a `2.2 r` circle centred at `y 20.2`) covers
+ * everything below `y 18`. These four numbers are the band that is left, and
+ * three of them are the generic sheet's own: its rules start at `x 3.2`, run 6
+ * units, and the first sits at `y 12.2`. So the first line of a printed page
+ * lands exactly where a blank one has always had it, and only the pitch
+ * changes — `2.0` over three rules becomes `1.8` over four, which is the
+ * tightest that still clears the hand.
  */
-export function HeldItem({ hold, skin }) {
+const PAGE_X = 3.2;
+const PAGE_W = 6;
+const PAGE_TOP = 12.2;
+const PAGE_H = 7.2;
+
+/**
+ * Two decimals of a local unit, which at this scale is a hundredth of a pixel.
+ * Fractions of the band multiply out to sixteen-digit floats otherwise, and a
+ * `d` nobody can read is a `d` nobody checks.
+ *
+ * @param {number} n
+ * @returns {number}
+ */
+function unit(n) {
+  return Math.round(n * 100) / 100;
+}
+
+/**
+ * The ink on a held sheet of paper.
+ *
+ * Two cases and they are a pair rather than a default and an override. Without
+ * a `sheet` this is the three rules the generic sheet has always carried — the
+ * finding, the agenda, the overdue training, and what every colleague on this
+ * floor is holding. With one it is `printoutFrom`'s rows: the page came off the
+ * printer and it has what you printed on it (§ 6b).
+ *
+ * The rules are drawn as one `path` either way, so the two cases are the same
+ * amount of DOM and a capture can read the difference off the geometry rather
+ * than off an element count.
+ *
+ * @param {{ sheet: import('../../utils/officeFloorBoard.js').PrintoutState | null }} props
+ */
+function PrintedInk({ sheet }) {
+  const rows = sheet?.rows?.length
+    ? sheet.rows.map(
+        (row) => `M${PAGE_X} ${unit(PAGE_TOP + row.y * PAGE_H)}h${unit(row.w * PAGE_W)}`
+      )
+    : [`M${PAGE_X} 12.2h6`, `M${PAGE_X} 14.2h6`, `M${PAGE_X} 16.2h4.2`];
+  return (
+    <>
+      <path d={rows.join('')} stroke={SHADOW} strokeWidth="0.8" strokeLinecap="round" />
+      {/* Whatever was on the page was joined up — the one mark that tells a
+          printed routing from a printed list at this size. It hangs off the
+          left margin between the first two rules, where a connector would be
+          if the page were big enough to draw one. */}
+      {sheet?.joined ? (
+        <path
+          d={`M${PAGE_X - 1} ${PAGE_TOP}v${PAGE_H / PRINTOUT_MAX_ROWS}`}
+          stroke={ACCENT}
+          strokeWidth="0.8"
+          strokeLinecap="round"
+          opacity="0.85"
+        />
+      ) : null}
+    </>
+  );
+}
+
+/**
+ * @param {{
+ *   hold: string | null,
+ *   skin: string,
+ *   sheet?: import('../../utils/officeFloorBoard.js').PrintoutState | null
+ * }} props `hold` is one of `FLOOR_HOLDS` (`officeFloorActivity.js`); anything
+ *   else draws nothing. `sheet` is what is printed on a `papers` hold and is
+ *   ignored by every other case — `FloorFigure` only ever passes it for you
+ *   (ADR-0010: your work is not in somebody else's hand).
+ */
+export function HeldItem({ hold, skin, sheet = null }) {
   switch (hold) {
     case 'coffee':
       // Takeaway cup: what the machine hands you, and what a coffee break is
@@ -64,12 +142,7 @@ export function HeldItem({ hold, skin }) {
       return (
         <g transform="rotate(-7 6 15)">
           <rect x="1.4" y="9.6" width="9.6" height="10.4" rx="0.7" fill={PAPER} />
-          <path
-            d="M3.2 12.2h6M3.2 14.2h6M3.2 16.2h4.2"
-            stroke={SHADOW}
-            strokeWidth="0.8"
-            strokeLinecap="round"
-          />
+          <PrintedInk sheet={sheet} />
           <circle cx="6" cy="20.2" r="2.2" fill={skin} />
         </g>
       );

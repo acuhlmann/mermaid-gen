@@ -237,7 +237,8 @@ function figureParts(id, activity, accessoryOverride) {
  *   walking?: boolean,
  *   activity?: { pose?: string, hold?: string | null, headwear?: string | null } | null,
  *   accessoryOverride?: string | null,
- *   expressionOverride?: string | null
+ *   expressionOverride?: string | null,
+ *   sheet?: import('../../utils/officeFloorBoard.js').PrintoutState | null
  * }} props `activity` is `floorActivityFor` (`officeFloorActivity.js`) — what
  *   this person is visibly doing. It is one object rather than three props
  *   because its three fields are one derivation and must not be assembled
@@ -245,7 +246,8 @@ function figureParts(id, activity, accessoryOverride) {
  *   agree about the headset is a bug nobody sees. `accessoryOverride` is the
  *   older single-beat escape hatch and still wins, so a caller that has a
  *   reason (an arrival ceremony, a set piece) does not have to fabricate an
- *   activity to use it.
+ *   activity to use it. `sheet` is what is printed on a `papers` hold
+ *   (`printoutFrom`) and is dropped below for anybody who is not you.
  */
 export function FloorFigure({
   id,
@@ -255,7 +257,8 @@ export function FloorFigure({
   walking = false,
   activity = null,
   accessoryOverride = null,
-  expressionOverride = null
+  expressionOverride = null,
+  sheet = null
 }) {
   const { traits, body, s, hold, accessory, skin } = figureParts(id, activity, accessoryOverride);
   return (
@@ -297,7 +300,12 @@ export function FloorFigure({
             aria-hidden="true"
             focusable="false"
           >
-            <HeldItem hold={hold} skin={skin} />
+            {/* The sheet is dropped for anybody who is not you, and the drop
+                lives here rather than at the one caller that passes it: ADR-0010
+                keeps your work out of a colleague's hands, and eight components
+                draw a figure. A rule enforced at the figure cannot be got round
+                by a ninth. */}
+            <HeldItem hold={hold} skin={skin} sheet={isYou ? sheet : null} />
           </svg>
         ) : null}
       </span>
