@@ -711,6 +711,36 @@ test:floor`; the floor test map is [`docs/agents/isometric-floor-tests.md`](../.
   clause, and adding it here would be a **second prohibition** — the shape measured inert in the
   desk-work block and now pinned at one guard in `officePersonas.test.js`. So if the board starts
   eating a visit, cut the notes, not the register.
+- **The page in your hand is gated on the hand, never on the hold** (§ 6b, 2026-10-28).
+  `printoutFrom` (`officeFloorBoard.js`) keys the printout on `propUse.carrying` — what a prop put
+  there, and the printer is the only prop that hands over `papers`. Keying it on
+  `floorActivityFor`'s `hold` instead looks identical in a floor suite and is wrong in the room:
+  `PHASE_ART.windDown` puts `papers` in **every** hand at the wind-down hour, so your diagram
+  would print itself into sixteen fists at five o'clock — the mirror § 6a took off the whiteboard,
+  back in somebody else's grip. The ADR-0010 drop lives in `FloorFigure` (`isYou ? sheet : null`)
+  rather than at its one caller, because eight components draw a figure and a ninth must not be
+  able to get round it.
+- **An unpinned clock made that bug invisible to a browser probe, and the probe said the feature
+  was dead.** The first capture waited for `dataset.hold === 'papers'` and measured the generic
+  sheet in all five slots — a perfectly clean "your change does nothing" reading. At 18:30 UTC the
+  hour had already filled the hand, so the wait passed before the walk to the printer had even
+  started. Two fixes, both needed: `page.clock.setFixedTime` to the same midday the floor suites
+  pin (`OFFICE_FLOOR_TEST_MIDDAY`), and waiting on
+  `[data-testid="office-floor-prop-card"]` — **arrival**, which is the edge `useFloorPropUse`
+  fires its pickup on — before reading anything off the hand. The floor's wall-clock rule is
+  already in this file for suites that mount; it binds a Playwright probe exactly as hard, and
+  there the failure wears "the feature does not work" instead of a red assertion.
+- **A prop click has to be dispatched, not clicked.** `.office-floor-roam` covers the props and
+  intercepts pointer events, so Playwright's `click()` retries for 30 s against
+  `[data-prop="printer"]` and times out with a log that reads like a broken button.
+  `page.evaluate(() => document.querySelector('[data-prop="printer"]').click())` lands it.
+- **What a 7 px page can carry is three facts, and the fourth is a lie.** The `papers` sheet is
+  9.6 × 10.4 local units with your own hand over its foot, leaving ~6 units of band — so the
+  printout reports how many rules of ink there are, how long they run, and whether anything on it
+  was joined up (one accent tick), and never a label: a 62 px panel cannot hold a layout and a
+  7 px page cannot hold a word. The honest cost of the `PRINTOUT_MAX_ROWS = 4` cap is that a
+  four-node diagram and a sixteen-node one print **identically** (measured, both 4 rules /
+  21.24 units of ink). That is the cap working, not a gap to close by cramming a fifth hairline in.
 
 ## Full findings
 

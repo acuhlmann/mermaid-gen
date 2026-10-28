@@ -11,13 +11,17 @@
  * separately are two surfaces that can disagree, and the one that is wrong is
  * whichever one you are not looking at.
  *
- * **Two, not three, since § 6a.** The whiteboard read this module until the
- * owner retired the mirror: your monitor already shows your work and the table
- * shows it in a meeting about it, so a whiteboard that showed it as well was
- * the room's third copy of one thing. It now carries the room's own record
- * instead — `officeFloorNotes.js`, which derives from the office log rather
- * than from your slot. The printer is the other surface that still reflects
- * your work, through the prop card's `lineYours` rather than through a drawing.
+ * **Which surfaces, and the count has moved twice.** The whiteboard read this
+ * module until the owner retired the mirror in § 6a: your monitor already shows
+ * your work and the table shows it in a meeting about it, so a whiteboard that
+ * showed it as well was the room's third copy of one thing. It now carries the
+ * room's own record instead — `officeFloorNotes.js`, which derives from the
+ * office log rather than from your slot. § 6b then gave the fourth surface a
+ * drawing: the page you walk away from the printer holding is `printoutFrom`
+ * below, where it had been the prop card's `lineYours` and nothing else. So
+ * three surfaces off two renderings — `bars` for your monitor and the glass
+ * room's table, `rows` for the page in your hand — while `mini` is kept for the
+ * panel it was drawn for, which no longer reads it.
  *
  * **Pure, and deliberately DOM-free.** The obvious reuse — the advisor's
  * `getAdvisorVisibleLabels` — is half unusable here: its mermaid and infographic
@@ -521,6 +525,90 @@ export function boardFrom({ contentType = 'mermaid', diagramSource = '' } = {}) 
     bars: barsFor(shape, nodes, edges),
     mini: miniFor(shape, nodes, edges)
   };
+}
+
+/**
+ * Most rules of ink the page in your hand ever carries.
+ *
+ * Four, and the number is forced rather than chosen: the sheet `HeldItem` draws
+ * is 9.6 x 10.4 units of a 16 x 24 frame, your own hand covers its bottom
+ * third, and what is left is about six units of readable band. Four hairlines
+ * at that pitch still read as lines; a fifth is a grey smear.
+ */
+export const PRINTOUT_MAX_ROWS = 4;
+
+/**
+ * @typedef {{ y: number, w: number }} PrintoutRow
+ *   One rule of ink, in 0...1 fractions of the sheet's readable band — the same
+ *   fraction space `bars` and `mini` use, so the art owns the geometry and this
+ *   module owns only what is on the page.
+ *
+ * @typedef {object} PrintoutState
+ * @property {PrintoutRow[]} rows at most `PRINTOUT_MAX_ROWS`, top down
+ * @property {boolean} joined whether anything on the page was connected
+ */
+
+/**
+ * What is printed on the page you walked away from the printer holding
+ * (docs/automations/office-life.md § 6b).
+ *
+ * The third surface off this derivation, and the last one § 6 named: your
+ * monitor gets `bars`, the glass room's table gets the same, the whiteboard
+ * stopped mirroring you in § 6a and carries the room's own record instead
+ * (`officeFloorNotes.js`). The printer was the one surface left that reflected
+ * your work only through the prop card's words, which is why `HeldItem`'s
+ * `papers` case drew the same three rules whether you had printed a
+ * sixteen-node architecture or nothing at all.
+ *
+ * **It is gated on the hand, not on the hold.** `carrying` is what a prop put
+ * there (`useFloorPropUse`), and the printer is the only prop that hands over
+ * `papers` (`FLOOR_PROP_USES`). The *hold* is a weaker thing: `PHASE_ART` puts
+ * `papers` in everybody's hand at the wind-down hour, and a sheet that drew
+ * your diagram then would be the mirror § 6a just took off the wall,
+ * reappearing in sixteen hands at five o'clock.
+ *
+ * **What it deliberately does not do: name anything.** Same argument as this
+ * module's `mini` and for a harder reason — a 62 px panel cannot hold a layout
+ * and a 7 px page cannot hold a word. What survives at this size is how many
+ * lines of ink there are, how long they are, and whether anything on the page
+ * was joined up, which is also exactly as much as you can tell about a page in
+ * somebody else's hand from across a room.
+ *
+ * @param {{ board?: BoardState | null, carrying?: string | null }} [params]
+ * @returns {PrintoutState | null} `null` when nothing in your hand came off the
+ *   printer, or when the slot was empty when it did — and `null` is the
+ *   designed state, not a gap: it leaves the generic sheet `HeldItem` has always
+ *   drawn, which is what everybody else on this floor is carrying.
+ */
+export function printoutFrom({ board = null, carrying = null } = {}) {
+  if (carrying !== 'papers' || !board) return null;
+
+  /** @type {PrintoutRow[]} */
+  const rows = [];
+
+  // A composed page prints as a composed page: a full-width header and the
+  // blocks under it. The one shape whose rows are not all the same kind of
+  // thing, so it is the one that does not come off the pitch below.
+  if (board.shape === 'page') {
+    rows.push({ y: 0, w: 1 });
+    rows.push({ y: 0.4, w: 0.66 });
+    if (board.nodes >= 3) rows.push({ y: 0.7, w: 0.66 });
+    return { rows, joined: false };
+  }
+
+  // A fixed pitch rather than a band split over the row count, so two rules
+  // read as a short document instead of a sparse one.
+  const count = Math.min(Math.max(board.nodes, 1), PRINTOUT_MAX_ROWS);
+  for (let i = 0; i < count; i += 1) {
+    // A graph's rules run uneven, because a printed routing is boxes with gaps
+    // between them; a list's run even, because a list is a list.
+    const w = board.shape === 'graph' ? (i % 2 ? 0.62 : 1) : 0.86;
+    rows.push({ y: i / PRINTOUT_MAX_ROWS, w });
+  }
+
+  // The one mark that separates "boxes with arrows" from "a list", and it only
+  // exists where there is a second rule for it to reach.
+  return { rows, joined: board.shape === 'graph' && board.edges > 0 && count >= 2 };
 }
 
 /** Ink the whiteboard miniature draws in. Exported so the art has one source. */

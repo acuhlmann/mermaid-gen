@@ -20,6 +20,8 @@ import {
 } from '../src/utils/officeFloorNotes.js';
 import { usablePropKinds } from '../src/utils/officeFloorMovement.js';
 import { propUseFor } from '../src/utils/officeFloorProps.js';
+import { PRINTOUT_MAX_ROWS, printoutFrom } from '../src/utils/officeFloorBoard.js';
+import FloorFigure from '../src/components/officeFloor/FloorFigure.jsx';
 import {
   _resetOfficeLogForTests,
   getOfficeLogDigest,
@@ -499,6 +501,106 @@ describe('the props carry your diagram', () => {
   it('leaves the prop that pours a real verb on its own copy', () => {
     renderCardFor('coffeeMachine', board);
     expect(screen.getByText(propCopy().items.coffeeMachine.line)).toBeTruthy();
+  });
+});
+
+/**
+ * § 6b — what is printed on the page the printer hands you.
+ *
+ * Two halves, and they are deliberately split: the derivation is pure and
+ * pinned by value, while the drawing can only be pinned structurally (jsdom has
+ * no layout engine, so whether four hairlines at a 1.8-unit pitch are legible
+ * is the § 6 verify recipe's question, not this suite's).
+ *
+ * The gate under test is the **hand**, never the hold. `PHASE_ART` puts
+ * `papers` in sixteen hands at the wind-down hour, and a sheet keyed on the
+ * hold would print your diagram in all of them — which is the mirror § 6a took
+ * off the whiteboard, reappearing in somebody else's fist.
+ */
+describe('the page the printer hands you (§ 6b)', () => {
+  const graphBoard = { kind: 'mermaid', shape: 'graph', nodes: 4, edges: 3, labels: [] };
+  const listBoard = { kind: 'chart', shape: 'list', nodes: 2, edges: 0, labels: [] };
+  const pageBoard = { kind: 'anything', shape: 'page', nodes: 3, edges: 0, labels: [] };
+
+  /** The sheet's rules, as the one `path` the art draws them in. */
+  const ink = (root) => root.querySelectorAll('.office-floor-person-hold path');
+
+  it('prints nothing for a hand no prop filled', () => {
+    expect(printoutFrom({ board: graphBoard, carrying: null })).toBeNull();
+    // The hour's `papers` is not the printer's: `carrying` is only ever what a
+    // prop handed over, and `coffee` came from the one that pours.
+    expect(printoutFrom({ board: graphBoard, carrying: 'coffee' })).toBeNull();
+    expect(printoutFrom({ carrying: 'papers' })).toBeNull();
+  });
+
+  it('prints the shape of the thing, and only joins up what was joined', () => {
+    const printed = printoutFrom({ board: graphBoard, carrying: 'papers' });
+    expect(printed.rows).toHaveLength(4);
+    // A routing prints as uneven rules; the accent tick is the one mark that
+    // says the page had arrows on it.
+    expect(new Set(printed.rows.map((row) => row.w)).size).toBe(2);
+    expect(printed.joined).toBe(true);
+    expect(printoutFrom({ board: { ...graphBoard, edges: 0 }, carrying: 'papers' }).joined).toBe(
+      false
+    );
+    // One box and nothing to reach: a tick needs a second rule to exist.
+    expect(printoutFrom({ board: { ...graphBoard, nodes: 1 }, carrying: 'papers' }).joined).toBe(
+      false
+    );
+
+    const list = printoutFrom({ board: listBoard, carrying: 'papers' });
+    expect(list.rows).toHaveLength(2);
+    expect(new Set(list.rows.map((row) => row.w)).size, 'a list is a list').toBe(1);
+    expect(list.joined).toBe(false);
+
+    // A composed page prints as a header over its blocks — the one shape whose
+    // rules are not all the same kind of thing.
+    const page = printoutFrom({ board: pageBoard, carrying: 'papers' });
+    expect(page.rows[0].w).toBe(1);
+    expect(page.rows.slice(1).every((row) => row.w < 1)).toBe(true);
+  });
+
+  it('never prints more than the sheet can carry', () => {
+    const big = printoutFrom({ board: { ...graphBoard, nodes: 16 }, carrying: 'papers' });
+    expect(big.rows).toHaveLength(PRINTOUT_MAX_ROWS);
+    expect(Math.max(...big.rows.map((row) => row.y))).toBeLessThan(1);
+  });
+
+  it('inks what you printed onto the page in your hand', async () => {
+    renderFloor({ board: graphBoard, onGetCoffee: vi.fn() });
+    fireEvent.click(screen.getByRole('button', { name: /Printer/i }));
+    await waitFor(() => expect(yourHold()).toBe('papers'));
+
+    const player = screen.getByTestId('office-floor-player');
+    // Four rules off a four-node diagram, plus the accent tick for its arrows.
+    expect(ink(player)).toHaveLength(2);
+    expect(ink(player)[0].getAttribute('d').match(/M/g)).toHaveLength(4);
+  });
+
+  it('leaves the blank sheet blank when there was nothing to print', async () => {
+    renderFloor({ onGetCoffee: vi.fn() });
+    fireEvent.click(screen.getByRole('button', { name: /Printer/i }));
+    await waitFor(() => expect(yourHold()).toBe('papers'));
+
+    const player = screen.getByTestId('office-floor-player');
+    // The three rules every sheet on this floor has always carried, and no
+    // tick: an empty slot prints the generic page rather than a blank one.
+    expect(ink(player)).toHaveLength(1);
+    expect(ink(player)[0].getAttribute('d').match(/M/g)).toHaveLength(3);
+  });
+
+  it('never puts your printout in a colleague’s hand (ADR-0010)', () => {
+    const sheet = printoutFrom({ board: { ...graphBoard, nodes: 16 }, carrying: 'papers' });
+    // Four rules is what the sheet would carry if the figure drew it.
+    expect(sheet.rows).toHaveLength(PRINTOUT_MAX_ROWS);
+
+    const { container } = render(
+      <FloorFigure id="gilfoyle" accent="#64748b" activity={{ hold: 'papers' }} sheet={sheet} />
+    );
+    // The guard is in `FloorFigure`, not in its one caller: eight components
+    // draw a figure, and a ninth must not be able to get round it.
+    expect(ink(container)).toHaveLength(1);
+    expect(ink(container)[0].getAttribute('d').match(/M/g)).toHaveLength(3);
   });
 });
 
