@@ -9,12 +9,16 @@ import { OFFICE_FLOOR_TEST_MIDDAY, renderFloor } from './helpers/officeFloorTest
 import {
   _resetWanderHabitsForTests,
   wanderHabitFor,
+  wanderNewsFrom,
+  wanderTripWeight,
   wanderTripsFor,
   wanderingSeatIds
 } from '../src/utils/officeFloorWander.js';
 import { deskDoingFor } from '../src/utils/officeFloorActivity.js';
-import { approachTileFor, propTileFor } from '../src/utils/officeFloorMovement.js';
-import { propHandsFor } from '../src/utils/officeFloorProps.js';
+import { approachTileFor, propTileFor, usablePropKinds } from '../src/utils/officeFloorMovement.js';
+import { propHandsFor, propUseFor } from '../src/utils/officeFloorProps.js';
+import { OFFICE_PROP_NEWS_WINDOW_MS } from '../src/utils/officeCadence.js';
+import { _resetOfficeLogForTests, recordOfficeLogEntry } from '../src/state/officeLogStore.js';
 import { interruptSpeech } from '../src/utils/officeFloorInterrupt.js';
 import {
   FLOOR_SEATS,
@@ -64,6 +68,13 @@ afterEach(() => {
    */
   _resetOfficeWorkingMemoryForTests();
   _resetWanderHabitsForTests();
+  /*
+   * The news thumb reads the office log, so the cases below write to it — and
+   * `localStorage.clear()` alone does not undo that: the store keeps the day's
+   * entries in a module array and only hydrates from disk on first read. Both
+   * halves again, for the working-memory reason one comment up.
+   */
+  _resetOfficeLogForTests();
   window.localStorage.clear();
 });
 
@@ -466,17 +477,25 @@ function seededRandomFrom(seed) {
  * fixed hour, as a list of prop kinds.
  *
  * Everybody else is marked busy, so the roll that picks a *person* is settled
- * and every arm is about the *destination*. Shared by the two distribution
- * describes below — the hour's thumb on the scale and the colleague's own —
- * because they are the same experiment with a different variable held still.
+ * and every arm is about the *destination*. Shared by the three distribution
+ * describes below — the hour's thumb on the scale, the colleague's own, and
+ * yours — because they are the same experiment with a different variable held
+ * still.
+ *
+ * `prepare` runs after the clock is set and before the hook mounts, for the one
+ * arm whose variable is a *store* rather than a constant: the news thumb reads
+ * the office log, and a log entry is only fresh relative to the instant the run
+ * is pinned to. It consumes no randoms, so the seeded stream is identical in
+ * every arm with or without it.
  */
-function tripsFor({ seatId, hour, seed = hour, runs = 200 }) {
+function tripsFor({ seatId, hour, seed = hour, runs = 200, prepare = null }) {
   const busyIds = wanderingSeatIds().filter((id) => id !== seatId);
   const randomSpy = vi.spyOn(Math, 'random').mockImplementation(seededRandomFrom(seed));
   const kinds = [];
   try {
     for (let run = 0; run < runs; run += 1) {
       vi.setSystemTime(new Date(2026, 7, 10, hour, 15, 0, 0));
+      prepare?.();
       const box = { wanderer: null };
       function Probe() {
         Object.assign(box, useFloorWander({ busyIds }));
@@ -759,6 +778,218 @@ describe('a habit per colleague', () => {
  * has already fired by the time the timers are flushed — which is why a single
  * `advanceTimersByTime` lands a wanderer in `dwell` rather than in `out`.
  */
+/**
+ * The prop you just used (the news thumb) — the third claimant on the same
+ * pick, and the first ambient destination on this floor that is decided by
+ * something *you* did rather than by a clock or a trait row.
+ *
+ * Two halves for the reason the habit describe above gives: the derivation is a
+ * pure read of a log the room already keeps (no browser, no hook), and the
+ * *effect* is a distribution through the hook, because one trip proves nothing.
+ */
+describe('the prop you were last at', () => {
+  /**
+   * The props that can ever be news, derived rather than listed.
+   *
+   * `useFloorPropUse` records a `prop` log entry for a prop with **no verb**
+   * only — the coffee machine's break logs `coffee` through the event funnel,
+   * and logging here too would say one thing twice. So the pullable set is the
+   * usable props minus the ones that do something, which is the same derivation
+   * `officeFloorPropsTable.test.js` sweeps for the log sentences.
+   */
+  const NEWSWORTHY = usablePropKinds().filter((kind) => !propUseFor(kind)?.verb);
+
+  /** A fixed instant to hang the window arithmetic off, so no case reads a real clock. */
+  const NOW = 1_700_000_000_000;
+
+  const logOf = (kind, ageMs = 0) => [{ at: NOW - ageMs, kind: 'prop', detail: kind }];
+
+  describe('is read off the log the room already keeps', () => {
+    it('has a prop that can be news at all, or the rest of this is vacuous', () => {
+      // The companion non-empty assertion: a sweep over a derived set that came
+      // back empty would pass every claim below while examining nothing.
+      expect(NEWSWORTHY.length).toBeGreaterThan(0);
+      expect(NEWSWORTHY).not.toContain('coffeeMachine');
+    });
+
+    it('turns every one of them into somewhere to be sent', () => {
+      for (const kind of NEWSWORTHY) {
+        expect(wanderNewsFrom(logOf(kind), NOW), kind).toEqual({ kind, weight: 3 });
+      }
+    });
+
+    it('stops being news after the window, so a morning errand does not pull all day', () => {
+      /*
+       * The boundary either side, not a comfortable middle. The office log is
+       * day-scoped and persisted, so without this the printer you used before
+       * lunch would still be pulling traffic at four — a standing bias wearing
+       * a reaction's clothes.
+       */
+      const kind = NEWSWORTHY[0];
+      expect(wanderNewsFrom(logOf(kind, OFFICE_PROP_NEWS_WINDOW_MS - 1), NOW)).toEqual({
+        kind,
+        weight: 3
+      });
+      expect(wanderNewsFrom(logOf(kind, OFFICE_PROP_NEWS_WINDOW_MS), NOW)).toBeNull();
+    });
+
+    it('is the last prop you used, not the first', () => {
+      const [first, last] = [NEWSWORTHY[0], NEWSWORTHY[NEWSWORTHY.length - 1]];
+      expect(last, 'only one newsworthy prop — this case needs two').not.toBe(first);
+      const log = [
+        { at: NOW - 30_000, kind: 'prop', detail: first },
+        { at: NOW - 5_000, kind: 'prop', detail: last }
+      ];
+      expect(wanderNewsFrom(log, NOW)?.kind).toBe(last);
+    });
+
+    it('goes quiet for a stale newest entry rather than reaching past it', () => {
+      /*
+       * The pair of the case above, and the reason the scan stops at the first
+       * `prop` entry it finds: "the last thing you did" needs no tie-break, and
+       * an older errand is not what the room would be interested in.
+       */
+      const log = [
+        { at: NOW - 5_000, kind: 'prop', detail: NEWSWORTHY[0] },
+        { at: NOW - OFFICE_PROP_NEWS_WINDOW_MS, kind: 'prop', detail: NEWSWORTHY[0] }
+      ];
+      expect(wanderNewsFrom(log, NOW)).toBeNull();
+    });
+
+    it('refuses anything that is not somewhere a person can be sent', () => {
+      expect(wanderNewsFrom([], NOW)).toBeNull();
+      expect(wanderNewsFrom([{ at: NOW, kind: 'chat', colleagueId: 'gilfoyle' }], NOW)).toBeNull();
+      // A kind the room can no longer give anybody a mark for — the same check
+      // `wanderHabitFor` makes against `wanderTripsFor`, from the other side.
+      expect(wanderNewsFrom([{ at: NOW, kind: 'prop', detail: 'teleporter' }], NOW)).toBeNull();
+    });
+
+    it('weighs exactly what the hour and the habit weigh, so no thumb can dominate', () => {
+      /*
+       * `wanderTripWeight` is a `Math.max`, so a bigger number here would not
+       * be a stronger pull — it would be a strictly dominant one, erasing
+       * every colleague's own habit the moment you touched a prop. Equal
+       * weights make the three claimants peers: the news pulls the half of the
+       * roster with no habit and merely ties for the rest.
+       */
+      const habitual = wanderingSeatIds().find((id) => wanderHabitFor(id) !== null);
+      expect(habitual, 'nobody has a habit — this case needs one').toBeTruthy();
+      const habit = wanderHabitFor(habitual);
+      const news = wanderNewsFrom(logOf(NEWSWORTHY[0]), NOW);
+      expect(news.weight).toBe(habit.weight);
+      // Their own habit survives somebody else's news being on the board.
+      expect(wanderTripWeight(habitual, habit.kind, null, news)).toBe(habit.weight);
+    });
+  });
+
+  describe('shows up in where the room actually goes', () => {
+    /**
+     * Somebody whose errands include a newsworthy prop *and* somewhere else,
+     * and who has no habit of their own — or this would be measuring two thumbs
+     * at once and calling the sum "the news".
+     */
+    const PULLABLE = NEWSWORTHY[0];
+    const CHOOSY = wanderingSeatIds().find((id) => {
+      const kinds = wanderTripsFor(id).map((t) => t.kind);
+      return kinds.includes(PULLABLE) && kinds.length > 1 && wanderHabitFor(id) === null;
+    });
+
+    /** Eleven in the morning: outside the slump, so the hour's thumb is off the scale. */
+    const QUIET_HOUR = 11;
+
+    function tripsAfter({ used = null, runs = 200 }) {
+      return tripsFor({
+        seatId: CHOOSY,
+        hour: QUIET_HOUR,
+        runs,
+        prepare: used
+          ? () => {
+              _resetOfficeLogForTests();
+              recordOfficeLogEntry('prop', { detail: used, now: Date.now() });
+            }
+          : () => _resetOfficeLogForTests()
+      });
+    }
+
+    beforeEach(() => {
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+    });
+
+    it('has somebody with a real choice to make, or the rest of this is vacuous', () => {
+      expect(CHOOSY, `nobody has ${PULLABLE} plus another errand and no habit`).toBeTruthy();
+      expect(wanderTripsFor(CHOOSY).map((t) => t.kind)).toContain(PULLABLE);
+    });
+
+    it('sends more of them there after you have used it than before', () => {
+      const cold = tripsAfter({});
+      const afterYou = tripsAfter({ used: PULLABLE });
+      expect(cold.length, 'no trips started at all').toBeGreaterThan(50);
+      expect(afterYou.length).toBeGreaterThan(50);
+
+      const share = (kinds) => shareOf(kinds, PULLABLE);
+      // A bias, not a schedule: the room still goes elsewhere afterwards and it
+      // went there sometimes before. Only the proportion moves.
+      expect(share(afterYou)).toBeGreaterThan(share(cold));
+      expect(share(afterYou)).toBeLessThan(1);
+      expect(share(cold)).toBeGreaterThan(0);
+    });
+
+    it('forgets about it again once the window has passed', () => {
+      /*
+       * The window measured through the hook rather than against the pure
+       * function, because the thing that could break is the sampling: a log read
+       * hoisted out of the fire-time path would keep the first run's answer for
+       * the whole visit and this arm would match the fresh one.
+       */
+      const share = (kinds) => shareOf(kinds, PULLABLE);
+      const stale = tripsFor({
+        seatId: CHOOSY,
+        hour: QUIET_HOUR,
+        runs: 200,
+        prepare: () => {
+          _resetOfficeLogForTests();
+          recordOfficeLogEntry('prop', {
+            detail: PULLABLE,
+            now: Date.now() - OFFICE_PROP_NEWS_WINDOW_MS
+          });
+        }
+      });
+      expect(share(stale)).toBe(share(tripsAfter({})));
+    });
+
+    /**
+     * The property that keeps this change invisible to every other floor suite
+     * — the same one the slump and the habit describes pin, for the same slice
+     * 23 reason: an unpinned suite shares one `Math.random` stream across the
+     * file, so consuming a different *number* of randoms re-seeds who is
+     * wandering everywhere else and reddens an assertion about something else.
+     */
+    it('costs the same number of randoms with news or without', () => {
+      const busyExceptChoosy = wanderingSeatIds().filter((id) => id !== CHOOSY);
+      const rolls = (used) => {
+        _resetOfficeLogForTests();
+        const spy = vi.spyOn(Math, 'random');
+        vi.setSystemTime(new Date(2026, 7, 10, QUIET_HOUR, 15, 0, 0));
+        if (used) recordOfficeLogEntry('prop', { detail: used, now: Date.now() });
+        function Probe() {
+          useFloorWander({ busyIds: busyExceptChoosy });
+          return null;
+        }
+        const view = render(<Probe />);
+        act(() => vi.advanceTimersByTime(9_000));
+        const count = spy.mock.calls.length;
+        view.unmount();
+        spy.mockRestore();
+        return count;
+      };
+
+      const cold = rolls(null);
+      expect(cold, 'no randoms consumed — the trip never started').toBeGreaterThan(0);
+      expect(rolls(PULLABLE)).toBe(cold);
+    });
+  });
+});
+
 describe('somebody who is not at their desk', () => {
   /**
    * 0.7 picks Chad (`intern`) out of the ten-strong roster, which matters: the

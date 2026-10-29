@@ -18,6 +18,7 @@ import {
   OFFICE_RUN_REACTION_LLM_CAP,
   OFFICE_TALK_LLM_CAP,
   OFFICE_MIN_GAP_MS,
+  OFFICE_PROP_NEWS_WINDOW_MS,
   OFFICE_SENIOR_EMAILS_PER_SESSION,
   OFFICE_SESSION_MOMENT_CAP,
   OFFICE_DAY_PHASES,
@@ -380,6 +381,43 @@ describe('the afternoon slump (slice 24)', () => {
   it('takes a Date or an epoch, like the phase dial beside it', () => {
     const three = at(15);
     expect(wanderBiasAt(three)).toEqual(wanderBiasAt(three.getTime()));
+  });
+});
+
+/**
+ * The third thumb on `wanderTripWeight`'s scale lives in this file for the same
+ * reason the slump above does: the cadence owns *when*, and the floor owns
+ * where and what it looks like. Which prop is news is `wanderNewsFrom`'s to
+ * derive (`officeFloorWander.js`); how long it stays news is the dial here.
+ */
+describe('how long the room stays interested in what you did', () => {
+  it('is a window of the moment, not a window of the day', () => {
+    /*
+     * The whole difference between this dial and the one above it. The hour's
+     * thumb is two and a half hours wide because an afternoon is; a reaction to
+     * something you just did has to be over long before the next one, or the
+     * printer you used before lunch is still pulling traffic at four — a
+     * standing bias wearing a reaction's clothes. Asserted against the slump
+     * rather than against a bare number, because the claim is the contrast.
+     */
+    const slumpMs = WANDER_BIAS_WINDOWS.reduce(
+      (widest, w) => Math.max(widest, (w.until - w.from) * 60_000),
+      0
+    );
+    expect(slumpMs, 'no wander bias window — this proves nothing').toBeGreaterThan(0);
+    expect(OFFICE_PROP_NEWS_WINDOW_MS).toBeLessThan(slumpMs / 10);
+  });
+
+  it('outlasts more than one errand, or nothing would ever notice', () => {
+    /*
+     * The other edge. `useFloorWander` starts an errand every 11–24 s, so a
+     * window under half a minute would expire before the next departure and the
+     * dial would be dead code that reads as a shipped feature. Two minutes is
+     * five to ten departures — the same "reads as a trend over a handful of
+     * trips" sizing `WANDER_BIAS_WINDOWS`' weight has.
+     */
+    const LONGEST_GAP_BETWEEN_ERRANDS_MS = 24_000;
+    expect(OFFICE_PROP_NEWS_WINDOW_MS).toBeGreaterThan(2 * LONGEST_GAP_BETWEEN_ERRANDS_MS);
   });
 });
 

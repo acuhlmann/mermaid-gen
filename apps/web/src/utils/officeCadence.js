@@ -410,6 +410,29 @@ export function wanderBiasAt(now = Date.now()) {
 }
 
 /**
+ * How long the room stays interested in the last prop *you* used — the third
+ * thumb on `wanderTripWeight`'s scale, and the first one that is neither a
+ * clock nor a character.
+ *
+ * **Why the dial is here and the derivation is not.** Same split the slump
+ * above already makes: the cadence owns *when*, the floor owns where and what
+ * it looks like. `wanderNewsFrom` in `officeFloorWander.js` reads which prop
+ * off the office log; this file decides only how long that fact is news.
+ *
+ * **Two minutes, and the arithmetic is the argument.** `useFloorWander`'s
+ * `BETWEEN_TRIPS_MS` is 11–24 s, so a two-minute window covers roughly five to
+ * ten departures — the same "reads as a trend over a handful of trips" test
+ * `WANDER_BIAS_WINDOWS`' weight is sized by. Shorter and the pull is invisible:
+ * you print something, the next errand starts after the window and nothing in
+ * the room ever reacts. Longer and it stops being a reaction at all — the
+ * office log is **day-scoped and persisted**, so a window of an hour would mean
+ * the printer you used before lunch still pulling traffic at four, which is a
+ * standing bias wearing a reaction's clothes. The board's own rule, one module
+ * over: a live surface is a dashboard, and this one has to be neither.
+ */
+export const OFFICE_PROP_NEWS_WINDOW_MS = 120_000;
+
+/**
  * How full the room is, 0 (a dark building) to 1 (the office at full tilt) —
  * the third thing on this floor that the clock decides, and the first one the
  * soundscape asks about.

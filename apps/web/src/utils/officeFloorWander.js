@@ -23,6 +23,14 @@
  * fishbowl seals in both directions, and nobody had to write down that
  * executives do not fetch their own coffee.
  *
+ * `wanderNewsFrom` is the one input here that is about **you**, and it is the
+ * reason this module's "produces nothing" licence still holds. It writes
+ * nothing, says nothing and schedules nothing: the errand clock is untouched
+ * and only the *destination* changes, because the thing you just did to a prop
+ * is the one fact in this room that makes a tile worth walking to. Until it
+ * existed every ambient trip on this floor was decided by a clock and a trait
+ * row, so the honest answer to "did anything happen because of me" was no.
+ *
  * `wanderHabitFor` is that pay-off collected a second time, for *where* rather
  * than *who*. Until it existed the only thumb on the scale was the hour
  * (`wanderBiasAt`), one global row that moved every persona alike, so the
@@ -44,6 +52,7 @@ import {
 import { propTileFor, usablePropKinds } from './officeFloorMovement.js';
 import { deskDoingFor } from './officeFloorActivity.js';
 import { propHandsFor } from './officeFloorProps.js';
+import { OFFICE_PROP_NEWS_WINDOW_MS } from './officeCadence.js';
 
 /**
  * @typedef {{ kind: string, mark: { x: number, y: number } }} WanderTrip
@@ -90,6 +99,10 @@ export function wanderTripsFor(seatId) {
  * Module-private: the number is an implementation detail of
  * `wanderTripWeight`, and anybody who needs it can read it off
  * `wanderHabitFor(id).weight` rather than import a constant.
+ *
+ * `wanderNewsFrom` spends the same number for the argument in
+ * `wanderTripWeight`'s doc — the three thumbs on this scale are peers, so one
+ * constant is the honest way to say so.
  */
 const WANDER_HABIT_WEIGHT = 3;
 
@@ -170,28 +183,92 @@ export function wanderHabitFor(seatId) {
 }
 
 /**
+ * The prop you were last at, while that is still news, or `null`.
+ *
+ * The third thumb on the scale, and the first one that is about **you**. The
+ * printer and the whiteboard are the two props § 8 says nothing ever sends
+ * anybody to — the hour favours the kitchen and a habit is the prop that
+ * refills somebody's hand, which neither of them does. Using one is the room's
+ * one standing invitation to go and look: a sheet came out of the printer, or
+ * there is something on the board that was not there before.
+ *
+ * **Nothing new is written, and nothing new fires.** The office log already
+ * records a verb-less prop use as `{ kind: 'prop', detail: <propKind> }`
+ * (`useFloorPropUse.js`), so this is the same read-two-tables-against-each-other
+ * trick `wanderHabitFor` is, with the log as one of the tables. The errand
+ * clock is not touched: a trip that was going to start still starts, and only
+ * its destination knows you were there. That is the line between *record* and
+ * *trigger* (ADR-0010) — the room notices, it does not get summoned.
+ *
+ * **The newest entry or nothing.** Scanning back to the first `prop` entry and
+ * then testing its age is deliberate: the log is chronological, so the newest
+ * one is the last thing you did, and an older fresh entry behind a stale newer
+ * one cannot exist. "The last thing you did" also needs no tie-break, which
+ * "any prop inside the window" would.
+ *
+ * **Both guards are refusals rather than defence.** A prop kind the room can no
+ * longer give anybody a mark for is not somewhere to be sent (the same check
+ * `wanderHabitFor` makes against `wanderTripsFor`), and a fact older than
+ * `OFFICE_PROP_NEWS_WINDOW_MS` is not news. Standing *on* the prop needs no
+ * guard at all and that is worth stating: `useFloorWander`'s own `avoidTile`
+ * already drops the mark you are at or walking to, so the pull can only ever
+ * land after you have walked away — which is exactly when somebody going to
+ * look at what you left is the fiction rather than a collision.
+ *
+ * @param {Array<{at?: number, kind?: string, detail?: string}>} [officeLog]
+ *   `getOfficeLogSnapshot()`, sampled by the caller — this module stays pure
+ *   and subscribes to nothing.
+ * @param {number} [now]
+ * @returns {{ kind: string, weight: number } | null}
+ */
+export function wanderNewsFrom(officeLog = [], now = Date.now()) {
+  const log = Array.isArray(officeLog) ? officeLog : [];
+  for (let i = log.length - 1; i >= 0; i -= 1) {
+    const entry = log[i];
+    if (entry?.kind !== 'prop') continue;
+    if (!(now - entry.at < OFFICE_PROP_NEWS_WINDOW_MS)) return null;
+    return usablePropKinds().includes(entry.detail)
+      ? { kind: entry.detail, weight: WANDER_HABIT_WEIGHT }
+      : null;
+  }
+  return null;
+}
+
+/**
  * The thumb on the scale for one colleague's one possible errand.
  *
- * **The larger of the two multipliers, never their product.** The hour and the
- * habit make the same claim about the same pick ("this errand is likelier to
- * end here"), and compounding them would put a mug-carrier nine times over the
- * machine between two and half four — a rota, which is precisely what
- * `WANDER_BIAS_WINDOWS` says it is not. Taking the larger reads as the room
- * does: the slump pulls anybody who has no habit of their own, and it cannot
- * pull somebody harder than their own habit already does. So at three in the
- * afternoon the floor drifts to the kitchen **and the printer people are still
- * going to the printer**, which is the whole point of giving them one.
+ * **The largest of the three multipliers, never their product.** The hour, the
+ * habit and the news make the same claim about the same pick ("this errand is
+ * likelier to end here"), and compounding them would put a mug-carrier nine
+ * times over the machine between two and half four — a rota, which is precisely
+ * what `WANDER_BIAS_WINDOWS` says it is not. Taking the largest reads as the
+ * room does: the slump pulls anybody who has no habit of their own, and it
+ * cannot pull somebody harder than their own habit already does. So at three in
+ * the afternoon the floor drifts to the kitchen **and the printer people are
+ * still going to the printer**, which is the whole point of giving them one.
+ *
+ * **All three weigh the same, which makes them peers rather than a ladder.**
+ * `floorActivityFor`'s precedence would say the live fact outranks the general
+ * one and give the news a bigger number — but `Math.max` turns "bigger" into
+ * "strictly dominant", and a news weight of four would erase every colleague's
+ * own habit every time you touched a prop. Half the roster has no habit, so at
+ * equal weight the news pulls *them* and merely ties for the rest: the room
+ * drifts toward the thing you did without the whole floor marching to it, which
+ * is interest rather than a rota. That it is also "the same kind of number" the
+ * other two dials are is why there is one constant and not three.
  *
  * @param {string} seatId
  * @param {string} kind a prop kind from `wanderTripsFor(seatId)`
  * @param {{ kind: string, weight: number } | null} [bias] `wanderBiasAt()`
+ * @param {{ kind: string, weight: number } | null} [news] `wanderNewsFrom()`
  * @returns {number} a whole-number multiplier against a uniform pick
  */
-export function wanderTripWeight(seatId, kind, bias = null) {
+export function wanderTripWeight(seatId, kind, bias = null, news = null) {
   const habit = wanderHabitFor(seatId);
   return Math.max(
     habit && habit.kind === kind ? habit.weight : 1,
-    bias && bias.kind === kind ? bias.weight : 1
+    bias && bias.kind === kind ? bias.weight : 1,
+    news && news.kind === kind ? news.weight : 1
   );
 }
 
