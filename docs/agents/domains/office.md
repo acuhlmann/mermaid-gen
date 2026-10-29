@@ -276,19 +276,32 @@ it names. Merging the two into a single pass is worth doing and is not urgent �
   `Date` **only**, or the poll timer and React's scheduling stop and nothing renders.
 - **The cadence carries two wall clocks; pick by what the fact changes.** `OFFICE_DAY_PHASES`
   is what the room _looks_ like (mugs, papers, light); `WANDER_BIAS_WINDOWS` / `wanderBiasAt` is
-  where people _go_ (slice 24's afternoon slump). Do not add a sixth day phase to express an
+  where people _go_ (slice 24's afternoon slump), and `OFFICE_PROP_NEWS_WINDOW_MS` is **how long
+  the room stays interested in what you did** (the prop-news slice). Do not add a sixth day phase to express an
   hour-shaped fact about movement — 3 pm looks like 11 am, so a phase would change the light and
   owe `officeFloorStyles.test.js` a sixth rule for nothing. Both dials live in `officeCadence.js`;
   the floor still owns only the art. And a **weighted pick must consume the same number of
   `Math.random()` calls as the uniform one** — repeat list entries and roll once, never roll again
   to decide whether the bias applies, or you re-seed every unpinned floor suite (see below).
-- **A wander destination has two dials now, and they combine with `Math.max`, never a product.**
+- **A wander destination has three dials now, and they combine with `Math.max`, never a product.**
   `wanderTripWeight` (`officeFloorWander.js`) folds the hour (`wanderBiasAt`, ×3 on the kitchen
-  from 14:00) and the colleague's own habit (`wanderHabitFor`, ×3 on their prop) into one weighted
-  list and **one** roll. Multiplying would put a mug-carrier 9× on the machine in the slump, which
-  is the rota `WANDER_BIAS_WINDOWS` says it is not; the larger of the two reads as the room does —
-  the slump pulls anybody with no habit, and cannot pull somebody harder than their own habit
-  already does. A habit is **derived, not declared**: `deskDoingFor(id).hold` × `propHandsFor(kind)`,
+  from 14:00), the colleague's own habit (`wanderHabitFor`, ×3 on their prop) and **the prop you
+  were last at** (`wanderNewsFrom`, ×3 for `OFFICE_PROP_NEWS_WINDOW_MS` = 2 min after a `prop`
+  office-log entry) into one weighted list and **one** roll. Multiplying would put a mug-carrier 9×
+  on the machine in the slump, which is the rota `WANDER_BIAS_WINDOWS` says it is not; the largest
+  of the three reads as the room does — the slump pulls anybody with no habit, and cannot pull
+  somebody harder than their own habit already does. **All three weigh the same on purpose**: under
+  a `Math.max` "bigger" is not "stronger", it is "strictly dominant", so a news weight of 4 would
+  erase every colleague's habit the moment you touched a prop. At equal weight the news moves the
+  half of the roster with no habit and merely ties for the rest — measured over 19 of the 22
+  seat×prop combinations the floor can produce, the 3 unmoved ones being exactly the seats that
+  already own that prop. **The news thumb is also the one input on this floor that is about
+  _you_,** and it is what makes an ambient destination an answer to "did anything happen because of
+  me": the errand clock is untouched, nothing is written and nothing is scheduled (ADR-0010's
+  record-not-trigger line), only where the trip ends. `wanderNewsFrom` is pure and the office log
+  is **sampled at fire time** (`getOfficeLogSnapshot()` inside `departure()`), never subscribed — a
+  store subscription in a floor component repaints sixteen animated figures on every recorded
+  fact. A habit is **derived, not declared**: `deskDoingFor(id).hold` × `propHandsFor(kind)`,
   so the prop that refills what they are already holding (`papers` → printer; a desk `mug` → the
   machine that hands out `coffee`, which `FLOOR_PROP_USES` documents as the same object at two
   stages). No table gained a row, the whiteboard belongs to nobody because it hands nothing over,
@@ -1084,7 +1097,18 @@ test:floor`; the floor test map is [`docs/agents/isometric-floor-tests.md`](../.
   to buy a fact about walking. Both dials stay in the cadence; the floor still owns only what a
   phase looks like. The bias table's one row is also the design: `PHASE_ART` already puts a mug
   in every hand at nine and papers at five, so biasing traffic there would tell the same thing
-  twice. **The wall clock (slice 25) is a third _face_ of the same clock, not a third clock**:
+  twice. **A third dial joined them and it is not a clock at all** — `OFFICE_PROP_NEWS_WINDOW_MS`
+  (2 min) is how long the prop _you_ last used keeps pulling traffic, and it is in this file for
+  the same split: the cadence owns _when_, and which prop is news is `wanderNewsFrom`'s to derive
+  off the office log. Its length is the whole design. `useFloorWander` starts an errand every
+  11–24 s, so a window under half a minute expires before the next departure and the dial is dead
+  code reading as a shipped feature; and because the office log is **day-scoped and persisted**, a
+  window of an hour would mean the printer you used before lunch still pulling traffic at four — a
+  standing bias wearing a reaction's clothes. Two minutes is five to ten departures, which is the
+  same "reads as a trend over a handful of trips" sizing the weights have. `officeCadence.test.js`
+  pins both edges, the upper one _against the slump window_ rather than against a bare number,
+  because the claim is the contrast between a window of the day and a window of the moment.
+  **The wall clock (slice 25) is a third _face_ of the same clock, not a third clock**:
   `FloorWallClock` reads `officeWallClockAt` (cadence), the same instant the phase dial reads,
   so hands and light can never disagree. A clock that read its own `Date`, or polled on a
   one-second second-hand, would repaint the floor continuously against the
@@ -1131,7 +1155,14 @@ test:floor`; the floor test map is [`docs/agents/isometric-floor-tests.md`](../.
   `wanderHabitFor` row. Every seeded floor suite and the scripted visit stayed byte-identical
   across the habit slice for that reason alone, so a green `test:floor` said nothing about the
   change and the sweep had to. The general form: a pinned seed selects one actor, and a per-actor
-  feature the pinned actor does not have is **invisible to every suite that pins it**. **Since slice 24 the seed alone
+  feature the pinned actor does not have is **invisible to every suite that pins it**. **The
+  prop-news slice is the first one that inverts this, and the inversion is the reusable part**: its
+  thumb is keyed on the _prop_ rather than on the walker, so it applies to the whole roster — and
+  Chad, having no habit of his own, is precisely the seat it moves furthest. A pinned-0.75 probe
+  therefore reads it at full strength rather than not at all (real Chromium, 6 of 6 trials per arm,
+  `whiteboard` → `printer` → back to `whiteboard` once the entry is stale). Ask which axis a
+  feature is keyed on before deciding whether a pinned seed can see it: per-actor features need the
+  sweep, per-prop ones are visible to the seed and the seed makes them deterministic. **Since slice 24 the seed alone
   is not enough**: `wanderBiasAt` gave the clock a say in _where_ a seeded wanderer goes (3× the
   coffee machine from 14:00 to 16:30), so the two globals stopped being independent — and it
   shipped that way, leaving slice 23's join tests and two `officeFloorWander.test.jsx` describes

@@ -55,6 +55,16 @@
  * one weighted list and one roll — and it is derived rather than declared, so
  * no table grew a column.
  *
+ * And since the prop-news slice the destination knows **what you did**
+ * (`wanderNewsFrom`). It is the third thumb on the same pick and the first one
+ * that is not a property of the clock or of the walker: use the printer or the
+ * whiteboard and the next couple of errands are likelier to end where you were.
+ * The office log is read **once, at fire time**, exactly as the hour is — a
+ * destination is decided when an errand starts, so there is nothing here to
+ * subscribe to and nothing that re-renders sixteen animated figures when the
+ * log changes. That is the sampled-on-an-edge rule the whole floor runs on, and
+ * `getOfficeLogSnapshot()` is the one-shot read it asks for.
+ *
  * Slice 12 added a fourth, and it is the same rule wearing the opposite face:
  * `holdId` **stops the clock** while you have their card open or are stood in
  * front of them talking. Ambience still loses — it loses by waiting instead of
@@ -68,11 +78,13 @@ import { liveTileOf, prefersReducedMotion } from './useWalkAnimation.js';
 import { seatFor } from '../../utils/officeFloorPlan.js';
 import { sameTile } from '../../utils/officeFloorMovement.js';
 import {
+  wanderNewsFrom,
   wanderTripWeight,
   wanderTripsFor,
   wanderingSeatIds
 } from '../../utils/officeFloorWander.js';
 import { wanderBiasAt } from '../../utils/officeCadence.js';
+import { getOfficeLogSnapshot } from '../../state/officeLogStore.js';
 import { propHandsFor } from '../../utils/officeFloorProps.js';
 import { interruptionFor } from '../../utils/officeFloorInterrupt.js';
 
@@ -107,8 +119,8 @@ function pick(list) {
 }
 
 /**
- * Where they are heading, with two thumbs on the scale: the hour's (slice 24)
- * and their own.
+ * Where they are heading, with three thumbs on the scale: the hour's
+ * (slice 24), their own, and yours.
  *
  * **One `Math.random()` whatever applies**, which is not an optimisation — it
  * is the property that keeps this change invisible to every suite that mounts
@@ -121,15 +133,16 @@ function pick(list) {
  * it was safe to remove — with no bias and no habit every share is 1, so the
  * list is `options` and the single roll lands where it always did.
  *
- * A multiplier rather than a schedule, on both dials: somebody whose errands
- * do not include the favoured prop is picked from exactly as before, and
- * `wanderTripWeight` takes the larger of the two rather than their product so
- * that an hour and a habit pulling the same way cannot compound into a rota.
+ * A multiplier rather than a schedule, on all three dials: somebody whose
+ * errands do not include the favoured prop is picked from exactly as before,
+ * and `wanderTripWeight` takes the largest of the three rather than their
+ * product so that an hour, a habit and a prop you just used pulling the same
+ * way cannot compound into a rota.
  */
-function pickTrip(seatId, options, bias) {
+function pickTrip(seatId, options, bias, news) {
   const weighted = [];
   for (const trip of options) {
-    const share = wanderTripWeight(seatId, trip.kind, bias);
+    const share = wanderTripWeight(seatId, trip.kind, bias, news);
     for (let copy = 0; copy < share; copy += 1) weighted.push(trip);
   }
   return pick(weighted);
@@ -185,8 +198,19 @@ function departure(busy, avoid) {
    * of the same pure function `useOfficeDayPhase` polls — not a second sampler,
    * and nothing here re-renders when it changes. Who they are goes in beside
    * it: the habit is a constant of the person, so it needs no sampling at all.
+   *
+   * What *you* last did is read the same way and for the same reason. The log
+   * is a store, so the temptation is a subscription; a subscription here would
+   * repaint the room every time anything was recorded, which is the one thing
+   * the floor may not do. Sampling it on the edge that already exists costs a
+   * single array read per errand and keeps the store out of the render path.
    */
-  const { kind, mark } = pickTrip(seatId, options, wanderBiasAt());
+  const { kind, mark } = pickTrip(
+    seatId,
+    options,
+    wanderBiasAt(),
+    wanderNewsFrom(getOfficeLogSnapshot())
+  );
   const seat = seatFor(seatId);
   return {
     seatId,
