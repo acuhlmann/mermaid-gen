@@ -91,6 +91,7 @@ describe('refusing a meeting invite', () => {
    * auto-fix-on-idle with a calendar (ADR-0010 consequence #4).
    */
   it('owns no timer once it has been refused', () => {
+    vi.setSystemTime(new Date('2026-07-11T12:00:00Z'));
     vi.useFakeTimers();
     pushOfficeMeetingInvite(INVITE);
     declineOfficeMeetingInviteWithMemory();
