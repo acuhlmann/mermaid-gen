@@ -94,6 +94,7 @@ export const AGENT_TOOLING_BLAST_TESTS = [
   'scripts/verify-eslint-guidance-sync.test.mjs',
   'scripts/verify-isometric-floor-suites.test.mjs',
   'scripts/verify-mermaid-pins.test.mjs',
+  'scripts/verify-prettier-ignore-sync.test.mjs',
   'scripts/verify-ratchet-no-gate.test.mjs',
   'scripts/verify-ratchet.test.mjs',
   'scripts/verify-strict-islands.test.mjs',
@@ -371,6 +372,11 @@ export const BLAST_RADIUS_RULES = [
     // test:floor (apps/web/package.json) vs ISOMETRIC_FLOOR_BLAST_TESTS — intentionally different sets.
     match: /apps\/web\/package\.json|scripts\/test-affected-lib\.mjs/,
     tests: ['scripts/verify-isometric-floor-suites.test.mjs']
+  },
+  {
+    // Diff-scoped Prettier skips via PRETTIER_SKIP; CI Prettier reads `.prettierignore`.
+    match: /^\.prettierignore$|scripts\/prettier-files\.mjs/,
+    tests: ['scripts/verify-prettier-ignore-sync.test.mjs']
   },
   {
     // Mermaid's version is declared in three package.jsons and once more as a CDN major inside an
