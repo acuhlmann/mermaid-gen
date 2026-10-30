@@ -1731,10 +1731,38 @@ test:floor`; the floor test map is [`docs/agents/isometric-floor-tests.md`](../.
   until it was cut to one guard, then 6 of 12) and is now pinned at one in
   `officePersonas.test.js`. So if the board starts eating a visit, **shorten the notes, not the
   register.**
-- **`resolveChromium()`'s path assumes one of the two Playwright layouts.**
-  `apps/web/test/officeVisitTrace.mjs` builds `<browsersPath>/chromium-<n>/chrome-linux/chrome`. On
-  the current cloud image the directory is **`chrome-linux64`**, so that path does not exist and
-  `launch()` reports `executable doesn't exist at …`, which reads exactly like a broken image —
-  the failure the harness's own "trap 1" comment exists to prevent, one directory name later.
-  `<browsersPath>/chromium` is a symlink to the real binary on both layouts and is the resolution
-  that does not rot; probe both spellings before falling back to it.
+- **FIXED 2026-10-30, and the general rule is "probe, never construct".**
+  `apps/web/test/officeVisitTrace.mjs`'s `resolveChromium()` built
+  `<browsersPath>/chromium-<n>/chrome-linux/chrome`; on this image the directory is
+  **`chrome-linux64`**, so the path did not exist and `launch()` reported
+  `Failed to launch chromium because executable doesn't exist at …` — which reads exactly like a
+  broken image, the failure that function's own "trap 1" comment exists to prevent, one directory
+  name later. It now `access()`-checks `chrome-linux64`, then `chrome-linux`, then
+  `<browsersPath>/chromium` (a symlink to the real binary that resolves under either layout), and
+  returns `undefined` rather than a path that is not there — because playwright's own registry is a
+  working fallback and a bad explicit path **overrides** it, so constructing one is worse than
+  returning nothing. Three nightly runs (2026-10-28/29/30) each rediscovered this and worked round
+  it with `OFFICE_VISIT_CHROMIUM`; the tell that it is this and not a broken image is that
+  `<browsersPath>/chromium` resolves while the path in the error does not.
+- **The visit's one ambient errand departs before the visit touches a prop, and only a field could
+  show it.** `movement.wanderers` (trace version 4, 2026-10-30) names the prop each errand was for,
+  off a `data-wander-prop` the walker now carries. First reading, 3 of 3 generated runs: exactly
+  **one** errand, `intern` → `whiteboard`, settled 1.8 s after first sighting, `said: "gotIt"` —
+  it is the trip step 3 interrupts. Its `settledAtMs` (12.4–19.7 s) is **before** either prop card
+  is read (24.2–34.6 s), so the destination is chosen while the office log still has no `prop`
+  entry in it. That is why the 2026-10-29 prop-news thumb had to be measured by a separate
+  three-arm probe and could not have been read off the trace however many fields it carried: the
+  blindness is the visit's **ordering**, not its report. Worth separating from the other four shapes
+  of blindness in this file, because the fix is neither an observation nor another instrument — it
+  would be an eighth step, which § 2 forbids. What the field does buy is that the next run can
+  **state** the ordering from the trace instead of discovering it with a browser probe.
+- **A `data-` attribute is cheaper than the geometry that stands in for it.** The 2026-10-29 probe
+  named a wanderer's destination by measuring the settled figure's rect against every `[data-prop]`
+  rect and taking the nearest. It was unambiguous on this layout (158 px against 109 px) and it is
+  the same shape playbook § 14 retracted a claim over: an inference that is right today and wrong
+  the first time two props sit near each other. One attribute closed it. Two details worth keeping:
+  it names the **prop**, not the tile, so it survives the turn for home (`goHome` spreads `current`,
+  so `kind` outlives the leg) and `data-settled` is still the answer to which leg they are on; and
+  it is passed **bare**, because React drops an `undefined` attribute and a tidying `?? ''` or
+  `String(kind)` would put the literal word `undefined` into a field the instrument reads as a prop
+  name — which `officeFloorWander.test.jsx` now pins with a case that is green either side.

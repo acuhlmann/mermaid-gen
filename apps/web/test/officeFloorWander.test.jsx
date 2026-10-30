@@ -1033,6 +1033,68 @@ describe('somebody who is not at their desk', () => {
     expect(wanderTripsFor(CHAD).map((t) => t.kind)).toContain('whiteboard');
   });
 
+  it('names the prop in the DOM, so nobody has to infer it from geometry', () => {
+    const { figure, mark } = floorWithWanderer();
+
+    /*
+     * The fact and the geometry, asserted against each other. Until 2026-10-30
+     * only the geometry existed: the prop-news probe named a wanderer's
+     * destination by measuring the settled figure's rect against every
+     * `[data-prop]` rect and taking the nearest, which was unambiguous on this
+     * layout (158 px against 109 px) and is the same shape playbook § 14
+     * retracted a claim over — an inference that is right today and wrong the
+     * first time two props sit near each other.
+     *
+     * jsdom has no layout, so this case cannot check that the two agree *on
+     * screen*; what it can pin is that the attribute names the prop whose mark
+     * the ladder actually chose, which is the half a later reader will trust.
+     */
+    expect(figure.dataset.wanderProp).toBe('whiteboard');
+    expect(propTileFor(figure.dataset.wanderProp)).toEqual(mark);
+  });
+
+  it('keeps naming the prop on the leg home, when they are no longer settled', () => {
+    /*
+     * The attribute is about the errand, not the tile, and the whole-floor
+     * harness cannot show it: without a WAAPI engine a walk settles in the tick
+     * it starts, so `out` and `home` are never on screen there. `goHome`
+     * spreads `current`, so `kind` survives the turn — which is what makes one
+     * attribute enough for both questions a reader has, since `data-settled`
+     * already says which leg they are on.
+     */
+    const base = { seatId: CHAD, kind: 'whiteboard', from: seatFor(CHAD), to: WHITEBOARD };
+    for (const [phase, leg] of [
+      ['out', 1],
+      ['dwell', 1],
+      ['home', 2]
+    ]) {
+      const view = render(<FloorWanderer wanderer={{ ...base, phase, leg }} copy={FLOOR_COPY()} />);
+      const figure = view.container.querySelector('.office-floor-walker');
+      expect(figure.dataset.wanderProp, phase).toBe('whiteboard');
+      expect(figure.dataset.settled, phase).toBe(phase === 'dwell' ? 'true' : undefined);
+      cleanup();
+    }
+  });
+
+  it('writes no attribute at all for a trip with no prop', () => {
+    /*
+     * Green either side of this slice on purpose, like slice 24's vacuity
+     * guards. It pins the *shape* of the choice rather than the feature: the
+     * attribute is passed bare, so React drops it when `kind` is absent, and
+     * the next reader who reaches for a `?? ''` or a `String(kind)` to tidy it
+     * up turns a missing prop into the literal word "undefined" in a field the
+     * instrument reads as a prop name.
+     */
+    const view = render(
+      <FloorWanderer
+        wanderer={{ seatId: CHAD, from: seatFor(CHAD), to: WHITEBOARD, phase: 'dwell', leg: 1 }}
+        copy={FLOOR_COPY()}
+      />
+    );
+    const figure = view.container.querySelector('.office-floor-walker');
+    expect(figure.getAttribute('data-wander-prop')).toBeNull();
+  });
+
   it('makes the settled figure the button, and leaves nothing on their chair', () => {
     const { view, figure } = floorWithWanderer();
 
