@@ -39,8 +39,8 @@ describe('OfficeBattleOverlay', () => {
 
   it('shows the shoulder invite with both combatants and the topic', () => {
     const onAccept = vi.fn();
-    const onDone = vi.fn();
-    render(<OfficeBattleOverlay battle={BATTLE} onAccept={onAccept} onDone={onDone} />);
+    const onDecline = vi.fn();
+    render(<OfficeBattleOverlay battle={BATTLE} onAccept={onAccept} onDecline={onDecline} />);
     const invite = screen.getByTestId('office-battle-invite');
     expect(invite.textContent).toContain('Ulrich');
     expect(invite.textContent).toContain('Chad');
@@ -49,14 +49,24 @@ describe('OfficeBattleOverlay', () => {
     fireEvent.click(screen.getByText('Grab popcorn'));
     expect(onAccept).toHaveBeenCalledOnce();
     fireEvent.click(screen.getByText('Not my circus'));
-    expect(onDone).toHaveBeenCalledOnce();
+    expect(onDecline).toHaveBeenCalledOnce();
   });
 
-  it('dismisses the invite from the corner close button', () => {
+  /*
+   * Both invite exits **decline**, and this assertion is the one that changed.
+   * It read `onDone` until 2026-10-31, which is `dismissOfficeBattle` — so the
+   * desk's [Not my circus] deleted an argument two other people were having,
+   * the thing slice 30 exists to have stopped, while the floor's copy of the
+   * same button declined correctly. `onDone` stays the ending *inside* an
+   * accepted scene (the next case), exactly as `CoffeeBreakOverlay` splits them.
+   */
+  it('declines the invite from the corner close button, and does not dismiss it', () => {
+    const onDecline = vi.fn();
     const onDone = vi.fn();
-    render(<OfficeBattleOverlay battle={BATTLE} onDone={onDone} />);
+    render(<OfficeBattleOverlay battle={BATTLE} onDecline={onDecline} onDone={onDone} />);
     fireEvent.click(screen.getByLabelText('Not my circus — walk away'));
-    expect(onDone).toHaveBeenCalledOnce();
+    expect(onDecline).toHaveBeenCalledOnce();
+    expect(onDone).not.toHaveBeenCalled();
   });
 
   it('offers a persistent escape during line pacing', async () => {
