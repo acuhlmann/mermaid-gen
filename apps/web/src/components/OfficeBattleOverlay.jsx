@@ -26,9 +26,22 @@ const INVITE_FACE_SIZE = 108;
  * by siding with someone (worth a small XP nudge, wired by OfficeLayer via
  * onVote) and the winner gets the last word.
  *
+ * **`onDecline` is not `onDone`, and conflating them cost slice 30 its point on
+ * this renderer.** Slice 30 made turning down an argument mean "not for me"
+ * rather than "not happening" — the pair keep shouting, and the floor can offer
+ * you a way back in (`officeFloorSceneJoin.js`). The store was changed, the
+ * floor's `FloorScene` was wired to `onDeclineBattle`, and *this* overlay kept
+ * both its × and its [Not my circus] on `onDone`, which is `dismissOfficeBattle`
+ * — so on the desk, the default renderer, declining still deleted somebody
+ * else's argument and there was nothing left to walk into. `CoffeeBreakOverlay`
+ * had the split from the start (× and decline on `onDecline`, `onDone` only for
+ * the in-scene ending) and this now matches it: the two invite exits decline,
+ * and the three endings inside the accepted scene dismiss.
+ *
  * @param {{
  *   battle: object | null,
  *   onAccept?: () => void,
+ *   onDecline?: () => void,
  *   onVote?: (colleagueId: string) => void,
  *   onDone?: () => void,
  *   narrateLine?: (line: { speakerId: string, text: string }) => Promise<{ spoken?: boolean } | void>
@@ -43,6 +56,7 @@ export default function OfficeBattleOverlay({
   /** True once all combat lines have been revealed (lifted from `OfficeLayer`). */
   linesDone: linesDoneProp,
   onAccept,
+  onDecline,
   onVote,
   onDone,
   narrateLine,
@@ -148,7 +162,7 @@ export default function OfficeBattleOverlay({
               a: sideA.name,
               b: sideB.name
             })}
-            onClick={onDone}
+            onClick={onDecline}
           >
             ×
           </button>
@@ -191,7 +205,7 @@ export default function OfficeBattleOverlay({
               <button type="button" className="office-battle-accept" onClick={onAccept}>
                 {copy.battle.accept}
               </button>
-              <button type="button" className="office-battle-decline" onClick={onDone}>
+              <button type="button" className="office-battle-decline" onClick={onDecline}>
                 {copy.battle.decline}
               </button>
             </div>

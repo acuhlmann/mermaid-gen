@@ -544,6 +544,26 @@ export function writeOfficeLog(entries, now = Date.now()) {
 export const OFFICE_WORKING_MEMORY_INTERRUPTIONS = Object.freeze(['gotIt', 'gaveUp']);
 
 /**
+ * The set pieces a beat may remember you having turned down — the two
+ * joinable scenes `officeFloorSceneJoin.js` already knows by name.
+ *
+ * An **enum rather than the boolean the other two refusals use**, and the
+ * reason is not symmetry. `errandDropped` and `inviteDeclined` each describe
+ * one thing that can only have happened one way; a declined scene can be a
+ * coffee break or a shouting match, and those are not the same no — one is
+ * company turned down, the other is a side nobody took. The closed set is free
+ * (the store already carries `kind` at the call site) and it is exactly the
+ * shape the ledger's `invite-beat-has-no-topic` row argues for when a beat
+ * needs to say *which*: a bounded value chosen from a fixed list, never the
+ * raw text of a title.
+ *
+ * It lives here, beside the interruptions, so the writer and the read-back
+ * sanitizer cannot disagree about what is a legal value, and so a floor can
+ * never put a sentence of its own into a prompt.
+ */
+export const OFFICE_WORKING_MEMORY_SCENE_DECLINES = Object.freeze(['coffee', 'battle']);
+
+/**
  * How a beat was exchanged, when it was not by speaking.
  *
  * An enum for the same reason as the interruptions above — it selects a
@@ -588,7 +608,7 @@ export const OFFICE_WORKING_MEMORY_MEDIUMS = Object.freeze(['email']);
  * @param {number} at
  * @returns {{ at: number, theirs?: string, yours?: string, pitchTaken?: boolean,
  *   errandDropped?: boolean, inviteDeclined?: boolean, interrupted?: string,
- *   medium?: string } | null}
+ *   sceneDeclined?: string, medium?: string } | null}
  */
 export function normalizeWorkingMemoryBeat(beat, at) {
   const next = { at };
@@ -605,13 +625,17 @@ export function normalizeWorkingMemoryBeat(beat, at) {
   if (OFFICE_WORKING_MEMORY_INTERRUPTIONS.includes(beat.interrupted)) {
     next.interrupted = beat.interrupted;
   }
+  if (OFFICE_WORKING_MEMORY_SCENE_DECLINES.includes(beat.sceneDeclined)) {
+    next.sceneDeclined = beat.sceneDeclined;
+  }
   if (
     !next.theirs &&
     !next.yours &&
     !next.pitchTaken &&
     !next.errandDropped &&
     !next.inviteDeclined &&
-    !next.interrupted
+    !next.interrupted &&
+    !next.sceneDeclined
   ) {
     return null;
   }
@@ -627,7 +651,8 @@ export function normalizeWorkingMemoryBeat(beat, at) {
 /**
  * @param {unknown} beat
  * @returns {{ at: number, theirs?: string, yours?: string, pitchTaken?: boolean,
- *   errandDropped?: boolean, inviteDeclined?: boolean, interrupted?: string } | null}
+ *   errandDropped?: boolean, inviteDeclined?: boolean, interrupted?: string,
+ *   sceneDeclined?: string } | null}
  */
 function sanitizeWorkingMemoryBeat(beat) {
   if (!beat || typeof beat !== 'object') return null;

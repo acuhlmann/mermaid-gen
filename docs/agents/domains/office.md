@@ -1766,3 +1766,50 @@ test:floor`; the floor test map is [`docs/agents/isometric-floor-tests.md`](../.
   it is passed **bare**, because React drops an `undefined` attribute and a tidying `?? ''` or
   `String(kind)` would put the literal word `undefined` into a field the instrument reads as a prop
   name — which `officeFloorWander.test.jsx` now pins with a case that is green either side.
+- **`onDecline` and `onDone` are not the same prop, and one scene card had them conflated for two
+  slices.** Slice 28 made declining a set piece mean _"not for me"_ rather than _"not happening"_:
+  `declineOfficeCoffee` leaves the cast standing so `sceneJoinOfferFor` can offer you a way back in,
+  and `dismissOfficeCoffee`/`dismissOfficeBattle` are the endings instead. Slice 30 brought the
+  battle in as the second joinable kind — store changed, `FloorScene` wired to `onDeclineBattle` —
+  and `OfficeBattleOverlay` (renderer #1, the **default** one) kept both its × and its
+  [Not my circus] on `onDone`. So on the desk, declining still deleted an argument two other people
+  were having, nothing was left to walk into, and `declineOfficeBattle` was unreachable from the
+  surface most users see. `CoffeeBreakOverlay` has had the split since slice 28 (× and decline on
+  `onDecline`, `onDone` only for the in-scene ending), which is what makes this a copy-the-sibling
+  fix rather than a design question. Two things generalise. **A scene prop that hides a declined
+  scene is half of the wiring**: the overlay needs `battle={snapshot.battle?.declined ? null :
+snapshot.battle}` the way the coffee one already did, or a declined scene re-renders its own invite
+  pill. And **the test pinned the defect**: `officeBattleOverlay.test.jsx` asserted
+  `onDone` on [Not my circus] and passed every night, because a handler test can only ever check
+  that the button calls the prop it was given — which is why the end-to-end case that presses the
+  real button through `OfficeLayer` is the one that found it.
+- **Five writers, one edge rule, and the newest one proves what the rule is about.** Working memory
+  is written by a dwell, a talk, an interruption, an email, a dropped errand, a declined invite and
+  (2026-10-31) a declined set piece. The rule has never been a count — it is that each writer is a
+  moment the user **aimed at one named person**, so the beat lands on them and nobody else: not the
+  colleague you were sent to, not the other invitees, and not the second half of a coffee pair who
+  was standing right there while you said no. A declined set piece is the purest statement of
+  record-never-trigger in the store, because it is the only writer whose edge changes nothing else
+  at all — the scene keeps its cast, walks to the machine and plays out, and the floor keeps offering
+  you the way in. The memory is the entire consequence.
+- **A refusal that can only have happened one way takes a boolean; one that can happen two ways
+  takes an enum.** `errandDropped` and `inviteDeclined` are booleans and should stay so — each
+  describes a single circumstance, and `INVITE_DECLINED_PROMPT_LINE` deliberately covers both of
+  that toast's exits because the office can only see what they have in common.
+  `sceneDeclined: 'coffee' | 'battle'` is an enum because a coffee you did not want is company
+  turned down and a shouting match you left is a side nobody took; one sentence covering both has to
+  say _"you did not join their thing"_, which is the vague end of the same mistake
+  `INTERRUPTION_PROMPT_LINES` avoids at the specific end. The enum is free here because the kind is
+  decided by **which function the button called** (`officeSceneDeclineMemory.js` exports one per
+  scene rather than taking a `kind`), so it cannot disagree with which scene was turned down — and
+  it lives in `officeAmbienceStorage.js` beside the interruptions so the writer and the read-back
+  sanitizer cannot differ about what is legal. This is the shape the ledger's
+  `invite-beat-has-no-topic` row asks for when a beat has to say _which_: a bounded value from a
+  closed set, never free text off a title.
+- **`hasActiveOfficeSurface()` is not a clean assertion in a test that renders `OfficeLayer` and
+  advances the clock far.** A mounted layer keeps living for however long the fake clock is
+  advanced, so six simulated minutes end with the predicate true for something the office started in
+  the meantime and the assertion says nothing about the scene under test. Budget the advance from the
+  script (one gap per line plus the tail) and assert the thing that would actually hold the ambient
+  director — that the scene **left the store**. The predicate claim belongs in a suite that can make
+  it in isolation, which is where `officeFloorSceneJoin.test.jsx` already makes it.
