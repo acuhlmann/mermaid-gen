@@ -387,7 +387,7 @@ export function flowchartEdgeLabelText(pathEl, edgeDataId) {
 
 /**
  * The display name of a selected node group — moved here from DiagramCanvas.jsx (ADR-0005), where
- * it was a module-local helper of a file the ratchet holds at 1889 lines.
+ * it was a module-local helper of a file the ratchet holds at 1864 lines.
  *
  * `<title>` is the **last** fallback, not the first. Mermaid stamps `<title>` on flowchart nodes too
  * (it is the browser tooltip, and often differs from the drawn label), so promoting it would change

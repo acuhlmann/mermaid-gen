@@ -101,7 +101,7 @@ Neither is restated here.
 ## Two hard constraints, before anything else
 
 **`DiagramCanvas.jsx` is not in this automation's paths, and that is deliberate.** It sits on the
-ratchet at 1889 lines (down from 1968) and a new family must not grow it. Slice 1's hit-test and
+ratchet at 1864 lines (down from 1968) and a new family must not grow it. Slice 1's hit-test and
 connect-source resolvers were extracted to `diagramGraphEditNodeResolve.js` for exactly this
 reason — extend that module. If a slice genuinely cannot be done without touching the canvas
 component, file an issue and stop; that is an ADR-0005 split, which is `improve`'s queue item 7.
