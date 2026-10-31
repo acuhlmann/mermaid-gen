@@ -5855,10 +5855,27 @@
         "sufficient": false,
         "probeTurns": 84
       }
+    },
+    {
+      "runId": "41238517119",
+      "startedAt": "2026-10-31T20:24:34.234Z",
+      "endedAt": "2026-10-31T20:24:34.234Z",
+      "verdict": "noop",
+      "tier": "propose",
+      "usd": 0,
+      "gateReason": "gate",
+      "digest": {
+        "agentTurns": 0,
+        "uxSignals": 0,
+        "sessions": 0,
+        "findings": 0,
+        "sufficient": false,
+        "probeTurns": 84
+      }
     }
   ],
   "totals": {
-    "ticks": 401,
+    "ticks": 402,
     "acts": 2,
     "monthSpendUsd": 0.250346,
     "lastActAt": "2026-10-24T08:40:08.388Z"
