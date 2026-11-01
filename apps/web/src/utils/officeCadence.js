@@ -433,6 +433,32 @@ export function wanderBiasAt(now = Date.now()) {
 export const OFFICE_PROP_NEWS_WINDOW_MS = 120_000;
 
 /**
+ * How much harder the room leans on somebody you have already dealt with today
+ * when it picks who starts the next ambient moment — extra lottery tickets per
+ * familiar colleague, not a share and not a gate.
+ *
+ * **Why the dial is here and the draw is not.** The same split the prop-news
+ * window above makes, and the one this whole file is for: cadence owns *when*
+ * and *how much*, the content modules own *who* and *what it looks like*.
+ * `ambientSpeakerFrom` in `officeAmbientSpeaker.js` does the drawing and knows
+ * nothing about appetite; this is the only number in it.
+ *
+ * **One, because one is already a doubling and more cannot be justified by
+ * anything measured.** A single extra ticket makes a familiar colleague exactly
+ * twice as likely as a stranger on the first cold open after you deal with
+ * them, which is visible over the handful of ambient moments a session gets
+ * (`OFFICE_SESSION_MOMENT_CAP` is 10) without ever silencing anybody — the
+ * failure the prop-news thumb was deliberately sized against, where a dominant
+ * weight erased every colleague's own habit. It also self-limits: deal with the
+ * whole cast and every name is doubled, so the draw is uniform again with no
+ * window and no decay.
+ *
+ * `0` is the uniform draw this office shipped with, so the rollback is this
+ * constant rather than a revert.
+ */
+export const OFFICE_AMBIENT_FAMILIAR_TICKETS = 1;
+
+/**
  * How full the room is, 0 (a dark building) to 1 (the office at full tilt) —
  * the third thing on this floor that the clock decides, and the first one the
  * soundscape asks about.
