@@ -1,8 +1,18 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { deliverCannedMoment, deliverLlmMoment } from '../src/utils/officeMomentDelivery.js';
+import {
+  deliverCannedMoment,
+  deliverLlmMoment,
+  llmColleagueFor
+} from '../src/utils/officeMomentDelivery.js';
+import { ambientSpeakerFrom } from '../src/utils/officeAmbientSpeaker.js';
+import { officeWalkbyFallbacks } from '../src/utils/officeWalkbyFallbacks.js';
 import { _resetForTests, getOfficeSnapshot } from '../src/state/officeMomentStore.js';
 import { _resetOfficeLogForTests, recordOfficeLogEntry } from '../src/state/officeLogStore.js';
+import {
+  _resetOfficeWorkingMemoryForTests,
+  rememberWorkingMemoryBeat
+} from '../src/state/officeWorkingMemoryStore.js';
 
 /**
  * The delivery seam between `/api/office/moment` and the store.
@@ -454,5 +464,199 @@ describe('a provoked talk answer falls back spoken, not as a typed IM', () => {
     expect(line?.body.toLowerCase()).toContain('billing');
     expect(line?.body).not.toMatch(/^re:\s/i);
     expect(line?.body).not.toMatch(/got ur/i);
+  });
+});
+
+/*
+ * Who the room sends, as opposed to what they say.
+ *
+ * These live here rather than in a suite of their own on purpose: the picker
+ * has exactly one consumer and it is this module, and a fresh
+ * `officeAmbientSpeaker.test.js` would land in neither `npm run test:floor` nor
+ * `ISOMETRIC_FLOOR_BLAST_TESTS` (the 2026-10-31 finding), while this file is
+ * selected by the content ladder's `test/officeMoment` prefix.
+ *
+ * Every distribution assertion below is a **sweep with a deterministic roll
+ * sequence**, never a single roll. One roll of a weighted draw says nothing —
+ * the same lesson the generation benches pay for with `--samples 3` — and a
+ * sweep is also robust to somebody adding a line to the walk-by bank, which a
+ * hardcoded index is not.
+ */
+
+/*
+ * 1320, because every exact-count assertion below divides it: 4 (a cast), 5
+ * (that cast plus one ticket), 8 (the cast entered twice once everybody is
+ * familiar), 12 (the cast plus eight tickets) and 3. A sample count that does
+ * not divide the pool makes a *uniform* draw come back 165/166 and the test
+ * then reads as a bias that is not there.
+ */
+const SAMPLES = 1320;
+
+/** `i/N` over [0,1) — every bucket of the pool hit in proportion to its size. */
+function rollsOf(samples = SAMPLES) {
+  let i = -1;
+  return () => {
+    i += 1;
+    return (i % samples) / samples;
+  };
+}
+
+function tally(ids) {
+  const counts = {};
+  for (const id of ids) counts[id] = (counts[id] ?? 0) + 1;
+  return counts;
+}
+
+describe('ambientSpeakerFrom gives a familiar colleague extra tickets, never the floor', () => {
+  const CAST = ['a', 'b', 'c', 'd'];
+
+  function sweep(memoryIds, tickets) {
+    const random = rollsOf();
+    return tally(
+      Array.from({ length: SAMPLES }, () => ambientSpeakerFrom(CAST, memoryIds, random, tickets))
+    );
+  }
+
+  it('draws uniformly when nobody has memory of you', () => {
+    const counts = sweep([], 1);
+    expect(Object.keys(counts).sort()).toEqual(CAST);
+    for (const id of CAST) expect(counts[id]).toBe(SAMPLES / CAST.length);
+  });
+
+  it('draws a familiar colleague exactly twice as often as a stranger', () => {
+    const counts = sweep(['c'], 1);
+    // 4 cast entries + 1 ticket = 5 buckets; c holds two of them.
+    expect(counts.c).toBe((SAMPLES / 5) * 2);
+    for (const id of ['a', 'b', 'd']) expect(counts[id]).toBe(SAMPLES / 5);
+  });
+
+  it('never drops anybody to zero, which is what makes this a thumb and not a gate', () => {
+    const counts = sweep(['c'], 8);
+    expect(counts.c).toBeGreaterThan(counts.a);
+    for (const id of CAST) expect(counts[id]).toBeGreaterThan(0);
+  });
+
+  it('fades back to uniform once the whole cast is familiar', () => {
+    const counts = sweep([...CAST], 1);
+    for (const id of CAST) expect(counts[id]).toBe(SAMPLES / CAST.length);
+  });
+
+  it('ignores memory of somebody this kind of moment cannot cast', () => {
+    const counts = sweep(['belson', 'gilfoyle'], 1);
+    for (const id of CAST) expect(counts[id]).toBe(SAMPLES / CAST.length);
+  });
+
+  it('is the old uniform draw at zero tickets, so the rollback is a constant', () => {
+    const counts = sweep(['c'], 0);
+    for (const id of CAST) expect(counts[id]).toBe(SAMPLES / CAST.length);
+  });
+
+  it('keeps a repeated id as weight rather than de-duplicating the bank', () => {
+    const random = rollsOf();
+    const counts = tally(
+      Array.from({ length: SAMPLES }, () => ambientSpeakerFrom(['a', 'a', 'b'], [], random, 1))
+    );
+    expect(counts.a).toBe((SAMPLES / 3) * 2);
+    expect(counts.b).toBe(SAMPLES / 3);
+  });
+
+  it('answers null for an empty cast rather than throwing', () => {
+    expect(ambientSpeakerFrom([], ['c'], () => 0)).toBe(null);
+    expect(ambientSpeakerFrom(undefined, ['c'], () => 0)).toBe(null);
+  });
+});
+
+describe('the ambient director reads working memory when it picks a speaker', () => {
+  beforeEach(() => {
+    _resetOfficeWorkingMemoryForTests();
+  });
+
+  afterEach(() => {
+    _resetOfficeWorkingMemoryForTests();
+  });
+
+  it('leans the LLM walk-by cast toward somebody you dealt with, at fire time', () => {
+    const cold = rollsOf();
+    const before = tally(Array.from({ length: SAMPLES }, () => llmColleagueFor('walkby', cold)));
+
+    rememberWorkingMemoryBeat('greybeard', { interrupted: 'gotIt' });
+
+    const warm = rollsOf();
+    const after = tally(Array.from({ length: SAMPLES }, () => llmColleagueFor('walkby', warm)));
+
+    expect(after.greybeard).toBeGreaterThan(before.greybeard);
+    // Everybody the cast allows still speaks — the thumb is not a gate.
+    for (const id of Object.keys(before)) expect(after[id]).toBeGreaterThan(0);
+  });
+
+  it('leaves the IM and email casts alone for a colleague they do not hold', () => {
+    const cold = rollsOf();
+    const before = tally(Array.from({ length: SAMPLES }, () => llmColleagueFor('im', cold)));
+
+    // `facilities` is in the walk-by cast and in neither of the other two.
+    rememberWorkingMemoryBeat('facilities', { errandDropped: true });
+
+    const warm = rollsOf();
+    const after = tally(Array.from({ length: SAMPLES }, () => llmColleagueFor('im', warm)));
+
+    expect(after).toEqual(before);
+    expect(after.facilities).toBeUndefined();
+  });
+
+  it('sends the colleague whose errand you wrecked over to your desk more often', () => {
+    function walkBySweep() {
+      const random = rollsOf();
+      const speakers = [];
+      for (let i = 0; i < SAMPLES; i += 1) {
+        _resetForTests();
+        deliverCannedMoment('walkby', CTX, { memory: memory(), random });
+        const id = getOfficeSnapshot().walkBy?.colleagueId;
+        if (id) speakers.push(id);
+      }
+      return tally(speakers);
+    }
+
+    const before = walkBySweep();
+
+    rememberWorkingMemoryBeat('hr', { interrupted: 'gaveUp' });
+    const after = walkBySweep();
+
+    expect(before.hr).toBeGreaterThan(0);
+    expect(after.hr).toBeGreaterThan(before.hr);
+    // The bank still casts the scene: nobody in it goes silent, and nobody who
+    // was never in it starts walking over.
+    expect(Object.keys(after).sort()).toEqual(Object.keys(before).sort());
+    for (const id of Object.keys(before)) expect(after[id]).toBeGreaterThan(0);
+  });
+
+  it('does not let a familiar colleague repeat a line the session has already heard', () => {
+    rememberWorkingMemoryBeat('hr', { interrupted: 'gaveUp' });
+    const hrIds = officeWalkbyFallbacks()
+      .filter((entry) => entry.colleagueId === 'hr')
+      .map((entry) => entry.id);
+    expect(hrIds.length).toBeGreaterThan(0);
+
+    const random = rollsOf();
+    const speakers = [];
+    for (let i = 0; i < SAMPLES; i += 1) {
+      _resetForTests();
+      deliverCannedMoment('walkby', CTX, {
+        memory: { lastFiredAt: 0, seenTemplateIds: [...hrIds] },
+        random
+      });
+      const id = getOfficeSnapshot().walkBy?.colleagueId;
+      if (id) speakers.push(id);
+    }
+
+    /*
+     * The tickets win her the *speaker* draw often, and she still never
+     * speaks — because the narrowing is to her **unseen** lines, so a spent
+     * bank falls through to the whole one and anti-repetition survives the
+     * thumb intact. Without that `.filter` on `seenTemplateIds` this is the
+     * case that goes red.
+     */
+    const counts = tally(speakers);
+    expect(counts.hr).toBeUndefined();
+    expect(speakers.length).toBe(SAMPLES);
   });
 });

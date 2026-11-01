@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { awayFromDeskIds } from '../src/utils/officeSceneCast.js';
 import {
+  OFFICE_EMAIL_LLM_CAST,
+  OFFICE_IM_LLM_CAST,
+  OFFICE_WALKBY_LLM_CAST
+} from '../src/utils/officeCast.js';
+import {
   DESK_LLM_CAP,
   DWELL_LLM_CAP,
   DWELL_STRANGER_LLM_CAP,
@@ -18,6 +23,7 @@ import {
   OFFICE_RUN_REACTION_LLM_CAP,
   OFFICE_TALK_LLM_CAP,
   OFFICE_MIN_GAP_MS,
+  OFFICE_AMBIENT_FAMILIAR_TICKETS,
   OFFICE_PROP_NEWS_WINDOW_MS,
   OFFICE_SENIOR_EMAILS_PER_SESSION,
   OFFICE_SESSION_MOMENT_CAP,
@@ -418,6 +424,31 @@ describe('how long the room stays interested in what you did', () => {
      */
     const LONGEST_GAP_BETWEEN_ERRANDS_MS = 24_000;
     expect(OFFICE_PROP_NEWS_WINDOW_MS).toBeGreaterThan(2 * LONGEST_GAP_BETWEEN_ERRANDS_MS);
+  });
+
+  it('leans on a familiar colleague by a whole extra ticket, and no more than the cast can absorb', () => {
+    /*
+     * The appetite half of `ambientSpeakerFrom`. One extra ticket is a doubling
+     * on the first cold open after you deal with somebody, which is legible
+     * across the handful of ambient moments a session gets; the upper bound is
+     * the one that matters, because the failure this dial is sized against is
+     * the prop-news thumb's — a weight big enough to dominate will, and a
+     * director that always sends the last person you dealt with turns the room
+     * into a one-person show.
+     *
+     * Asserted against the *smallest* ambient cast rather than a bare number,
+     * because the claim is a share of the draw and not a count: even with every
+     * ticket spent on one name, a stranger in the thinnest cast keeps at least
+     * a tenth of the moments in a session.
+     */
+    expect(OFFICE_AMBIENT_FAMILIAR_TICKETS).toBeGreaterThan(0);
+    const thinnestCast = Math.min(
+      OFFICE_WALKBY_LLM_CAST.length,
+      OFFICE_EMAIL_LLM_CAST.length,
+      OFFICE_IM_LLM_CAST.length
+    );
+    const strangerShare = 1 / (thinnestCast + OFFICE_AMBIENT_FAMILIAR_TICKETS);
+    expect(strangerShare * OFFICE_SESSION_MOMENT_CAP).toBeGreaterThan(1);
   });
 });
 

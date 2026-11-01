@@ -196,6 +196,158 @@ can produce.
 | 2026-10-30 | Queue 0 (continued) — `wander-destination-is-a-fact` | **Three generated runs after, and a one-command before — both halves of the slice have a before/after that is not a judgement call.** The resolver: **before**, with no env override, `browserType.launch: Failed to launch chromium because executable doesn't exist at /opt/pw-browsers/chromium-1243/chrome-linux/chrome`; **after**, three runs with no override at all. The report: trace `version` 3 → **4**, and `movement.wanderers` reads **one errand, `intern` → `whiteboard`, `settledAtMs` 19662 / 12383 / 12525, `said: "gotIt"`** in 3 of 3 — a prop name where there was no field. Everything the visit already reported is unchanged against the 2026-10-26/27/29 generated baselines: 7/7 steps `ok`, `speech.count` **12** (`narration` 9 / `interrupt` 1 / `dwell` 1 / `talk` 1), `bySource` model 2 / bank 10, `modelTurns` 2 (`deepseek-v4-flash`), `read.cards` 2, all five office calls **200**, `askedTheModel`/`answeredByModel` 2/2, `pageErrors: []`. **And the first reading is already worth more than the field cost**: the errand settles at 12.4–19.7 s against prop cards read at 24.2–34.6 s, so the visit's one trip departs **before** it touches a prop — a sixth shape of blindness, the visit's _ordering_, which no report can fix. JSON under the table. | New: **3** in `officeFloorWander.test.jsx` (62 → 65, in the existing `somebody who is not at their desk` block — no new `officeFloor*` file, which would be the blast wall). **Two red before the fix and green after** (stash `FloorWanderer.jsx` → `expected undefined to be 'whiteboard'` on the floor case and `out: expected undefined to be 'whiteboard'` on the three-phase case; restore → 65/65). The third is deliberately green in both directions: it pins that a trip with **no** prop writes no attribute, which is the guard against a later `?? ''` turning a missing prop into the string `undefined`. Preamble green **before** the slice as well, so it is a baseline and not an alibi — `test:floor` 37/630, blast bundle 44/670, content ladder 19/403, shared `office` 450, server `office` 65. After: `test:floor` 37/**633**, blast bundle 44/**673**, content ladder unchanged (this is not a content-ladder suite). `npm run check` **exit 0** on the final tree (289 files / 3578 cases, Node 22.22.0). Postflight **5/12** files. | #879 | Branch `claude/zealous-allen-w9yxlz` (the cloud runner's designated branch; `--preflight` rides on the `office life:` title prefix — see **Locked**). Backlog checked first and empty of office work (#452 digest only). **An instrument run, taken because last night's row asked for one by name**: `visit-cannot-see-a-wander-destination` and `wander-destination-has-no-attribute` were both filed 2026-10-29 with "add it in its own run, never in the run that needs the number", and `pw-browser-path-is-chrome-linux64` had been re-confirmed on three consecutive nights without being fixed. Three findings closed, one product line shipped. **Strictly additive to the report, never to a step** — the seven steps are untouched, so tonight's trace and 2026-09-05's still describe the same visit. The attribute names the **prop**, not the tile, so it is honest on the leg home (`goHome` spreads `current`); it is passed bare so React drops it when absent. Spend: **zero** — no cap, no call site, no LLM. **A cross-check nobody asked for**: the field's answer (`whiteboard`, cold) agrees with last night's probe's cold arm (whiteboard 6 of 6), measured by a different instrument. Three findings below; none fixed tonight. |
 
 | 2026-10-31 | Queue 13 (third and last named instance) — `scene-decline-leaves-a-mark` | **No visit trace, and the reason is the visit's subject rather than its report** — the seven fixed steps never receive a coffee or battle invite (`officeVisitTrace.mjs` contains neither word; both are ambient director moments and the visit never idles for one), so there is no axis to move. The measurement is the **red→green pair in both directions**, and it is unusually load-bearing tonight because half the slice is a wiring defect that every existing test agreed with: stash `apps/web/src` → **13 failed / 9 passed**, restore → **22 passed**. The failures name both halves — `expected undefined to be true` / `expected [] to deeply equal [ Array(1) ]` for the memory (10 cases), and `expected "vi.fn()" to be called once, but got 0 times` for the two overlay cases whose wiring changed. A browser run was considered and **declined with a reason**: the claim is store state and click wiring, which jsdom adjudicates exactly as well as Chromium (the domain file's browser rule is about geometry), and the end-to-end case pressing the real button through the real `OfficeLayer` is already the thing that found the defect. | New: **12** in `apps/web/test/officeSceneDeclineMemory.test.jsx` (a new suite, not an `officeFloor*` one, so no blast wall) plus **2 rewritten** in `officeBattleOverlay.test.jsx`. **11 of the 12 red before the fix and green after**; the twelfth is deliberately green either way (accepting the break must leave no mark — the negative control). Preamble green **before** the slice as well, so it is a baseline and not an alibi — `test:floor` 37/633, blast bundle 44/673, content ladder 19/403, shared `office` 450, server `office` 65. After: **all five unchanged**, which is itself a finding recorded below — the new suite is in neither ladder. `npm run check` **exit 0** on the final tree (**290** files / **3590** cases, up from 289/3578; Node 22.23.4). Postflight **10/12** files. | #881 | Branch `claude/zealous-allen-x81gy8` (the cloud runner's designated branch; `--preflight` rides on the `office life:` title prefix — see **Locked**). Backlog checked first and empty of office work (#452 digest only, the repo's one open issue). **Two things landed, and the second was not on the board.** (1) The last of the three ✕s the refusal sweep found silent now writes a beat: `officeSceneDeclineMemory.js` turns _Deadline_ and _Not my circus_ into a `sceneDeclined` beat on the **first participant** — the person `sceneJoinOfferFor` already calls "the one that asked you in the first place" — and on nobody else, with the stores returning the declined scene rather than writing memory themselves (one writer per edge). An **enum, not a boolean**, because a coffee you did not want and an argument you left are two different noes; the argument is in the domain file. (2) **`OfficeBattleOverlay`'s [Not my circus] was wired to `onDone`, which is `dismissOfficeBattle`** — so on the desk, the default renderer, declining an argument still _deleted_ it, which is precisely what slice 30 exists to have stopped, and there was nothing left for the floor's join card to offer. The store was right, `FloorScene` was right, renderer #1 was never rewired, and `officeBattleOverlay.test.jsx` **pinned the defect** by asserting `onDone` on that button. Fixed by copying `CoffeeBreakOverlay`'s split exactly (× and decline → `onDecline`; `onDone` only for the three endings inside an accepted scene) plus the `declined ? null` filter the coffee overlay already had, without which the pill redraws itself. Spend: **zero** — no cap, no call site, no LLM, no locale key (the beat is prompt-side English, like every other working-memory line). Baselines re-measured, not quoted: `officeCast.js` **2680**, `OfficeFloor.css` **1977**, `OfficeLayer.jsx` **1900**, `officeFloorPlan.js` **1064**, blast suites **40**. Five findings in the domain file; two rows below are `blocked-by-paths`, neither of them filed as an issue (rule 9). **And the first row on this shelf to record its own expected red**: per `two-pushes-a-night-redden-the-first-run`, this second commit (the one carrying the PR number) cancels the first commit's in-flight jobs and the `if: always()` aggregate reports `job result=cancelled` on the **superseded** sha. The authoritative run is the one on the new head; the superseded red must **not** be re-run, because a re-run tests an old commit while the required checks gate on the head sha. That finding asked for exactly this sentence — every row since 2026-09-05 produced the same red and none of them said so. |
+| 2026-11-01 | Queue 1 family (question 1 — "afterwards", and question 2 — "because of me") — `ambient-speaker-knows-your-day` | **A distribution sweep is the measurement, and three generated visit traces are the regression check — the visit is structurally blind to this slice for a reason no field can fix: `useOfficeAmbience`'s `shouldHoldFire()` returns early on `floorActive`, so the ambient director does not fire at all during a visit that is spent entirely on the floor.** That is 2026-09-09's shape (the visit's _subject_ does not contain the slice), not 2026-09-06's, so per the standing rule the trace is kept as the regression check and a sweep replaces it. **Sweep, 1320 deterministic rolls per arm, the office's own working memory the only variable.** LLM walk-by cast (7, uniform baseline 188–189): cold **188/189 across all seven**; one familiar (`hr`) → **hr 330, every stranger 165** — exactly twice as likely, nobody at zero; three familiar → **264 each against 132** — still exactly 2×, and `hr` falls 330 → 264 as the pool widens, which is the fade with no window and no decay table. Canned walk-by bank (11 templates, so the base is already uneven by design): cold **240/240/240/120/120/240/120**, the bank's own casting untouched; one familiar → `hr` **120 → 220** (9.1% → 16.7%) and everybody else down proportionally, nobody dropped. Email cast (5), with `facilities` in memory but not in that cast: **identical to cold, 264 each** — the thumb cannot cast somebody the kind does not allow. Three generated traces after: version **4**, 7/7 steps `ok`, `speech.count` **12** (`narration` 9 / `interrupt` 1 / `dwell` 1 / `talk` 1), `bySource` model 2 / bank 10, `modelTurns` 2 (`deepseek-v4-flash`), `read.cards` 2, `movement.wanderers` one errand `intern` → `whiteboard`, all five office calls **200**, `askedTheModel`/`answeredByModel` 2/2, `pageErrors: []` — **identical in 3 of 3 and to the 2026-10-30 generated baseline on every axis**. JSON under the table. | New: **13** — 12 in `officeMomentDelivery.test.js` (31 → 43) and 1 in `officeCadence.test.js` (48 → 49). **Three red before the fix and green after, and the red was taken in _two_ directions because they prove different things.** Dial at `OFFICE_AMBIENT_FAMILIAR_TICKETS = 0` → `expected 0 to be greater than 0` (the cadence case), `expected 188 to be greater than 188` (the LLM cast) and `expected 120 to be greater than 120` (the canned bank), which also discharges the "0 is the old uniform draw" claim rather than asserting it. Stash `apps/web/src` → the same three, the cadence one as `actual value must be number or bigint, received "undefined"`. The other ten are deliberately green in both directions: the uniform-when-nobody-is-familiar baseline, the fade to uniform, the out-of-cast guard, the repeated-id-is-weight case, the empty-cast case, the IM-cast-untouched case and the anti-repetition case. Preamble green **before** the slice as well, so it is a baseline and not an alibi — `test:floor` 37/633, blast bundle 44/673, content ladder 19/403, shared `office` 450, server `office` 65. After: content ladder 19/**416**; `test:floor` and the blast bundle **unchanged at 37/633 and 44/673**, which is correct and worth stating — neither ladder selects `officeMomentDelivery.test.js` or `officeCadence.test.js`, and the content ladder is the one that does. `npm run check` **exit 0** on the final tree. Postflight **7/12** files. | #884 | Branch `claude/zealous-allen-m2p8c7` (the cloud runner's designated branch; `--preflight` rides on the `office life:` title prefix — see **Locked**). Backlog checked first and empty of office work (#452 digest only, the repo's one open issue). **The last place in the office where its own memory was not consulted at all.** The ambient director owns _when_ a moment fires and _which kind_; it has never owned _who_, and nothing else did either — the LLM rung drew a name uniformly from a per-kind cast list and the canned rung let whichever template the roll landed on cast the scene. So you could wreck somebody's errand, decline their meeting, walk out of their argument and leave a three-paragraph email in their tray, and the next cold open was as likely to be anybody else in the building. **The asymmetry is what made it a defect rather than a preference**: `pickRunReactionColleague` has preferred `listWorkingMemoryColleagueIds()` since the run-walk slice, so the _reactive_ producer already did this and the _ambient_ one did not. **Tickets, not a share, and that shape is the whole argument** — `ambientSpeakerFrom` enters a familiar colleague `OFFICE_AMBIENT_FAMILIAR_TICKETS` extra times in the draw everybody already had, so it cannot dominate by construction (the prop-news lesson: a weight big enough to dominate will), nobody ever reaches zero, the bias fades to uniform on its own once you have dealt with the cast, and `0` is the old behaviour so the rollback is a constant rather than a revert. Two details that are load-bearing. The canned draw is passed the **per-template** id list, dupes and all, because `pickUnseenTemplate` already draws over templates and a colleague with two lines is already twice as likely — de-duplicating first would quietly re-cast the bank. And the narrowing is to that speaker's **unseen** lines only, falling through to the whole bank otherwise, so anti-repetition survives the thumb intact: the pinned case is a familiar `hr` winning the speaker draw 1320 times and still never speaking once her only line is spent. Stays on the record side of ADR-0010: nothing written, nothing scheduled, nothing subscribed — `memoryIds` is a parameter defaulted at the call, so the store is sampled at fire time like the hour and the office log. Spend: **zero** — no cap, no new call site, no LLM, no locale key. Three findings below; none fixed tonight. |
+
+### 2026-11-01 sweep and traces (the measurements for this slice)
+
+Two instruments. The **sweep** is the measurement — 1320 deterministic rolls (`i/1320`) per arm, one
+machine, the office's own working memory the only variable, run through the real
+`deliverCannedMoment` and the real `llmColleagueFor` rather than a replica. 1320 because every exact
+count below divides it (4, 5, 8, 12, 3, 11): a sample count that does not divide the pool makes a
+_uniform_ draw come back 165/166 and the arm then reads as a bias that is not there — which is how
+the first run of these cases failed.
+
+```json
+{
+  "rolls": 1320,
+  "llmWalkbyCast": {
+    "cold": {
+      "scrumMaster": 189,
+      "intern": 189,
+      "greybeard": 188,
+      "facilities": 189,
+      "hr": 188,
+      "jared": 189,
+      "richard": 188
+    },
+    "oneFamiliar(hr)": {
+      "hr": 330,
+      "scrumMaster": 165,
+      "intern": 165,
+      "greybeard": 165,
+      "facilities": 165,
+      "jared": 165,
+      "richard": 165
+    },
+    "threeFamiliar(hr,greybeard,intern)": {
+      "hr": 264,
+      "greybeard": 264,
+      "intern": 264,
+      "scrumMaster": 132,
+      "facilities": 132,
+      "jared": 132,
+      "richard": 132
+    }
+  },
+  "cannedWalkbyBank": {
+    "cold": {
+      "scrumMaster": 240,
+      "intern": 240,
+      "greybeard": 240,
+      "helpdesk": 240,
+      "facilities": 120,
+      "hr": 120,
+      "ciso": 120
+    },
+    "oneFamiliar(hr)": {
+      "hr": 220,
+      "scrumMaster": 220,
+      "intern": 220,
+      "greybeard": 220,
+      "helpdesk": 220,
+      "facilities": 110,
+      "ciso": 110
+    },
+    "threeFamiliar(hr,greybeard,intern)": {
+      "intern": 282,
+      "greybeard": 282,
+      "scrumMaster": 192,
+      "helpdesk": 188,
+      "hr": 188,
+      "facilities": 94,
+      "ciso": 94
+    }
+  },
+  "llmEmailCast": {
+    "cold": { "jared": 264, "scrumMaster": 264, "greybeard": 264, "hr": 264, "intern": 264 },
+    "familiar(facilities — not in this cast)": {
+      "jared": 264,
+      "scrumMaster": 264,
+      "greybeard": 264,
+      "hr": 264,
+      "intern": 264
+    }
+  }
+}
+```
+
+Three readings, and the third is the one a later run should not re-derive:
+
+- **The LLM cast is the clean arm**, because its base is uniform: 188/189 cold, a familiar colleague
+  at exactly **2×** a stranger (330 vs 165), and still exactly 2× with three familiar (264 vs 132)
+  while the familiar share per head **falls** 330 → 264. That is the fade, and it costs no window,
+  no decay table and no clock.
+- **The canned bank's base is uneven on purpose** — four colleagues hold two walk-by lines and three
+  hold one, and `pickUnseenTemplate` draws over _templates_, so 240 vs 120 cold is the bank's own
+  casting. The thumb rides on top of it rather than replacing it: `hr` 120 → 220, nobody dropped,
+  and no id appears that was not in the bank.
+- **`scrumMaster` 192 against `helpdesk` 188 in the three-familiar canned arm is quantisation, not
+  bias.** The pool is 11 + 3 = 14 entries and 1320/14 is not an integer, so adjacent buckets differ
+  by one roll. Nothing in the suite asserts an exact count on that arm for exactly this reason — the
+  assertions there are `>` and `> 0`, and the exact-count cases all run against pools that divide
+  the sample.
+
+The **regression check** is three generated visit traces on the final tree, and they are identical
+to each other and to the 2026-10-30 generated baseline on every axis the report carries:
+
+```json
+{
+  "runs": "3 after",
+  "version": 4,
+  "mode": {
+    "llmConfigured": true,
+    "verdict": "generated",
+    "askedTheModel": 2,
+    "answeredByModel": 2,
+    "apiCallsTotal": 5
+  },
+  "visit": "7/7 steps ok in every run",
+  "speech": {
+    "count": 12,
+    "byChannel": { "narration": 9, "interrupt": 1, "dwell": 1, "talk": 1 },
+    "bySource": { "model": 2, "bank": 10 }
+  },
+  "modelTurns": [
+    {
+      "model": "deepseek-v4-flash",
+      "inputTokens": [1645, 1645, 1749],
+      "outputTokens": [35, 66, 49]
+    }
+  ],
+  "read": { "cards": 2 },
+  "movement": {
+    "wanderers": [
+      {
+        "seatId": "intern",
+        "prop": "whiteboard",
+        "said": "gotIt",
+        "settledAtMs": [18586, 11892, 12073]
+      }
+    ]
+  },
+  "pageErrors": [],
+  "durationMs": [51985, 45340, 45392]
+}
+```
+
+**The visit cannot see this slice, and this is the cheapest instance of that yet.** It is not the
+report's hole and not the seed's actor: `useOfficeAmbience`'s `shouldHoldFire()` begins
+`if (p.floorActive) return true`, so the ambient director is **held for the entire visit** by
+design — the office does not interrupt you with a cold open while you are standing in the room it
+would come from. No field, observation or derivation reaches an axis the subject switches off, and
+the eighth step that would is forbidden. So the sweep is the measurement and the traces prove the
+slice disturbed nothing the visit _can_ see, which is the 2026-09-09 rule applied without
+modification.
 
 ### 2026-10-30 traces (the measurement for this slice)
 
@@ -1636,6 +1788,10 @@ instrument keeping only one of them would have made the opposite claim depending
 | `battle-decline-was-a-dismiss`             | **done** 2026-10-31      | **Found by this slice, not on any list, and it had been wrong for two slices.** `OfficeBattleOverlay`'s × _and_ its [Not my circus] were both `onClick={onDone}` → `handleBattleDone` → `dismissOfficeBattle()`, so on the **desk** — renderer #1, the default — declining an argument deleted it, `declineOfficeBattle` was unreachable from the surface most users see, and the floor's battle join card could never have anything to offer. Slice 28 gave `CoffeeBreakOverlay` the right split and slice 30 wired `FloorScene`; renderer #1 was never revisited. Fixed by mirroring the coffee overlay exactly (two invite exits → `onDecline`, `onDone` only for the three endings inside an accepted scene) **plus** `battle={snapshot.battle?.declined ? null : snapshot.battle}`, without which a declined battle redraws its own invite pill. The lifecycle needed nothing: `useOfficeLayerPerformances` has paced `accepted \|\| declined` for the battle since slice 30 and `onBattleUnsettled` dismisses it — verified in a browser-free probe (declined battle leaves the store ~3.1 s in, one gap per line plus the tail).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 | `scene-decline-suite-not-in-either-ladder` | **blocked-by-paths**     | Measured tonight and it is the sensor that would have caught `battle-decline-was-a-dismiss` from the other side. `apps/web/test/officeSceneDeclineMemory.test.jsx` is in **neither** `npm run test:floor` **nor** `ISOMETRIC_FLOOR_BLAST_TESTS` — both preamble counts were byte-identical before and after a run that added 12 cases. It was selected tonight only by `test:affected`'s **basename mirror** (`officeSceneDeclineMemory.js` is in the diff); a future diff touching only `OfficeLayer.jsx` or `officeMomentStore.js` selects the 40-suite blast list and not this one. Worse, `OfficeBattleOverlay.jsx` matches no blast entry at all — the ISOMETRIC map's regex covers `components/(OfficeFloor\|officeFloor\|OfficeLayer\|personaFaces)` — so a wiring change there selects only its own handler test, which is exactly the test that agreed with the bug. Two asks for `improve`, both in `scripts/test-affected-lib.mjs` (not this playbook's to edit): add `apps/web/test/officeSceneDeclineMemory.test.jsx` to `ISOMETRIC_FLOOR_BLAST_TESTS` (the same reason `officeErrand.test.jsx` and `officeDeskWork.test.js` are there), and add `components/OfficeBattleOverlay` and `components/CoffeeBreakOverlay` to that entry's `match`. Not filed as an issue — rule 9 says this is a ledger row.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
 | `wanderers-field-sees-one-errand`          | pending (watch)          | `movement.wanderers` returned exactly **one** row in all three runs, and it is the trip step 3 interrupts. So the field is proven on one errand and unproven on two: the key is `seatId::prop`, which is deliberately not `seatId` alone (a colleague sent out twice to two props must be two rows) and not `prop` alone (that would merge two people). Nobody has seen a two-errand visit, so that choice is reasoned rather than measured — if a later run ever sees two rows, say whether the keying held.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| `ambient-speaker-knows-your-day`           | **done** 2026-11-01      | The ambient director's _who_. `apps/web/src/utils/officeAmbientSpeaker.js` is one pure function — `ambientSpeakerFrom(cast, memoryIds, random, tickets)` — entering anybody in `listWorkingMemoryColleagueIds()` an extra `OFFICE_AMBIENT_FAMILIAR_TICKETS` times in a draw everybody keeps their entry in. Consumed twice: `llmColleagueFor` (all three kinds) and the canned ambient walk-by branch, which now draws a speaker off the bank's **per-template** id list and then narrows to that speaker's **unseen** lines. Tickets rather than a share so it cannot dominate, cannot zero anybody, fades to uniform on its own, and rolls back on a constant. Measured 2× (330 vs 165 of 1320) on the LLM cast; `hr` 120 → 220 on the canned bank.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| `talk-answerer-is-a-coin-flip`             | pending                  | Found while taking the slice above and deliberately left: `useDeskActions.js`'s talk verb picks who answers you with `pickRandomFrom(pool, random)` when you did not name anybody (`const target = colleagueId ?? pickRandomFrom(pool, random)`), so a line you said **out loud into the room** is answered by a coin flip over `OFFICE_WALKBY_LLM_CAST` / `DESK_IM_CAST`. It is the same finding as tonight's on a stronger channel — § 11 says reactive is where a canned-feeling answer costs most — and the fix is one call swap to `ambientSpeakerFrom`. Not taken tonight because one slice per run, and because it is arguably a _different_ decision from an ambient cold open's (somebody who hears you is not somebody the room sent), which deserves its own row rather than riding on this one.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| `ambient-director-is-off-during-a-visit`   | pending (by design)      | `useOfficeAmbience`'s `shouldHoldFire()` returns on `floorActive`, so the whole ambient layer — kind, cadence, caps **and** now the speaker — is unobservable by the scripted visit, which is spent entirely on the floor. This is 2026-09-09's shape (the subject, not the report) and it is **not** a hole to fix: the office not interrupting you with a cold open while you stand in the room it would come from is the feature. Recorded so a later rung does not file it as instrument blindness, or reach for an eighth step to reach it. The sweep is the instrument for anything ambient.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| `ambient-speaker-untested-end-to-end`      | pending (watch)          | The canned rung is pinned through the real `deliverCannedMoment` → store hop; the **LLM** rung is pinned only at `llmColleagueFor`, because the hop past it is a `fetch` the suite stubs. So "the model was asked about the right person" is proven at the draw and not at the wire. `officeMomentDelivery.test.js` already stubs `fetch` and could assert the `colleagueId` in the request body over a sweep — worth one case if this ever looks doubtful, and not worth the 1320 stubbed fetches tonight.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
 
 ## Open observations
 

@@ -755,6 +755,40 @@ test:floor`; the floor test map is [`docs/agents/isometric-floor-tests.md`](../.
   four-node diagram and a sixteen-node one print **identically** (measured, both 4 rules /
   21.24 units of ink). That is the cap working, not a gap to close by cramming a fifth hairline in.
 
+- **The ambient director owns _when_ and _which kind_, never _who_ — and the fix is tickets, not a
+  share.** `useOfficeAmbience` / `pickNextMoment` decide cadence; the speaker used to be a uniform
+  draw (`llmColleagueFor`) or whatever template the roll landed on (the canned walk-by branch), so
+  the office's own memory was not consulted at all in the one decision it is most obviously about.
+  `ambientSpeakerFrom` (`apps/web/src/utils/officeAmbientSpeaker.js`) enters anybody in
+  `listWorkingMemoryColleagueIds()` an extra `OFFICE_AMBIENT_FAMILIAR_TICKETS` times in the draw
+  everybody keeps their entry in. A share or a probability can dominate; extra tickets cannot, nobody
+  reaches zero, and the bias **fades to uniform on its own** once the whole cast is familiar — no
+  window, no decay table, no clock. Measured over 1320 deterministic rolls: a familiar colleague is
+  exactly 2× a stranger on the uniform LLM cast (330 vs 165), and 2× still with three familiar
+  (264 vs 132) while each familiar head falls 330 → 264. `0` is the old draw, so the rollback is the
+  constant.
+- **When a draw already runs over templates, pass the per-template id list — de-duplicating re-casts
+  the bank.** The walk-by bank holds two lines for four colleagues and one for three, so
+  `pickUnseenTemplate` already makes a two-line colleague twice as likely (measured 240 vs 120 of
+  1320). Drawing the speaker over unique ids first would have silently flattened that, which is a
+  casting change wearing a bias change's clothes.
+- **A preference that narrows a bank must narrow to the _unseen_ entries, or it eats
+  anti-repetition.** Narrowing to a speaker's lines and then calling `pickUnseenTemplate` on them
+  lets a familiar colleague repeat a line the session already heard; narrowing to their _unseen_
+  lines and falling through to the whole bank keeps both properties. The pinned case is a familiar
+  `hr` winning the speaker draw 1320 times and never speaking once her only line is spent.
+- **A sample count that does not divide the pool makes a uniform draw look biased.** A deterministic
+  `i/N` sweep over an 8-entry pool with `N = 660` returns 165/166 and reads as a thumb that is not
+  there. Pick `N` divisible by every pool an exact-count assertion runs against (1320 here: 3, 4, 5,
+  8, 11, 12), and on the pools that do not divide it assert `>` and `> 0` rather than a count —
+  1320/14 is why `scrumMaster` 192 sits beside `helpdesk` 188 in one arm of a measurement where
+  nothing distinguishes them.
+- **The ambient layer is switched off on the floor, so the scripted visit can never see it.**
+  `shouldHoldFire()` in `useOfficeAmbience.js` returns on `floorActive`. That is the feature (the
+  office does not cold-open at you while you stand in the room it would come from), so it is the
+  visit's _subject_ rather than its report, and no field reaches it. Measure anything ambient with a
+  sweep of the pure modules and keep the traces as the regression check.
+
 ## Full findings
 
 - **Office sound is one posture, not four checkboxes.** Menu bar **Admin** carries 🎧 **Headphones**

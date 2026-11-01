@@ -25,10 +25,12 @@ import {
 } from '../state/officeLogStore.js';
 import {
   boardFingerprintOf,
+  listWorkingMemoryColleagueIds,
   rememberWorkingMemoryBeat,
   stampWorkingMemoryBoard,
   workingMemoryPromptLines
 } from '../state/officeWorkingMemoryStore.js';
+import { ambientSpeakerFrom } from './officeAmbientSpeaker.js';
 import {
   fillOfficeSlots,
   MEETING_FACILITATOR,
@@ -356,7 +358,40 @@ export function deliverCannedMoment(kind, ctx, options) {
       return true;
     }
 
-    const template = pickUnseenTemplate(officeWalkbyFallbacks(), memory.seenTemplateIds, random);
+    /*
+     * The ambient cold open, and the one branch in this file where the bank
+     * used to cast the scene: whoever `pickUnseenTemplate` landed on walked
+     * over, so the person whose errand you wrecked ten seconds ago was no more
+     * likely to be at your shoulder than anybody else in the building.
+     *
+     * The draw is now two steps, and the order matters. First a *speaker*, out
+     * of the ids the bank itself holds — one entry per template, so a colleague
+     * with two lines keeps the two chances the bank gave them — with familiar
+     * tickets on top. Then the template, out of that speaker's **unseen** lines
+     * only, falling back to the whole bank. Narrowing to unseen before the
+     * fallback is what keeps anti-repetition exactly as strong as it was: a
+     * familiar colleague who has already said both of their lines does not
+     * repeat one, they simply lose the draw this time.
+     *
+     * Nothing about eligibility moved — the bank is still the only thing that
+     * decides who is allowed to walk over and what they say.
+     */
+    const walkbyBank = officeWalkbyFallbacks();
+    const speaker = ambientSpeakerFrom(
+      walkbyBank.map((entry) => entry.colleagueId).filter(Boolean),
+      listWorkingMemoryColleagueIds(),
+      random
+    );
+    const unseenForSpeaker = speaker
+      ? walkbyBank.filter(
+          (entry) => entry.colleagueId === speaker && !memory.seenTemplateIds?.includes(entry.id)
+        )
+      : [];
+    const template = pickUnseenTemplate(
+      unseenForSpeaker.length > 0 ? unseenForSpeaker : walkbyBank,
+      memory.seenTemplateIds,
+      random
+    );
     if (!template) return false;
     pushOfficeWalkBy({
       colleagueId: template.colleagueId,
@@ -446,11 +481,29 @@ export function deliverCannedMoment(kind, ctx, options) {
   return false;
 }
 
-/** Who can deliver an LLM-personalized moment of each kind (team + office only). */
-export function llmColleagueFor(kind, random = Math.random) {
-  if (kind === 'walkby') return pickRandomFrom(OFFICE_WALKBY_LLM_CAST, random);
-  if (kind === 'email') return pickRandomFrom(OFFICE_EMAIL_LLM_CAST, random);
-  return pickRandomFrom(OFFICE_IM_LLM_CAST, random);
+/**
+ * Who can deliver an LLM-personalized moment of each kind (team + office only),
+ * with a thumb on the scale for anybody you have already dealt with today.
+ *
+ * The cast lists are unchanged and still decide eligibility — the senior tier
+ * is sealed out of all three, and a walk-by has to be somebody whose body can
+ * reach your desk. All `ambientSpeakerFrom` does is hand a familiar colleague
+ * extra tickets in the same draw (`officeAmbientSpeaker.js` for why tickets and
+ * not a share), so nobody is excluded and the bias fades as the visit widens.
+ *
+ * `memoryIds` is a parameter rather than a read inside, and defaulted at call
+ * time, so the store is sampled **when the moment fires** — the same discipline
+ * the office log gets on `wanderNewsFrom` (ADR-0010: record, never trigger, and
+ * never subscribe from a producer).
+ */
+export function llmColleagueFor(
+  kind,
+  random = Math.random,
+  memoryIds = listWorkingMemoryColleagueIds()
+) {
+  if (kind === 'walkby') return ambientSpeakerFrom(OFFICE_WALKBY_LLM_CAST, memoryIds, random);
+  if (kind === 'email') return ambientSpeakerFrom(OFFICE_EMAIL_LLM_CAST, memoryIds, random);
+  return ambientSpeakerFrom(OFFICE_IM_LLM_CAST, memoryIds, random);
 }
 
 /**
