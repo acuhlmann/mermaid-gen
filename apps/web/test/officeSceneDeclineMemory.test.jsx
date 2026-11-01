@@ -177,6 +177,8 @@ describe('walking away from an argument', () => {
  */
 describe('noticed, never chased', () => {
   it('keeps the scene running and the way in open, and writes exactly one beat', () => {
+    // Pin midday so advancing 10 min does not roll the office calendar day near UTC midnight.
+    vi.setSystemTime(new Date('2026-07-11T12:00:00Z'));
     vi.useFakeTimers();
     pushOfficeCoffeeInvite({ lines: COFFEE_CAST });
     declineOfficeCoffeeWithMemory();
