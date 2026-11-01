@@ -613,6 +613,7 @@ describe('the ambient director reads working memory when it picks a speaker', ()
         const id = getOfficeSnapshot().walkBy?.colleagueId;
         if (id) speakers.push(id);
       }
+      expect(speakers.length, 'walk-by sweep never fired — this proves nothing').toBe(SAMPLES);
       return tally(speakers);
     }
 

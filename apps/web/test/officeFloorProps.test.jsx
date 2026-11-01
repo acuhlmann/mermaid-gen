@@ -556,6 +556,10 @@ describe('the page the printer hands you (§ 6b)', () => {
     // A composed page prints as a header over its blocks — the one shape whose
     // rules are not all the same kind of thing.
     const page = printoutFrom({ board: pageBoard, carrying: 'papers' });
+    expect(
+      page.rows.length,
+      'composed page has only a header — this proves nothing'
+    ).toBeGreaterThan(1);
     expect(page.rows[0].w).toBe(1);
     expect(page.rows.slice(1).every((row) => row.w < 1)).toBe(true);
   });
