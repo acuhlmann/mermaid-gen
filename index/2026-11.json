@@ -1,0 +1,31 @@
+{
+  "v": 1,
+  "month": "2026-11",
+  "runs": [
+    {
+      "runId": "41258251280",
+      "startedAt": "2026-11-01T00:50:03.252Z",
+      "endedAt": "2026-11-01T00:50:03.252Z",
+      "verdict": "noop",
+      "tier": "propose",
+      "usd": 0,
+      "gateReason": "gate",
+      "digest": {
+        "agentTurns": 0,
+        "uxSignals": 0,
+        "sessions": 0,
+        "findings": 0,
+        "sufficient": false,
+        "probeTurns": 84
+      }
+    }
+  ],
+  "totals": {
+    "ticks": 1,
+    "acts": 0,
+    "monthSpendUsd": 0,
+    "lastActAt": null,
+    "unproductiveActs": 0,
+    "unproductiveUsd": 0
+  }
+}
