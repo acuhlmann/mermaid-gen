@@ -788,6 +788,15 @@ test:floor`; the floor test map is [`docs/agents/isometric-floor-tests.md`](../.
   office does not cold-open at you while you stand in the room it would come from), so it is the
   visit's _subject_ rather than its report, and no field reaches it. Measure anything ambient with a
   sweep of the pure modules and keep the traces as the regression check.
+- **The office log is shared memory, but it is always read out _to_ somebody.**
+  `OFFICE_LOG_PRIVATE_KINDS` (`apps/web/src/utils/officeLogDigest.js`) holds the kinds whose
+  _existence_ is private — `chat`, and only `chat` — and `buildOfficeLogDigest(entries, { audience })`
+  withholds them from anyone not in them. `/moment` passes `audience: [colleagueId]`
+  (`officeMomentDelivery.js`); omitting `audience` is the unscoped digest the ensemble senders still
+  use, so the default is the wide one. The same set gates the whiteboard's hearsay author
+  (`officeFloorNotes.js`: `witnesses` for who may be named on a public board, `recent` for whose
+  handwriting you recognise). Scoping runs **before** the caps, so a withheld line gives its budget
+  back.
 
 ## Full findings
 
@@ -1847,3 +1856,51 @@ snapshot.battle}` the way the coffee one already did, or a declined scene re-ren
   script (one gap per line plus the tail) and assert the thing that would actually hold the ambient
   director — that the scene **left the store**. The predicate claim belongs in a suite that can make
   it in isolation, which is where `officeFloorSceneJoin.test.jsx` already makes it.
+
+- **A shared memory is still told to somebody, and for thirteen slices the office log was not.**
+  `officeLogDigest.js`'s header has always said a chat is bodiless — _"what was said stays between
+  you and them"_ (§ 11 DM privacy) — and that half was true: `sentenceOf`'s `chat` case drops
+  `detail` and `officeLogDigest.test.js` has pinned it since the field existed. The other half was
+  not. The line saying _that_ you and somebody traded messages rode on `officeLog`, which is one
+  field keyed on nobody, so every speaker was handed it: Gary at his own desk could open with your
+  thread with Gilfoyle as plainly as with the fridge. **The body stayed private and the fact did
+  not.** Measured over 500 deterministic synthetic days × 16 cast ids (8000 speaker renders, 24
+  entries a day): **93.4%** of renders carried at least one third-party thread, **2.57** of the
+  12 lines on average. Four things generalise.
+  - **Entitlement is a property of the channel, not of the sentence.** `OFFICE_LOG_PRIVATE_KINDS` is
+    a set of _kinds_, not a flag per entry, because there are six writers
+    (`officeLogStore.js`'s callers) and a per-entry flag leaks by omission the first time one is
+    forgotten. It holds exactly `chat`, and the rest of the log is public by an argument the module
+    had already made: a walk-by happens in an open-plan room, a pitch changed the diagram on your
+    monitor, an errand is the whole floor knowing Linda outsources her difficult conversations, and
+    an email **subject** is explicitly _"what the office gossips about"_. A direct message is the one
+    exchange on this floor with no witness, which is why § 11 singles it out — reopening any of the
+    others is a decision, not a tidy-up.
+  - **The scope runs before the caps, and that half is not about privacy at all.** The digest keeps
+    the newest 12 lines and drops from the front, so an afternoon of one thread used to push the
+    morning out of _everybody's_ memory. Withholding hands the budget back: on the busy arm every
+    speaker still receives a full 12 lines and 93.4% of them now reach further back, and — the
+    control that matters — the person who **was** in the thread keeps their own line **more** often,
+    1265/2313 → 1544/2313. On a short day (8 entries, under the cap) there is nothing to backfill, so
+    the digest simply shrinks 8 → 6.24 lines and own-thread survival is 898/898 either way. Measure
+    both arms: the under-cap one is the privacy effect alone and the over-cap one is where the budget
+    claim lives.
+  - **The wide default is deliberate, and it is a `blocked-by-paths` row rather than a silent
+    narrowing.** `audience` omitted means the unscoped digest, because the three ensemble senders
+    (`useMeetingPlayback.js`, `useHuddlePlayback.js`, `useAdvisorOrchestrator.js`) are outside
+    `office-life`'s `allowedPaths` and `/training` names no speaker at all. A default that narrowed
+    would change three prompts no suite here covers, for a benefit nothing here could measure. The
+    option takes an **array** so the queue-11 co-presence shape (a line survives if any attendee is
+    party to it) is a one-line change at those call sites rather than a second API.
+  - **The public surface is where a privacy rule actually bites, and the whiteboard was signing
+    itself with your DM partner.** `heardNote` in `officeFloorNotes.js` picked its author as
+    `recent[0]` — the most recent colleague id in the log, _any kind_ — while its own doctrine says
+    _"the office does not get to invent a witness"_. A direct message leaves no witness, so the board
+    (the room's most public object, and quotable in a prompt since 2026-10-26) could attribute a
+    sketch of your diagram to the last person you messaged, which publishes the thread the digest had
+    just stopped publishing. Fixed by reading the same log twice: `witnesses` (non-private kinds) for
+    who may be **named**, `recent` (any kind) for whose handwriting sits nearest the front. The
+    second one keeps a private chat deliberately — front-to-back order is the reader's own
+    recognition and attributes nothing, which is why `officeFloorProps.test.jsx`'s "puts the
+    handwriting you recognise at the front" stays green **untouched** while the new case next to it
+    went red before the fix.

@@ -559,7 +559,13 @@ export async function deliverLlmMoment(kind, ctx, options) {
         // What the office remembers of today. `recentMoments` beside it is a
         // different thing and both are needed: that one is anti-repetition
         // ("don't say this again"), this one is memory ("this happened").
-        officeLog: getOfficeLogDigest(),
+        //
+        // Keyed on the speaker, because a shared memory is still told to
+        // somebody: a direct message between you and a third party is not
+        // theirs to have heard (`OFFICE_LOG_PRIVATE_KINDS`). Everything the
+        // room would plausibly know still reaches everybody, so this is a
+        // scope and not a second, narrower log.
+        officeLog: getOfficeLogDigest({ audience: [colleagueId] }),
         // The same log read twice: the office's shared memory above, and this
         // speaker's own history with the user here. Keyed on the colleague who
         // is actually about to talk, so it is empty for anybody you have not

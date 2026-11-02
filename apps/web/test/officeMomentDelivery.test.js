@@ -187,7 +187,8 @@ describe('deliverLlmMoment carries a pitch to every surface', () => {
     expect(body.officeRelationship[0]).toContain('you and intern have crossed paths 2 times');
     // Greybeard's walk-by is his history, not the intern's.
     expect(String(body.officeRelationship)).not.toContain('greybeard');
-    // And the shared digest still carries everybody's, unchanged.
+    // And the shared digest still carries everybody else's public business —
+    // the two fields answer different questions, and only one of them narrows.
     expect(String(body.officeLog)).toContain('greybeard');
 
     // Somebody with no history sends an empty array, and the server drops the
@@ -195,6 +196,33 @@ describe('deliverLlmMoment carries a pitch to every surface', () => {
     await deliverLlmMoment('im', CTX, { memory: memory(), colleagueId: 'hr' });
     const stranger = JSON.parse(String(fetchMock.mock.calls[1]?.[1]?.body ?? '{}'));
     expect(stranger.officeRelationship).toEqual([]);
+    _resetOfficeLogForTests();
+  });
+
+  it('does not tell a speaker about a message thread they were not in', async () => {
+    // The shared digest is still shared — but it is read out *to* somebody, and
+    // a direct message is the one entry §11 says has no witness. Until this
+    // slice Gary at his own desk could open with your thread with Gilfoyle as
+    // plainly as with the fridge.
+    _resetOfficeLogForTests();
+    recordOfficeLogEntry('walkby', { colleagueId: 'greybeard' });
+    recordOfficeLogEntry('chat', { colleagueId: 'gilfoyle' });
+
+    const fetchMock = vi.fn(async () => ({
+      ok: true,
+      json: async () => ({ moment: { body: 'ping', colleagueId: 'hr', kind: 'im' } })
+    }));
+    globalThis.fetch = fetchMock;
+
+    await deliverLlmMoment('im', CTX, { memory: memory(), colleagueId: 'hr' });
+    const bystander = JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body ?? '{}'));
+    expect(String(bystander.officeLog)).toContain('greybeard');
+    expect(String(bystander.officeLog)).not.toContain('traded messages');
+
+    // The person who was in it still is. Scope, not a narrower log.
+    await deliverLlmMoment('im', CTX, { memory: memory(), colleagueId: 'gilfoyle' });
+    const party = JSON.parse(String(fetchMock.mock.calls[1]?.[1]?.body ?? '{}'));
+    expect(String(party.officeLog)).toContain('you and gilfoyle traded messages');
     _resetOfficeLogForTests();
   });
 
