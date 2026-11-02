@@ -276,19 +276,32 @@ it names. Merging the two into a single pass is worth doing and is not urgent �
   `Date` **only**, or the poll timer and React's scheduling stop and nothing renders.
 - **The cadence carries two wall clocks; pick by what the fact changes.** `OFFICE_DAY_PHASES`
   is what the room _looks_ like (mugs, papers, light); `WANDER_BIAS_WINDOWS` / `wanderBiasAt` is
-  where people _go_ (slice 24's afternoon slump). Do not add a sixth day phase to express an
+  where people _go_ (slice 24's afternoon slump), and `OFFICE_PROP_NEWS_WINDOW_MS` is **how long
+  the room stays interested in what you did** (the prop-news slice). Do not add a sixth day phase to express an
   hour-shaped fact about movement — 3 pm looks like 11 am, so a phase would change the light and
   owe `officeFloorStyles.test.js` a sixth rule for nothing. Both dials live in `officeCadence.js`;
   the floor still owns only the art. And a **weighted pick must consume the same number of
   `Math.random()` calls as the uniform one** — repeat list entries and roll once, never roll again
   to decide whether the bias applies, or you re-seed every unpinned floor suite (see below).
-- **A wander destination has two dials now, and they combine with `Math.max`, never a product.**
+- **A wander destination has three dials now, and they combine with `Math.max`, never a product.**
   `wanderTripWeight` (`officeFloorWander.js`) folds the hour (`wanderBiasAt`, ×3 on the kitchen
-  from 14:00) and the colleague's own habit (`wanderHabitFor`, ×3 on their prop) into one weighted
-  list and **one** roll. Multiplying would put a mug-carrier 9× on the machine in the slump, which
-  is the rota `WANDER_BIAS_WINDOWS` says it is not; the larger of the two reads as the room does —
-  the slump pulls anybody with no habit, and cannot pull somebody harder than their own habit
-  already does. A habit is **derived, not declared**: `deskDoingFor(id).hold` × `propHandsFor(kind)`,
+  from 14:00), the colleague's own habit (`wanderHabitFor`, ×3 on their prop) and **the prop you
+  were last at** (`wanderNewsFrom`, ×3 for `OFFICE_PROP_NEWS_WINDOW_MS` = 2 min after a `prop`
+  office-log entry) into one weighted list and **one** roll. Multiplying would put a mug-carrier 9×
+  on the machine in the slump, which is the rota `WANDER_BIAS_WINDOWS` says it is not; the largest
+  of the three reads as the room does — the slump pulls anybody with no habit, and cannot pull
+  somebody harder than their own habit already does. **All three weigh the same on purpose**: under
+  a `Math.max` "bigger" is not "stronger", it is "strictly dominant", so a news weight of 4 would
+  erase every colleague's habit the moment you touched a prop. At equal weight the news moves the
+  half of the roster with no habit and merely ties for the rest — measured over 19 of the 22
+  seat×prop combinations the floor can produce, the 3 unmoved ones being exactly the seats that
+  already own that prop. **The news thumb is also the one input on this floor that is about
+  _you_,** and it is what makes an ambient destination an answer to "did anything happen because of
+  me": the errand clock is untouched, nothing is written and nothing is scheduled (ADR-0010's
+  record-not-trigger line), only where the trip ends. `wanderNewsFrom` is pure and the office log
+  is **sampled at fire time** (`getOfficeLogSnapshot()` inside `departure()`), never subscribed — a
+  store subscription in a floor component repaints sixteen animated figures on every recorded
+  fact. A habit is **derived, not declared**: `deskDoingFor(id).hold` × `propHandsFor(kind)`,
   so the prop that refills what they are already holding (`papers` → printer; a desk `mug` → the
   machine that hands out `coffee`, which `FLOOR_PROP_USES` documents as the same object at two
   stages). No table gained a row, the whiteboard belongs to nobody because it hands nothing over,
@@ -711,6 +724,79 @@ test:floor`; the floor test map is [`docs/agents/isometric-floor-tests.md`](../.
   clause, and adding it here would be a **second prohibition** — the shape measured inert in the
   desk-work block and now pinned at one guard in `officePersonas.test.js`. So if the board starts
   eating a visit, cut the notes, not the register.
+- **The page in your hand is gated on the hand, never on the hold** (§ 6b, 2026-10-28).
+  `printoutFrom` (`officeFloorBoard.js`) keys the printout on `propUse.carrying` — what a prop put
+  there, and the printer is the only prop that hands over `papers`. Keying it on
+  `floorActivityFor`'s `hold` instead looks identical in a floor suite and is wrong in the room:
+  `PHASE_ART.windDown` puts `papers` in **every** hand at the wind-down hour, so your diagram
+  would print itself into sixteen fists at five o'clock — the mirror § 6a took off the whiteboard,
+  back in somebody else's grip. The ADR-0010 drop lives in `FloorFigure` (`isYou ? sheet : null`)
+  rather than at its one caller, because eight components draw a figure and a ninth must not be
+  able to get round it.
+- **An unpinned clock made that bug invisible to a browser probe, and the probe said the feature
+  was dead.** The first capture waited for `dataset.hold === 'papers'` and measured the generic
+  sheet in all five slots — a perfectly clean "your change does nothing" reading. At 18:30 UTC the
+  hour had already filled the hand, so the wait passed before the walk to the printer had even
+  started. Two fixes, both needed: `page.clock.setFixedTime` to the same midday the floor suites
+  pin (`OFFICE_FLOOR_TEST_MIDDAY`), and waiting on
+  `[data-testid="office-floor-prop-card"]` — **arrival**, which is the edge `useFloorPropUse`
+  fires its pickup on — before reading anything off the hand. The floor's wall-clock rule is
+  already in this file for suites that mount; it binds a Playwright probe exactly as hard, and
+  there the failure wears "the feature does not work" instead of a red assertion.
+- **A prop click has to be dispatched, not clicked.** `.office-floor-roam` covers the props and
+  intercepts pointer events, so Playwright's `click()` retries for 30 s against
+  `[data-prop="printer"]` and times out with a log that reads like a broken button.
+  `page.evaluate(() => document.querySelector('[data-prop="printer"]').click())` lands it.
+- **What a 7 px page can carry is three facts, and the fourth is a lie.** The `papers` sheet is
+  9.6 × 10.4 local units with your own hand over its foot, leaving ~6 units of band — so the
+  printout reports how many rules of ink there are, how long they run, and whether anything on it
+  was joined up (one accent tick), and never a label: a 62 px panel cannot hold a layout and a
+  7 px page cannot hold a word. The honest cost of the `PRINTOUT_MAX_ROWS = 4` cap is that a
+  four-node diagram and a sixteen-node one print **identically** (measured, both 4 rules /
+  21.24 units of ink). That is the cap working, not a gap to close by cramming a fifth hairline in.
+
+- **The ambient director owns _when_ and _which kind_, never _who_ — and the fix is tickets, not a
+  share.** `useOfficeAmbience` / `pickNextMoment` decide cadence; the speaker used to be a uniform
+  draw (`llmColleagueFor`) or whatever template the roll landed on (the canned walk-by branch), so
+  the office's own memory was not consulted at all in the one decision it is most obviously about.
+  `ambientSpeakerFrom` (`apps/web/src/utils/officeAmbientSpeaker.js`) enters anybody in
+  `listWorkingMemoryColleagueIds()` an extra `OFFICE_AMBIENT_FAMILIAR_TICKETS` times in the draw
+  everybody keeps their entry in. A share or a probability can dominate; extra tickets cannot, nobody
+  reaches zero, and the bias **fades to uniform on its own** once the whole cast is familiar — no
+  window, no decay table, no clock. Measured over 1320 deterministic rolls: a familiar colleague is
+  exactly 2× a stranger on the uniform LLM cast (330 vs 165), and 2× still with three familiar
+  (264 vs 132) while each familiar head falls 330 → 264. `0` is the old draw, so the rollback is the
+  constant.
+- **When a draw already runs over templates, pass the per-template id list — de-duplicating re-casts
+  the bank.** The walk-by bank holds two lines for four colleagues and one for three, so
+  `pickUnseenTemplate` already makes a two-line colleague twice as likely (measured 240 vs 120 of
+  1320). Drawing the speaker over unique ids first would have silently flattened that, which is a
+  casting change wearing a bias change's clothes.
+- **A preference that narrows a bank must narrow to the _unseen_ entries, or it eats
+  anti-repetition.** Narrowing to a speaker's lines and then calling `pickUnseenTemplate` on them
+  lets a familiar colleague repeat a line the session already heard; narrowing to their _unseen_
+  lines and falling through to the whole bank keeps both properties. The pinned case is a familiar
+  `hr` winning the speaker draw 1320 times and never speaking once her only line is spent.
+- **A sample count that does not divide the pool makes a uniform draw look biased.** A deterministic
+  `i/N` sweep over an 8-entry pool with `N = 660` returns 165/166 and reads as a thumb that is not
+  there. Pick `N` divisible by every pool an exact-count assertion runs against (1320 here: 3, 4, 5,
+  8, 11, 12), and on the pools that do not divide it assert `>` and `> 0` rather than a count —
+  1320/14 is why `scrumMaster` 192 sits beside `helpdesk` 188 in one arm of a measurement where
+  nothing distinguishes them.
+- **The ambient layer is switched off on the floor, so the scripted visit can never see it.**
+  `shouldHoldFire()` in `useOfficeAmbience.js` returns on `floorActive`. That is the feature (the
+  office does not cold-open at you while you stand in the room it would come from), so it is the
+  visit's _subject_ rather than its report, and no field reaches it. Measure anything ambient with a
+  sweep of the pure modules and keep the traces as the regression check.
+- **The office log is shared memory, but it is always read out _to_ somebody.**
+  `OFFICE_LOG_PRIVATE_KINDS` (`apps/web/src/utils/officeLogDigest.js`) holds the kinds whose
+  _existence_ is private — `chat`, and only `chat` — and `buildOfficeLogDigest(entries, { audience })`
+  withholds them from anyone not in them. `/moment` passes `audience: [colleagueId]`
+  (`officeMomentDelivery.js`); omitting `audience` is the unscoped digest the ensemble senders still
+  use, so the default is the wide one. The same set gates the whiteboard's hearsay author
+  (`officeFloorNotes.js`: `witnesses` for who may be named on a public board, `recent` for whose
+  handwriting you recognise). Scoping runs **before** the caps, so a withheld line gives its budget
+  back.
 
 ## Full findings
 
@@ -1054,7 +1140,18 @@ test:floor`; the floor test map is [`docs/agents/isometric-floor-tests.md`](../.
   to buy a fact about walking. Both dials stay in the cadence; the floor still owns only what a
   phase looks like. The bias table's one row is also the design: `PHASE_ART` already puts a mug
   in every hand at nine and papers at five, so biasing traffic there would tell the same thing
-  twice. **The wall clock (slice 25) is a third _face_ of the same clock, not a third clock**:
+  twice. **A third dial joined them and it is not a clock at all** — `OFFICE_PROP_NEWS_WINDOW_MS`
+  (2 min) is how long the prop _you_ last used keeps pulling traffic, and it is in this file for
+  the same split: the cadence owns _when_, and which prop is news is `wanderNewsFrom`'s to derive
+  off the office log. Its length is the whole design. `useFloorWander` starts an errand every
+  11–24 s, so a window under half a minute expires before the next departure and the dial is dead
+  code reading as a shipped feature; and because the office log is **day-scoped and persisted**, a
+  window of an hour would mean the printer you used before lunch still pulling traffic at four — a
+  standing bias wearing a reaction's clothes. Two minutes is five to ten departures, which is the
+  same "reads as a trend over a handful of trips" sizing the weights have. `officeCadence.test.js`
+  pins both edges, the upper one _against the slump window_ rather than against a bare number,
+  because the claim is the contrast between a window of the day and a window of the moment.
+  **The wall clock (slice 25) is a third _face_ of the same clock, not a third clock**:
   `FloorWallClock` reads `officeWallClockAt` (cadence), the same instant the phase dial reads,
   so hands and light can never disagree. A clock that read its own `Date`, or polled on a
   one-second second-hand, would repaint the floor continuously against the
@@ -1101,7 +1198,14 @@ test:floor`; the floor test map is [`docs/agents/isometric-floor-tests.md`](../.
   `wanderHabitFor` row. Every seeded floor suite and the scripted visit stayed byte-identical
   across the habit slice for that reason alone, so a green `test:floor` said nothing about the
   change and the sweep had to. The general form: a pinned seed selects one actor, and a per-actor
-  feature the pinned actor does not have is **invisible to every suite that pins it**. **Since slice 24 the seed alone
+  feature the pinned actor does not have is **invisible to every suite that pins it**. **The
+  prop-news slice is the first one that inverts this, and the inversion is the reusable part**: its
+  thumb is keyed on the _prop_ rather than on the walker, so it applies to the whole roster — and
+  Chad, having no habit of his own, is precisely the seat it moves furthest. A pinned-0.75 probe
+  therefore reads it at full strength rather than not at all (real Chromium, 6 of 6 trials per arm,
+  `whiteboard` → `printer` → back to `whiteboard` once the entry is stale). Ask which axis a
+  feature is keyed on before deciding whether a pinned seed can see it: per-actor features need the
+  sweep, per-prop ones are visible to the seed and the seed makes them deterministic. **Since slice 24 the seed alone
   is not enough**: `wanderBiasAt` gave the clock a say in _where_ a seeded wanderer goes (3× the
   coffee machine from 14:00 to 16:30), so the two globals stopped being independent — and it
   shipped that way, leaving slice 23's join tests and two `officeFloorWander.test.jsx` describes
@@ -1670,10 +1774,133 @@ test:floor`; the floor test map is [`docs/agents/isometric-floor-tests.md`](../.
   until it was cut to one guard, then 6 of 12) and is now pinned at one in
   `officePersonas.test.js`. So if the board starts eating a visit, **shorten the notes, not the
   register.**
-- **`resolveChromium()`'s path assumes one of the two Playwright layouts.**
-  `apps/web/test/officeVisitTrace.mjs` builds `<browsersPath>/chromium-<n>/chrome-linux/chrome`. On
-  the current cloud image the directory is **`chrome-linux64`**, so that path does not exist and
-  `launch()` reports `executable doesn't exist at …`, which reads exactly like a broken image —
-  the failure the harness's own "trap 1" comment exists to prevent, one directory name later.
-  `<browsersPath>/chromium` is a symlink to the real binary on both layouts and is the resolution
-  that does not rot; probe both spellings before falling back to it.
+- **FIXED 2026-10-30, and the general rule is "probe, never construct".**
+  `apps/web/test/officeVisitTrace.mjs`'s `resolveChromium()` built
+  `<browsersPath>/chromium-<n>/chrome-linux/chrome`; on this image the directory is
+  **`chrome-linux64`**, so the path did not exist and `launch()` reported
+  `Failed to launch chromium because executable doesn't exist at …` — which reads exactly like a
+  broken image, the failure that function's own "trap 1" comment exists to prevent, one directory
+  name later. It now `access()`-checks `chrome-linux64`, then `chrome-linux`, then
+  `<browsersPath>/chromium` (a symlink to the real binary that resolves under either layout), and
+  returns `undefined` rather than a path that is not there — because playwright's own registry is a
+  working fallback and a bad explicit path **overrides** it, so constructing one is worse than
+  returning nothing. Three nightly runs (2026-10-28/29/30) each rediscovered this and worked round
+  it with `OFFICE_VISIT_CHROMIUM`; the tell that it is this and not a broken image is that
+  `<browsersPath>/chromium` resolves while the path in the error does not.
+- **The visit's one ambient errand departs before the visit touches a prop, and only a field could
+  show it.** `movement.wanderers` (trace version 4, 2026-10-30) names the prop each errand was for,
+  off a `data-wander-prop` the walker now carries. First reading, 3 of 3 generated runs: exactly
+  **one** errand, `intern` → `whiteboard`, settled 1.8 s after first sighting, `said: "gotIt"` —
+  it is the trip step 3 interrupts. Its `settledAtMs` (12.4–19.7 s) is **before** either prop card
+  is read (24.2–34.6 s), so the destination is chosen while the office log still has no `prop`
+  entry in it. That is why the 2026-10-29 prop-news thumb had to be measured by a separate
+  three-arm probe and could not have been read off the trace however many fields it carried: the
+  blindness is the visit's **ordering**, not its report. Worth separating from the other four shapes
+  of blindness in this file, because the fix is neither an observation nor another instrument — it
+  would be an eighth step, which § 2 forbids. What the field does buy is that the next run can
+  **state** the ordering from the trace instead of discovering it with a browser probe.
+- **A `data-` attribute is cheaper than the geometry that stands in for it.** The 2026-10-29 probe
+  named a wanderer's destination by measuring the settled figure's rect against every `[data-prop]`
+  rect and taking the nearest. It was unambiguous on this layout (158 px against 109 px) and it is
+  the same shape playbook § 14 retracted a claim over: an inference that is right today and wrong
+  the first time two props sit near each other. One attribute closed it. Two details worth keeping:
+  it names the **prop**, not the tile, so it survives the turn for home (`goHome` spreads `current`,
+  so `kind` outlives the leg) and `data-settled` is still the answer to which leg they are on; and
+  it is passed **bare**, because React drops an `undefined` attribute and a tidying `?? ''` or
+  `String(kind)` would put the literal word `undefined` into a field the instrument reads as a prop
+  name — which `officeFloorWander.test.jsx` now pins with a case that is green either side.
+- **`onDecline` and `onDone` are not the same prop, and one scene card had them conflated for two
+  slices.** Slice 28 made declining a set piece mean _"not for me"_ rather than _"not happening"_:
+  `declineOfficeCoffee` leaves the cast standing so `sceneJoinOfferFor` can offer you a way back in,
+  and `dismissOfficeCoffee`/`dismissOfficeBattle` are the endings instead. Slice 30 brought the
+  battle in as the second joinable kind — store changed, `FloorScene` wired to `onDeclineBattle` —
+  and `OfficeBattleOverlay` (renderer #1, the **default** one) kept both its × and its
+  [Not my circus] on `onDone`. So on the desk, declining still deleted an argument two other people
+  were having, nothing was left to walk into, and `declineOfficeBattle` was unreachable from the
+  surface most users see. `CoffeeBreakOverlay` has had the split since slice 28 (× and decline on
+  `onDecline`, `onDone` only for the in-scene ending), which is what makes this a copy-the-sibling
+  fix rather than a design question. Two things generalise. **A scene prop that hides a declined
+  scene is half of the wiring**: the overlay needs `battle={snapshot.battle?.declined ? null :
+snapshot.battle}` the way the coffee one already did, or a declined scene re-renders its own invite
+  pill. And **the test pinned the defect**: `officeBattleOverlay.test.jsx` asserted
+  `onDone` on [Not my circus] and passed every night, because a handler test can only ever check
+  that the button calls the prop it was given — which is why the end-to-end case that presses the
+  real button through `OfficeLayer` is the one that found it.
+- **Five writers, one edge rule, and the newest one proves what the rule is about.** Working memory
+  is written by a dwell, a talk, an interruption, an email, a dropped errand, a declined invite and
+  (2026-10-31) a declined set piece. The rule has never been a count — it is that each writer is a
+  moment the user **aimed at one named person**, so the beat lands on them and nobody else: not the
+  colleague you were sent to, not the other invitees, and not the second half of a coffee pair who
+  was standing right there while you said no. A declined set piece is the purest statement of
+  record-never-trigger in the store, because it is the only writer whose edge changes nothing else
+  at all — the scene keeps its cast, walks to the machine and plays out, and the floor keeps offering
+  you the way in. The memory is the entire consequence.
+- **A refusal that can only have happened one way takes a boolean; one that can happen two ways
+  takes an enum.** `errandDropped` and `inviteDeclined` are booleans and should stay so — each
+  describes a single circumstance, and `INVITE_DECLINED_PROMPT_LINE` deliberately covers both of
+  that toast's exits because the office can only see what they have in common.
+  `sceneDeclined: 'coffee' | 'battle'` is an enum because a coffee you did not want is company
+  turned down and a shouting match you left is a side nobody took; one sentence covering both has to
+  say _"you did not join their thing"_, which is the vague end of the same mistake
+  `INTERRUPTION_PROMPT_LINES` avoids at the specific end. The enum is free here because the kind is
+  decided by **which function the button called** (`officeSceneDeclineMemory.js` exports one per
+  scene rather than taking a `kind`), so it cannot disagree with which scene was turned down — and
+  it lives in `officeAmbienceStorage.js` beside the interruptions so the writer and the read-back
+  sanitizer cannot differ about what is legal. This is the shape the ledger's
+  `invite-beat-has-no-topic` row asks for when a beat has to say _which_: a bounded value from a
+  closed set, never free text off a title.
+- **`hasActiveOfficeSurface()` is not a clean assertion in a test that renders `OfficeLayer` and
+  advances the clock far.** A mounted layer keeps living for however long the fake clock is
+  advanced, so six simulated minutes end with the predicate true for something the office started in
+  the meantime and the assertion says nothing about the scene under test. Budget the advance from the
+  script (one gap per line plus the tail) and assert the thing that would actually hold the ambient
+  director — that the scene **left the store**. The predicate claim belongs in a suite that can make
+  it in isolation, which is where `officeFloorSceneJoin.test.jsx` already makes it.
+
+- **A shared memory is still told to somebody, and for thirteen slices the office log was not.**
+  `officeLogDigest.js`'s header has always said a chat is bodiless — _"what was said stays between
+  you and them"_ (§ 11 DM privacy) — and that half was true: `sentenceOf`'s `chat` case drops
+  `detail` and `officeLogDigest.test.js` has pinned it since the field existed. The other half was
+  not. The line saying _that_ you and somebody traded messages rode on `officeLog`, which is one
+  field keyed on nobody, so every speaker was handed it: Gary at his own desk could open with your
+  thread with Gilfoyle as plainly as with the fridge. **The body stayed private and the fact did
+  not.** Measured over 500 deterministic synthetic days × 16 cast ids (8000 speaker renders, 24
+  entries a day): **93.4%** of renders carried at least one third-party thread, **2.57** of the
+  12 lines on average. Four things generalise.
+  - **Entitlement is a property of the channel, not of the sentence.** `OFFICE_LOG_PRIVATE_KINDS` is
+    a set of _kinds_, not a flag per entry, because there are six writers
+    (`officeLogStore.js`'s callers) and a per-entry flag leaks by omission the first time one is
+    forgotten. It holds exactly `chat`, and the rest of the log is public by an argument the module
+    had already made: a walk-by happens in an open-plan room, a pitch changed the diagram on your
+    monitor, an errand is the whole floor knowing Linda outsources her difficult conversations, and
+    an email **subject** is explicitly _"what the office gossips about"_. A direct message is the one
+    exchange on this floor with no witness, which is why § 11 singles it out — reopening any of the
+    others is a decision, not a tidy-up.
+  - **The scope runs before the caps, and that half is not about privacy at all.** The digest keeps
+    the newest 12 lines and drops from the front, so an afternoon of one thread used to push the
+    morning out of _everybody's_ memory. Withholding hands the budget back: on the busy arm every
+    speaker still receives a full 12 lines and 93.4% of them now reach further back, and — the
+    control that matters — the person who **was** in the thread keeps their own line **more** often,
+    1265/2313 → 1544/2313. On a short day (8 entries, under the cap) there is nothing to backfill, so
+    the digest simply shrinks 8 → 6.24 lines and own-thread survival is 898/898 either way. Measure
+    both arms: the under-cap one is the privacy effect alone and the over-cap one is where the budget
+    claim lives.
+  - **The wide default is deliberate, and it is a `blocked-by-paths` row rather than a silent
+    narrowing.** `audience` omitted means the unscoped digest, because the three ensemble senders
+    (`useMeetingPlayback.js`, `useHuddlePlayback.js`, `useAdvisorOrchestrator.js`) are outside
+    `office-life`'s `allowedPaths` and `/training` names no speaker at all. A default that narrowed
+    would change three prompts no suite here covers, for a benefit nothing here could measure. The
+    option takes an **array** so the queue-11 co-presence shape (a line survives if any attendee is
+    party to it) is a one-line change at those call sites rather than a second API.
+  - **The public surface is where a privacy rule actually bites, and the whiteboard was signing
+    itself with your DM partner.** `heardNote` in `officeFloorNotes.js` picked its author as
+    `recent[0]` — the most recent colleague id in the log, _any kind_ — while its own doctrine says
+    _"the office does not get to invent a witness"_. A direct message leaves no witness, so the board
+    (the room's most public object, and quotable in a prompt since 2026-10-26) could attribute a
+    sketch of your diagram to the last person you messaged, which publishes the thread the digest had
+    just stopped publishing. Fixed by reading the same log twice: `witnesses` (non-private kinds) for
+    who may be **named**, `recent` (any kind) for whose handwriting sits nearest the front. The
+    second one keeps a private chat deliberately — front-to-back order is the reader's own
+    recognition and attributes nothing, which is why `officeFloorProps.test.jsx`'s "puts the
+    handwriting you recognise at the front" stays green **untouched** while the new case next to it
+    went red before the fix.

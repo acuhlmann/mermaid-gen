@@ -410,6 +410,55 @@ export function wanderBiasAt(now = Date.now()) {
 }
 
 /**
+ * How long the room stays interested in the last prop *you* used — the third
+ * thumb on `wanderTripWeight`'s scale, and the first one that is neither a
+ * clock nor a character.
+ *
+ * **Why the dial is here and the derivation is not.** Same split the slump
+ * above already makes: the cadence owns *when*, the floor owns where and what
+ * it looks like. `wanderNewsFrom` in `officeFloorWander.js` reads which prop
+ * off the office log; this file decides only how long that fact is news.
+ *
+ * **Two minutes, and the arithmetic is the argument.** `useFloorWander`'s
+ * `BETWEEN_TRIPS_MS` is 11–24 s, so a two-minute window covers roughly five to
+ * ten departures — the same "reads as a trend over a handful of trips" test
+ * `WANDER_BIAS_WINDOWS`' weight is sized by. Shorter and the pull is invisible:
+ * you print something, the next errand starts after the window and nothing in
+ * the room ever reacts. Longer and it stops being a reaction at all — the
+ * office log is **day-scoped and persisted**, so a window of an hour would mean
+ * the printer you used before lunch still pulling traffic at four, which is a
+ * standing bias wearing a reaction's clothes. The board's own rule, one module
+ * over: a live surface is a dashboard, and this one has to be neither.
+ */
+export const OFFICE_PROP_NEWS_WINDOW_MS = 120_000;
+
+/**
+ * How much harder the room leans on somebody you have already dealt with today
+ * when it picks who starts the next ambient moment — extra lottery tickets per
+ * familiar colleague, not a share and not a gate.
+ *
+ * **Why the dial is here and the draw is not.** The same split the prop-news
+ * window above makes, and the one this whole file is for: cadence owns *when*
+ * and *how much*, the content modules own *who* and *what it looks like*.
+ * `ambientSpeakerFrom` in `officeAmbientSpeaker.js` does the drawing and knows
+ * nothing about appetite; this is the only number in it.
+ *
+ * **One, because one is already a doubling and more cannot be justified by
+ * anything measured.** A single extra ticket makes a familiar colleague exactly
+ * twice as likely as a stranger on the first cold open after you deal with
+ * them, which is visible over the handful of ambient moments a session gets
+ * (`OFFICE_SESSION_MOMENT_CAP` is 10) without ever silencing anybody — the
+ * failure the prop-news thumb was deliberately sized against, where a dominant
+ * weight erased every colleague's own habit. It also self-limits: deal with the
+ * whole cast and every name is doubled, so the draw is uniform again with no
+ * window and no decay.
+ *
+ * `0` is the uniform draw this office shipped with, so the rollback is this
+ * constant rather than a revert.
+ */
+export const OFFICE_AMBIENT_FAMILIAR_TICKETS = 1;
+
+/**
  * How full the room is, 0 (a dark building) to 1 (the office at full tilt) —
  * the third thing on this floor that the clock decides, and the first one the
  * soundscape asks about.

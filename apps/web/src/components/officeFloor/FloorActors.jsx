@@ -116,6 +116,8 @@ export function FloorActors({
   onStep,
   playerRef,
   youActivity,
+  // What is on the page in your hand, when a prop put one there (§ 6b).
+  youSheet = null,
   youTile,
   showSpokenText = true
 }) {
@@ -253,6 +255,7 @@ export function FloorActors({
           onStep={onStep}
           elementRef={playerRef}
           activity={youActivity}
+          sheet={youSheet}
           /* You get the same indicator as everyone else — otherwise "who is
              talking" quietly means "who else is talking", and the one turn in
              a conversation that never lights up is your own. */

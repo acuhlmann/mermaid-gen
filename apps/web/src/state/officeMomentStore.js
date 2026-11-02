@@ -917,10 +917,21 @@ export function acceptOfficeCoffee() {
  * declining the same scene is not reachable through the panel (it swaps for the
  * script) but is trivially reachable through the store, and a scene that is
  * both would render the invite and the performance at once.
+ *
+ * Returns the scene it turned down, for `dismissOfficeErrand`'s reason and no
+ * other: the cast is in `lines`, the refusal is aimed at whoever asked you in,
+ * and the store must not be the thing that writes that down. **Still not a
+ * payout** — nothing here writes memory, awards anything or speaks. The `null`
+ * is the idempotent case, so a second press is not a second refusal.
+ *
+ * @returns {{id: string, lines: Array<{speakerId: string, text: string}>,
+ *   accepted: boolean, declined: boolean, createdAt: number} | null}
  */
 export function declineOfficeCoffee() {
-  if (!state.coffee || state.coffee.accepted || state.coffee.declined) return;
-  update({ coffee: { ...state.coffee, declined: true } });
+  if (!state.coffee || state.coffee.accepted || state.coffee.declined) return null;
+  const declined = { ...state.coffee, declined: true };
+  update({ coffee: declined });
+  return declined;
 }
 
 /**
@@ -1019,10 +1030,18 @@ export function acceptOfficeBattle() {
  * Idempotent against both flags, for `declineOfficeCoffee`'s reason: a scene
  * carrying `accepted` *and* `declined` would render the invite and the arena at
  * once.
+ *
+ * Returns the scene it walked away from, for the same reason and with the same
+ * limits as `declineOfficeCoffee` above.
+ *
+ * @returns {{id: string, lines: Array<{speakerId: string, text: string}>,
+ *   accepted: boolean, declined: boolean, createdAt: number} | null}
  */
 export function declineOfficeBattle() {
-  if (!state.battle || state.battle.accepted || state.battle.declined) return;
-  update({ battle: { ...state.battle, declined: true } });
+  if (!state.battle || state.battle.accepted || state.battle.declined) return null;
+  const declined = { ...state.battle, declined: true };
+  update({ battle: declined });
+  return declined;
 }
 
 /**

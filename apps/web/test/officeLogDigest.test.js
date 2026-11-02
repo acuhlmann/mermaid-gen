@@ -56,6 +56,83 @@ describe('buildOfficeLogDigest', () => {
     expect(digest.join('\n')).not.toContain(secret);
   });
 
+  /**
+   * The other half of §11's DM privacy, and the half that was missing: the
+   * body stayed between the two of you, and the line saying it happened went
+   * to everybody. A digest is "what the office remembers", but it is always
+   * read out *to* somebody, and a chat is the one entry with no witness.
+   */
+  it('withholds a direct message from everybody who was not in it', () => {
+    const entries = [
+      { at: at(9, 0), kind: 'walkby', colleagueId: 'greybeard' },
+      { at: at(11, 5), kind: 'chat', colleagueId: 'jared' }
+    ];
+    const bystander = buildOfficeLogDigest(entries, { audience: ['gary'] });
+    expect(bystander).toEqual(['09:00 greybeard stopped by your desk']);
+
+    // And the person who was in it still has it — they are the one character
+    // who may say "about those messages".
+    const jared = buildOfficeLogDigest(entries, { audience: ['jared'] });
+    expect(jared).toHaveLength(2);
+    expect(jared.at(-1)).toContain('you and jared traded messages');
+  });
+
+  it('is the unscoped digest when nobody has been named', () => {
+    // The default every ensemble sender still uses. A narrower default would
+    // silently change three prompts no case here covers.
+    const digest = buildOfficeLogDigest([{ at: at(11, 5), kind: 'chat', colleagueId: 'jared' }]);
+    expect(digest).toEqual(['11:05 you and jared traded messages']);
+    expect(
+      buildOfficeLogDigest([{ at: at(11, 5), kind: 'chat', colleagueId: 'jared' }], {})
+    ).toEqual(digest);
+  });
+
+  it('withholds a private entry that names nobody, rather than guessing', () => {
+    // A `chat` with no `colleagueId` is malformed; the audience cannot be shown
+    // to be party to it, so it is withheld from everybody rather than read out
+    // because the check could not be made.
+    expect(
+      buildOfficeLogDigest([{ at: at(11, 5), kind: 'chat' }], { audience: ['jared'] })
+    ).toEqual([]);
+  });
+
+  /**
+   * Scoping happens before the caps, which is the half of this that is not
+   * about privacy at all: a withheld line hands its budget back.
+   */
+  it('gives the budget back rather than spending it on what it withheld', () => {
+    const entries = [
+      ...Array.from({ length: 6 }, (_, i) => ({
+        at: at(9, i),
+        kind: 'run',
+        detail: `type${i}`
+      })),
+      ...Array.from({ length: OFFICE_LOG_DIGEST_MAX_LINES }, (_, i) => ({
+        at: at(14, i),
+        kind: 'chat',
+        colleagueId: 'jared'
+      }))
+    ];
+    // Unscoped, an afternoon of one thread is the whole of everybody's memory.
+    const everything = buildOfficeLogDigest(entries);
+    expect(everything).toHaveLength(OFFICE_LOG_DIGEST_MAX_LINES);
+    expect(everything.join('\n')).not.toContain('type0');
+
+    const bystander = buildOfficeLogDigest(entries, { audience: ['gary'] });
+    expect(bystander).toHaveLength(6);
+    expect(bystander[0]).toContain('type0');
+  });
+
+  it('scopes to a whole room, which is how a meeting knows things collectively', () => {
+    const entries = [
+      { at: at(11, 0), kind: 'chat', colleagueId: 'jared' },
+      { at: at(11, 30), kind: 'chat', colleagueId: 'gilfoyle' }
+    ];
+    const room = buildOfficeLogDigest(entries, { audience: ['gilfoyle', 'pam'] });
+    expect(room).toHaveLength(1);
+    expect(room[0]).toContain('gilfoyle');
+  });
+
   it('keeps email subjects, which are not private', () => {
     const digest = buildOfficeLogDigest([
       {

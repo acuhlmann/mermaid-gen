@@ -219,6 +219,26 @@ export function FloorWanderer({
       data-testid="office-floor-wanderer"
       data-wanderer={seatId}
       data-settled={settled ? 'true' : undefined}
+      /*
+       * What the errand is *for*, as a fact rather than a geometry problem.
+       * The 2026-10-29 prop-news probe had to name a wanderer's destination by
+       * comparing the settled figure's rect against every `[data-prop]` rect
+       * and taking the nearest, which was unambiguous on this layout (158 px
+       * against 109 px) and is exactly the shape playbook § 14 retracted a
+       * claim over: an inference that is right today and breaks the first time
+       * two props sit near each other.
+       *
+       * It names the **prop**, not the tile, so it is honest on both legs: the
+       * trip keeps its `kind` on the way home (`goHome` spreads `current`), and
+       * what a reader wants is which machine this trip was about. Which leg
+       * they are on is already `data-settled`'s answer, so one attribute covers
+       * both questions without a second.
+       *
+       * Passed bare rather than coalesced: React omits an attribute whose value
+       * is `undefined`, so the guard its neighbours need buys nothing here but
+       * a complexity point this component has twice been over budget for (§ 8).
+       */
+      data-wander-prop={wanderer.kind}
       data-said={said ? said.reaction : undefined}
       /* +5 like every other travelling figure, so they pass in front of the
          desk they are walking past rather than through it — until they say

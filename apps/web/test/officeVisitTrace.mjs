@@ -46,7 +46,11 @@
  *    preinstalled browsers under `PLAYWRIGHT_BROWSERS_PATH` are revision 1194;
  *    a freshly installed `playwright-core` wants whatever revision it shipped
  *    with and reports `Executable doesn't exist at …chromium_headless_shell-<n>`,
- *    which reads exactly like a broken image. Resolve the binary off disk.
+ *    which reads exactly like a broken image. Resolve the binary off disk —
+ *    and **probe the path rather than building it**: the directory inside the
+ *    revision is `chrome-linux` on some images and `chrome-linux64` on others,
+ *    and three nightly runs lost time to a constructed path that did not exist,
+ *    failing with the very message this trap exists to prevent.
  * 2. **A floor harness must import `components/OfficeFloor.css` itself.**
  *    `ArchiSlop.jsx` is its only importer, so the `index.css` + `App.css`
  *    recipe leaves `.office-floor-prop` unpositioned and every prop falls into
@@ -76,7 +80,10 @@
  * below is the first, and it exists because queue 2 changed what the office
  * knows rather than what it draws — and may never add, reorder or retime a
  * step. Add the observation in **its own run**, never in the run that needs
- * the number it produces.
+ * the number it produces. `movement.wanderers` (version 4) is the second, and
+ * it exists for the same reason one run later: 2026-10-29 made an ambient
+ * errand's destination depend on what the player had just done, and no field
+ * here named where a wanderer was going.
  *
  * The harness page it writes into `apps/web/.office-visit/` is scratch and is
  * deleted on the way out. It never reaches a commit.
@@ -84,7 +91,8 @@
 
 import { spawn } from 'node:child_process';
 import { createRequire } from 'node:module';
-import { mkdir, readdir, rm, writeFile } from 'node:fs/promises';
+import { access, mkdir, readdir, rm, writeFile } from 'node:fs/promises';
+import { constants as fsConstants } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
@@ -150,7 +158,20 @@ async function loadPlaywright() {
  * installed `playwright-core` looks for, so the registry lookup misses and the
  * error names a path nobody chose.
  *
- * @returns {Promise<string | undefined>} an explicit executable path, or
+ * **And the directory inside the revision has two spellings.** This function
+ * assumed `chrome-linux` for its first eight weeks; three nights running
+ * (2026-10-28/29/30) the image shipped **`chrome-linux64`**, so the path it
+ * built did not exist and `launch()` reported "executable doesn't exist at …" —
+ * which reads exactly like the broken image the comment above exists to rule
+ * out, and each of those runs worked around it by hand with
+ * `OFFICE_VISIT_CHROMIUM`. So: **probe, never construct.** Every candidate is
+ * stat'ed before it is returned, and `<browsersPath>/chromium` — a symlink
+ * straight at the real binary, which resolves under either layout — is the last
+ * one tried. Returning a path that does not exist is worse than returning
+ * nothing, because playwright's own registry is a working fallback and a bad
+ * explicit path overrides it.
+ *
+ * @returns {Promise<string | undefined>} an executable path that exists, or
  *   undefined to let playwright's own registry try
  */
 async function resolveChromium() {
@@ -163,9 +184,24 @@ async function resolveChromium() {
   } catch {
     return undefined;
   }
-  const dirs = entries.filter((name) => /^chromium-\d+$/.test(name)).sort();
-  const newest = dirs.at(-1);
-  return newest ? path.join(browsersPath, newest, 'chrome-linux', 'chrome') : undefined;
+  const newest = entries
+    .filter((name) => /^chromium-\d+$/.test(name))
+    .sort()
+    .at(-1);
+  const candidates = [
+    newest && path.join(browsersPath, newest, 'chrome-linux64', 'chrome'),
+    newest && path.join(browsersPath, newest, 'chrome-linux', 'chrome'),
+    path.join(browsersPath, 'chromium')
+  ].filter(Boolean);
+  for (const candidate of candidates) {
+    try {
+      await access(candidate, fsConstants.X_OK);
+      return candidate;
+    } catch {
+      /* try the next spelling */
+    }
+  }
+  return undefined;
 }
 
 /* ---------------------------------------------- *
@@ -583,6 +619,62 @@ function installInstrument(config) {
     }
   }
 
+  /*
+   * **Where ambient traffic went, and whether it got there.** Sampled on the
+   * same 200 ms tick as the figures and for the same reason: the subject is the
+   * room a visitor sees.
+   *
+   * Keyed on **who and where** — `seatId` plus the prop — because the same
+   * colleague sent to two different props is the observation's whole point, and
+   * keying on the prop alone would merge two people at one machine. The honest
+   * cost of that choice: one colleague sent to the *same* prop twice in a visit
+   * collapses into one row with the earlier `firstSeenAtMs`. No run has ever
+   * produced a second errand, so this is reasoned rather than measured; a run
+   * that sees two rows should say whether the keying held.
+   *
+   * The prop comes off `data-wander-prop`, which the walker now carries — the
+   * 2026-10-29 probe had to infer it from nearest-rect geometry, and geometry
+   * standing in for a fact the DOM could carry is the thing that breaks the
+   * first time two props sit near each other.
+   *
+   * `settledAtMs` is the one derived field and it is derived by *observation*:
+   * `data-settled` is only true for `phase === 'dwell'`, so a single sample at
+   * the end of the visit cannot tell the way out from the way home, while a
+   * tick that has watched the whole trip can say whether they ever stood at the
+   * thing. `null` therefore means "turned round before arriving", which is
+   * exactly the state `goHome({ byYou })` produces and the state the visit's
+   * own step 3 creates on purpose.
+   */
+  const wanderers = new Map();
+
+  function sampleWanderers() {
+    const at = elapsed();
+    for (const node of document.querySelectorAll('[data-testid="office-floor-wanderer"]')) {
+      const seatId = node.getAttribute('data-wanderer');
+      if (!seatId) continue;
+      const prop = node.getAttribute('data-wander-prop') ?? null;
+      /* A trip is keyed on who *and* where: the same colleague sent out twice
+         is two rows, and re-keying on the prop alone would merge two people. */
+      const key = `${seatId}::${prop ?? 'unknown'}`;
+      const prior = wanderers.get(key);
+      const settled = node.getAttribute('data-settled') === 'true';
+      if (!prior) {
+        wanderers.set(key, {
+          seatId,
+          prop,
+          firstSeenAtMs: at,
+          settledAtMs: settled ? at : null,
+          said: node.getAttribute('data-said') ?? null
+        });
+        continue;
+      }
+      if (settled && prior.settledAtMs === null) prior.settledAtMs = at;
+      /* The line an interrupted errand carries home arrives after the row does,
+         so it is filled in rather than read once. */
+      prior.said = node.getAttribute('data-said') ?? prior.said;
+    }
+  }
+
   /** A room signature — what the room looked like, as a comparable object. */
   function roomShot() {
     const floor = document.querySelector('.office-floor');
@@ -649,6 +741,7 @@ function installInstrument(config) {
     },
     roomShot,
     figures: () => [...positions.values()],
+    wanderers: () => [...wanderers.values()],
     begin() {
       new MutationObserver(harvest).observe(document.documentElement, {
         childList: true,
@@ -658,6 +751,7 @@ function installInstrument(config) {
       setInterval(() => {
         harvest();
         sampleFigures();
+        sampleWanderers();
       }, 200);
     }
   };
@@ -1051,6 +1145,7 @@ async function main() {
       delivered: window.__visit.state.delivered,
       errors: window.__visit.state.errors,
       figures: window.__visit.figures(),
+      wanderers: window.__visit.wanderers(),
       endSurfaces: window.__visit.speechSurfacesNow()
     }));
 
@@ -1172,17 +1267,23 @@ function buildTrace({ args, startedAt, t0, steps, before, after, collected }) {
     }))
     .sort((a, b) => (a.firstMoveAtMs ?? Infinity) - (b.firstMoveAtMs ?? Infinity));
 
+  /* Oldest errand first, so a reading is in the order the room produced it. */
+  const wanderers = (collected.wanderers ?? [])
+    .slice()
+    .sort((a, b) => a.firstSeenAtMs - b.firstSeenAtMs);
+
   return {
     harness: 'officeVisitTrace',
     /*
      * 2: `speech.bySource` is attributed by text against `speech.delivered`.
      * 3: `read.cards` records prop-card blurbs the visit opened (not speech).
+     * 4: `movement.wanderers` names the prop each ambient errand was for.
      * Version 1 attributed `bySource` by an 8 s clock window, which over-credits any
      * bank line drawn behind a mid-visit model call — so a v1 `bySource.model`
      * from a run whose call was not the last thing to happen has to be re-read
      * against `modelTurns`, and this field is how a reader can tell which.
      */
-    version: 3,
+    version: 4,
     startedAt,
     durationMs: Date.now() - t0,
     mode: {
@@ -1234,7 +1335,24 @@ function buildTrace({ args, startedAt, t0, steps, before, after, collected }) {
     },
     movement: {
       firstMover: figures.find((figure) => figure.firstMoveAtMs !== null)?.id ?? null,
-      figures
+      figures,
+      /*
+       * Ambient traffic, per errand. `figures` already reports *that* a
+       * wanderer moved — it has sampled `[data-testid="office-floor-wanderer"]`
+       * since version 1 — but it keys them all as one unnamed row, and nothing
+       * anywhere named the prop a trip was for. That mattered on 2026-10-29,
+       * when a slice made a wanderer's destination depend on what the player had
+       * just done and the trace had no field to show it: the measurement had to
+       * be a separate browser probe inferring the prop from nearest-rect
+       * geometry. Read `props` against `read.cards` and the office log in
+       * `afterwards.logDigest` — the two props the visit uses are what a
+       * news-weighted trip would be reacting to.
+       */
+      wanderers,
+      props: [...new Set(wanderers.map((trip) => trip.prop).filter(Boolean))].sort(),
+      wandererRule:
+        'observed: one row per errand (seat + prop, off `data-wander-prop`); `settledAtMs` is ' +
+        'null when they never stood at the thing, which is what an interrupted trip looks like'
     },
     roomDelta: diffRoom(before, after),
     afterwards: collected.afterwards,

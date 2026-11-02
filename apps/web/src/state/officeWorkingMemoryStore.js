@@ -20,15 +20,23 @@
  * everyone on a board-sample edge would be omniscience.
  *
  * "Few" is a rule about the *edge*, not a count — each writer is a moment the
- * user aimed at one named person, which is why the set has grown three times
- * since v1's dwell-and-talk pair (an interruption, an email, then a dropped
- * errand) without the rule moving. An ambient moment must still never write
- * here.
+ * user aimed at one named person, which is why the set has grown five times
+ * since v1's dwell-and-talk pair (an interruption, an email, a dropped errand,
+ * a declined invite, then a declined set piece) without the rule moving. An
+ * ambient moment must still never write here.
  *
- * The dropped errand is the clearest case of why the rule is about the edge: a
- * press on _Not today_ is aimed at the person who asked, so the beat lands on
- * **them** and on nobody else. The colleague you were sent to never heard the
- * message and must not remember it.
+ * The three refusals are the clearest case of why the rule is about the edge: a
+ * press on _Not today_, _Decline_ or _Not my circus_ is aimed at the person who
+ * asked, so the beat lands on **them** and on nobody else. The colleague you
+ * were sent to never heard the message, the other invitees were not told your
+ * answer, and the second half of a coffee pair was standing there but was not
+ * the one doing the asking — none of them may remember it.
+ *
+ * A declined set piece is the odd one out and worth naming: it is the only
+ * writer here whose edge changes nothing else at all. The scene keeps its cast,
+ * walks to the machine and plays out; the floor is still offering you a way in.
+ * The memory is the *entire* consequence, which is as pure a statement of
+ * record-never-trigger as this file contains.
  */
 
 import {
@@ -116,7 +124,42 @@ const ERRAND_DROPPED_PROMPT_LINE = 'they sent you to have a word with somebody; 
  */
 const INVITE_DECLINED_PROMPT_LINE = 'they put a meeting on your calendar; you did not go to it';
 
-/** @typedef {{ at: number, theirs?: string, yours?: string, pitchTaken?: boolean, errandDropped?: boolean, inviteDeclined?: boolean, interrupted?: 'gotIt' | 'gaveUp', medium?: 'email' }} WorkingMemoryBeat */
+/**
+ * What turning down their set piece reads like to the model
+ * (`docs/automations/office-life.md` queue 13, the third and last instance the
+ * playbook names by file: *"`sceneJoin`'s decline path in particular ends the
+ * offer and records nothing"*).
+ *
+ * Written on the **first participant** and on nobody else, which is the person
+ * `sceneJoinOfferFor` already calls "the one that asked you in the first
+ * place". The other half of the pair was standing there, but the invitation was
+ * one person's and so is the answer; handing the second one a memory of your no
+ * is the fabrication the situation rule in `docs/agents/domains/office.md`
+ * warns about, arriving through memory instead of through a prompt.
+ *
+ * **Two lines, not one, and that is the whole argument for the enum.** The
+ * other two refusals each describe something that can only have happened one
+ * way, so a single sentence is the circumstance. A declined scene cannot: a
+ * coffee break you did not want is company turned down, and a shouting match
+ * you walked away from is a side nobody took. One sentence covering both would
+ * have to say "you did not join their thing", which is the vague-to-the-point-
+ * of-useless end of the same mistake `INTERRUPTION_PROMPT_LINES` avoids at the
+ * specific end.
+ *
+ * **Both state the circumstance and stop**, for that module's reason, and both
+ * carry the one fact that makes this refusal different from the other two: the
+ * scene went ahead. `declineOfficeCoffee` leaves the cast standing, so the
+ * person holding this memory is somebody who heard you say no and then had
+ * their coffee anyway — and if you later walk over, `sceneJoinOfferFor` is
+ * still offering you the way in. Neither line names a consequence, and neither
+ * can chase you for one.
+ */
+const SCENE_DECLINED_PROMPT_LINES = Object.freeze({
+  coffee: 'they asked you along for a coffee; you stayed at your desk and they went anyway',
+  battle: 'they wanted you in on an argument; you walked away and it carried on without you'
+});
+
+/** @typedef {{ at: number, theirs?: string, yours?: string, pitchTaken?: boolean, errandDropped?: boolean, inviteDeclined?: boolean, interrupted?: 'gotIt' | 'gaveUp', sceneDeclined?: 'coffee' | 'battle', medium?: 'email' }} WorkingMemoryBeat */
 /** @typedef {{ beats: WorkingMemoryBeat[], boardFingerprint?: string }} WorkingMemoryRow */
 
 /** @type {{ [colleagueId: string]: WorkingMemoryRow }} */
@@ -235,11 +278,14 @@ export function listWorkingMemoryColleagueIds() {
  * @param {string} colleagueId
  * @param {{ theirs?: string, yours?: string, pitchTaken?: boolean,
  *   errandDropped?: boolean, inviteDeclined?: boolean,
- *   interrupted?: 'gotIt' | 'gaveUp', medium?: 'email', now?: number }} beat
- *   `interrupted`, `errandDropped` and `inviteDeclined` are the beat fields
- *   that are not something either of you said — the first is their errand
- *   ending because of you, the second is yours ending because you dropped it,
- *   the third is their meeting ending because you would not go. Both are still
+ *   interrupted?: 'gotIt' | 'gaveUp', sceneDeclined?: 'coffee' | 'battle',
+ *   medium?: 'email', now?: number }} beat
+ *   `interrupted`, `errandDropped`, `inviteDeclined` and `sceneDeclined` are
+ *   the beat fields that are not something either of you said — the first is
+ *   their errand ending because of you, the second is yours ending because you
+ *   dropped it, the third is their meeting ending because you would not go, and
+ *   the fourth is the one where nothing ended at all: you turned down the
+ *   coffee break or the argument and it went ahead without you. All are still
  *   only a record — writing one schedules nothing (ADR-0010) — but it is what
  *   makes `hasWorkingMemoryFact` true for somebody you have never spoken to,
  *   which is the whole point: the next time you stand next to them, the office
@@ -314,6 +360,7 @@ export function workingMemoryPromptLines(colleagueId) {
     if (beat.interrupted) lines.push(INTERRUPTION_PROMPT_LINES[beat.interrupted]);
     if (beat.errandDropped) lines.push(ERRAND_DROPPED_PROMPT_LINE);
     if (beat.inviteDeclined) lines.push(INVITE_DECLINED_PROMPT_LINE);
+    if (beat.sceneDeclined) lines.push(SCENE_DECLINED_PROMPT_LINES[beat.sceneDeclined]);
     const quote = MEDIUM_PROMPT_LINES[beat.medium] ?? SPOKEN_PROMPT_LINES;
     if (beat.yours) lines.push(`${quote.yours} ${beat.yours}`);
     if (beat.theirs) lines.push(`${quote.theirs} ${beat.theirs}`);

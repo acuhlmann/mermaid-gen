@@ -59,6 +59,7 @@ import {
 } from '../utils/officeCast.js';
 import { deskWorkFor } from '../utils/officeDeskWork.js';
 import { floorActivityFor } from '../utils/officeFloorActivity.js';
+import { printoutFrom } from '../utils/officeFloorBoard.js';
 import { sceneJoinOfferFor } from '../utils/officeFloorSceneJoin.js';
 import { dropOfficeErrandWithMemory } from '../utils/officeErrandMemory.js';
 import { floorRunContextFor } from '../utils/officeFloorRunIdle.js';
@@ -391,6 +392,24 @@ function OfficeFloorView({ bridge, viewPhase }) {
         carrying: propUse.carrying
       }),
     [remoteMeeting, officeSnap.headphones, coffee, presence, dayPhase, propUse.carrying]
+  );
+
+  /*
+   * What is printed on the page in your hand (§ 6b). The last surface § 6
+   * named: `board` already feeds your monitor and the glass room's table, and
+   * the printer reflected your work only in the prop card's words, so the sheet
+   * `HeldItem` drew was the same three rules whether you had printed a
+   * sixteen-node architecture or nothing at all.
+   *
+   * Keyed on `propUse.carrying` and **not** on `youActivity.hold`: the hand is
+   * what a prop put there and the printer is the only prop that hands over
+   * `papers`, while the hold is also what `PHASE_ART` puts in sixteen hands at
+   * the wind-down hour. Same `board` the panel reads, so the page and the
+   * monitor cannot disagree about what you are working on.
+   */
+  const youSheet = useMemo(
+    () => printoutFrom({ board, carrying: propUse.carrying }),
+    [board, propUse.carrying]
   );
 
   /*
@@ -797,6 +816,7 @@ function OfficeFloorView({ bridge, viewPhase }) {
             onStep={handleStep}
             playerRef={activity.playerRef}
             youActivity={youActivity}
+            youSheet={youSheet}
             youTile={youTile}
             showSpokenText={showSpokenText}
           />

@@ -255,7 +255,7 @@ Adding a **kind** is a ten-place change — the list is in
 | Tests           | `GRAPH_EDIT_BLAST_TESTS` in [`scripts/test-affected-lib.mjs`](../scripts/test-affected-lib.mjs) (20 files, ~6 s)                                                                                     |
 | Docs            | [`docs/canvas-graph-edit.md`](canvas-graph-edit.md), recipe [`add-graph-edit-family.md`](recipes/add-graph-edit-family.md)                                                                           |
 
-`DiagramCanvas.jsx` is on the ratchet at **1889 lines and may not grow** — a new family extracts,
+`DiagramCanvas.jsx` is on the ratchet at **1864 lines and may not grow** — a new family extracts,
 it does not append. The 2026-08-28/29 colon-less-ER defect crossed the `pickParallelEdgeRef` seam
 between the ER and class families, which is exactly the class of break the basename mirror cannot
 see.

@@ -149,6 +149,20 @@ describe('officeLogStore', () => {
     // And the shared digest is untouched by any of it.
     expect(getOfficeLogDigest()).toHaveLength(3);
   });
+
+  it('hands the audience down to the digest', async () => {
+    // The store is the only caller the request funnels see, so a scope that
+    // stopped here would be a privacy rule nothing could reach.
+    const { getOfficeLogDigest, recordOfficeLogEntry } = await freshStore();
+    recordOfficeLogEntry('walkby', { now: at(9, 0), colleagueId: 'jared' });
+    recordOfficeLogEntry('chat', { now: at(9, 30), colleagueId: 'gilfoyle' });
+
+    expect(getOfficeLogDigest()).toHaveLength(2);
+    expect(getOfficeLogDigest({ audience: ['gilfoyle'] })).toHaveLength(2);
+    expect(getOfficeLogDigest({ audience: ['jared'] })).toEqual([
+      '09:00 jared stopped by your desk'
+    ]);
+  });
 });
 
 describe('office log day stamping', () => {

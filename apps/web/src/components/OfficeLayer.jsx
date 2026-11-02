@@ -39,8 +39,6 @@ import { useOfficeWelcome } from '../hooks/useOfficeWelcome.js';
 import {
   acceptOfficeBattle,
   acceptOfficeCoffee,
-  declineOfficeBattle,
-  declineOfficeCoffee,
   joinOfficeBattle,
   joinOfficeCoffee,
   dismissOfficeBattle,
@@ -104,6 +102,10 @@ import {
   officeMeetingCopy
 } from '../utils/officeCast.js';
 import { sceneParticipants } from '../utils/officeSceneCast.js';
+import {
+  declineOfficeBattleWithMemory,
+  declineOfficeCoffeeWithMemory
+} from '../utils/officeSceneDeclineMemory.js';
 import { formatLocale } from '../i18n/formatLocale.js';
 import {
   cancelOfficeNarration,
@@ -868,10 +870,15 @@ export default function OfficeLayer({
    * office. `declineOfficeCoffee` leaves the scene standing so the floor can
    * play it and offer a way in; the narration still stops, because the reason
    * you are hearing it is that you were being invited.
+   *
+   * Through `officeSceneDeclineMemory.js` rather than the bare store call, so
+   * the person who asked you along remembers that you did not come (queue 13).
+   * The wrapper writes the beat and returns the same scene; the panel behaves
+   * identically either way, and the scene still plays out without you.
    */
   const handleDeclineCoffee = useCallback(() => {
     cancelOfficeNarration();
-    declineOfficeCoffee();
+    declineOfficeCoffeeWithMemory();
   }, []);
 
   /*
@@ -925,11 +932,13 @@ export default function OfficeLayer({
 
   /*
    * Slice 30, and the exact counterpart of `handleDeclineCoffee`: turning down
-   * an argument takes you out of it rather than taking it out of the office.
+   * an argument takes you out of it rather than taking it out of the office —
+   * including through the same memory writer, with its own beat (a side nobody
+   * took is not a coffee nobody drank).
    */
   const handleDeclineBattle = useCallback(() => {
     cancelOfficeNarration();
-    declineOfficeBattle();
+    declineOfficeBattleWithMemory();
   }, []);
 
   /*
@@ -1799,11 +1808,17 @@ export default function OfficeLayer({
                 prefetchLine={snapshot.narration ? prefetchLine : undefined}
               />
               <OfficeBattleOverlay
-                battle={snapshot.battle}
+                /* The same distinction as the break above, which this renderer
+                   had never been given (slice 30): an argument you declined is
+                   happening somewhere you are not, so it leaves your screen
+                   without leaving the office. Without the filter a declined
+                   battle would re-render its own invite pill. */
+                battle={snapshot.battle?.declined ? null : snapshot.battle}
                 visibleLines={battleVisibleLines}
                 lineSpoken={battleLineSpoken}
                 linesDone={battleLinesDone}
                 onAccept={handleAcceptBattle}
+                onDecline={handleDeclineBattle}
                 onVote={handleBattleVote}
                 onDone={handleBattleDone}
                 narrateLine={snapshot.narration ? narrateLine : undefined}

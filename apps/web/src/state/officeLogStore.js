@@ -117,11 +117,17 @@ export function recordOfficeLogEntry(kind, meta = {}) {
 /**
  * The log as prompt lines, ready for an office request's `officeLog` field.
  *
+ * `audience` is who is about to be told — one speaker on `/moment`, or
+ * everybody in a room. Omitted, this is the unscoped shared digest, which is
+ * what the ensemble senders still ask for; see `OFFICE_LOG_PRIVATE_KINDS` for
+ * what the scope withholds and why the default is the wide one.
+ *
+ * @param {{audience?: string[] | string}} [options]
  * @returns {string[]}
  */
-export function getOfficeLogDigest() {
+export function getOfficeLogDigest(options) {
   reconcileOfficeDay();
-  return buildOfficeLogDigest(entries);
+  return buildOfficeLogDigest(entries, options);
 }
 
 /**

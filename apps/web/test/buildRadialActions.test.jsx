@@ -20,8 +20,12 @@ function actions(overrides = {}) {
 
 describe('buildRadialActions', () => {
   it('gives every advisor seat a radial entry with real persona copy', () => {
+    const advisorIds = [...ADVISOR_TRANSFORM_MODES, ...ADVISOR_ANALYZE_KINDS];
+    expect(advisorIds.length, 'no advisor modes registered — this proves nothing').toBeGreaterThan(
+      0
+    );
     const byId = new Map(actions().map((entry) => [entry.id, entry]));
-    for (const id of [...ADVISOR_TRANSFORM_MODES, ...ADVISOR_ANALYZE_KINDS]) {
+    for (const id of advisorIds) {
       const entry = byId.get(id);
       expect(entry, `radial entry for ${id}`).toBeTruthy();
       // A missing locale key would silently render an empty wedge rather than throw.
