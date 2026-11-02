@@ -760,6 +760,30 @@ describe('the whiteboard’s own record (§ 6a)', () => {
     ).toBe(false);
   });
 
+  it('never signs the board with somebody you only traded messages with', () => {
+    // The board is the room's most public surface and it is now quotable in a
+    // prompt, so the one thing it may not be is a disclosure. A direct message
+    // leaves no witness (§11 / `OFFICE_LOG_PRIVATE_KINDS`), so the last person
+    // you DMed is not somebody who could have heard about your diagram.
+    recordOfficeLogEntry('run', { detail: 'mermaid' });
+    recordOfficeLogEntry('chat', { colleagueId: 'gilfoyle' });
+    const notes = boardNotesFor({ officeLog: getOfficeLogSnapshot(), board, copy: bank() });
+    // Companion non-empty assertion: a board with nothing on it would pass the
+    // claim below by carrying no notes at all.
+    expect(notes.length).toBeGreaterThan(0);
+    expect(notes.some((note) => note.kind === 'heard-about-yours')).toBe(false);
+
+    // One public fact about the same person, and the sketch is his again —
+    // which is what makes this a scope rather than a cast list.
+    recordOfficeLogEntry('walkby', { colleagueId: 'gilfoyle' });
+    const heard = boardNotesFor({
+      officeLog: getOfficeLogSnapshot(),
+      board,
+      copy: bank()
+    }).find((note) => note.kind === 'heard-about-yours');
+    expect(heard?.colleagueId).toBe('gilfoyle');
+  });
+
   it('puts the handwriting you recognise at the front', () => {
     const cold = boardNotesFor({ copy: bank() });
     recordOfficeLogEntry('chat', { colleagueId: 'hr' });

@@ -21,10 +21,12 @@
  * those are the ids every server prompt builder already speaks, so a line
  * lands as a reference rather than as a new proper noun to reconcile.
  *
- * **DM bodies never appear.** A chat logs that it happened and with whom; what
- * was said stays between you and them (§11 DM privacy). Email subjects *are*
- * included, which is the honest line rather than a lax one: in the fiction a
- * subject line is what the office gossips about, and a direct message is not.
+ * **DM bodies never appear, and since slice 33 nor does the fact.** A chat
+ * logs that it happened and with whom, and that line is now handed only to the
+ * person who was in it (`OFFICE_LOG_PRIVATE_KINDS`, `audience`). Email
+ * subjects *are* included, which is the honest line rather than a lax one: in
+ * the fiction a subject line is what the office gossips about, and a direct
+ * message is not.
  */
 
 /**
@@ -48,6 +50,33 @@ export const OFFICE_LOG_KINDS = /** @type {const} */ ([
   'levelUp',
   'prop'
 ]);
+
+/**
+ * The log kinds whose *existence* is private to the two people in them.
+ *
+ * This module's header has always said a chat is bodiless — "what was said
+ * stays between you and them" (§ 11 DM privacy) — and that half was true. The
+ * other half was not: the line saying *that* you and somebody traded messages
+ * rode on every speaker's prompt, so Gary at his own desk could open with your
+ * thread with Gilfoyle as plainly as with the fridge. The body stayed private
+ * and the fact did not.
+ *
+ * Everything else the log records is public by an argument this file already
+ * made. A walk-by happens in an open-plan room; a pitch changed the diagram on
+ * your monitor; an errand is the whole floor knowing Linda outsources her
+ * difficult conversations; and an email *subject* is explicitly "what the
+ * office gossips about". A direct message is the one exchange on this floor
+ * with no witness, which is both why § 11 singles it out and why it is the only
+ * kind in this set.
+ *
+ * **A set of kinds, never a flag per entry.** Entitlement is a property of the
+ * channel, not of the sentence: a per-entry flag would let a writer forget one
+ * and leak by omission, and there are six of them
+ * (`officeLogStore.js`'s callers).
+ *
+ * @type {ReadonlySet<string>}
+ */
+export const OFFICE_LOG_PRIVATE_KINDS = Object.freeze(new Set(['chat']));
 
 /**
  * The floor props that leave a mark, keyed by prop kind.
@@ -204,7 +233,15 @@ function sentenceOf(entry) {
  * from the back would make it forget the thing that just happened, which reads
  * as broken rather than as human.
  *
+ * **Scoped before it is capped**, which is the half of this that is not about
+ * privacy: the caps run over what this audience may hear, so a morning of
+ * private threads with one colleague no longer pushes the room's own facts out
+ * of everybody else's memory. Withholding a line gives the budget back.
+ *
  * @param {Array<{at?: number, kind?: string, colleagueId?: string, detail?: string}> | null | undefined} entries
+ * @param {{audience?: string[] | string}} [options] `audience` is who the
+ *   digest is for — one speaker, or a whole room. Omit it for the unscoped
+ *   digest.
  * @returns {string[]} at most `OFFICE_LOG_DIGEST_MAX_LINES` lines, together no
  *   longer than `OFFICE_LOG_DIGEST_MAX_CHARS`.
  */
@@ -312,9 +349,36 @@ export function buildOfficeRelationship(entries, colleagueId) {
     .map((line) => clamp(line, OFFICE_LOG_LINE_MAX_CHARS));
 }
 
-export function buildOfficeLogDigest(entries) {
+/**
+ * Would this audience know about this entry?
+ *
+ * `audience` is the set of cast ids the digest is being rendered *for* — one
+ * speaker on `/moment`, and (once the ensemble senders can reach it) everybody
+ * in a room. An empty set means nobody has been named, and the answer is then
+ * the unscoped digest every caller got before this existed: a default that
+ * keeps the three ensemble surfaces byte-identical rather than silently
+ * narrowing a prompt no test here covers.
+ *
+ * A private entry survives for the person who was in it — they are the one
+ * character who may say "about those messages" — and for nobody else.
+ *
+ * @param {{kind?: string, colleagueId?: string}} entry
+ * @param {Set<string>} audience
+ * @returns {boolean}
+ */
+function audibleTo(entry, audience) {
+  if (audience.size === 0) return true;
+  if (!OFFICE_LOG_PRIVATE_KINDS.has(entry?.kind)) return true;
+  return audience.has(clamp(entry?.colleagueId, 40));
+}
+
+export function buildOfficeLogDigest(entries, { audience = [] } = {}) {
+  const heard = new Set(
+    (Array.isArray(audience) ? audience : [audience]).map((id) => clamp(id, 40)).filter(Boolean)
+  );
   const lines = [];
   for (const entry of entries ?? []) {
+    if (!audibleTo(entry, heard)) continue;
     const sentence = sentenceOf(entry);
     if (!sentence) continue;
     lines.push(clamp(`${clockOf(entry.at)} ${sentence}`, OFFICE_LOG_LINE_MAX_CHARS));

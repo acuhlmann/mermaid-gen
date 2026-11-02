@@ -50,6 +50,7 @@
  */
 
 import { formatLocale } from '../i18n/formatLocale.js';
+import { OFFICE_LOG_PRIVATE_KINDS } from './officeLogDigest.js';
 
 /**
  * Most notes the board ever carries.
@@ -99,14 +100,20 @@ const HEARD_KINDS = new Set(['run', 'pitch', 'meeting', 'huddle']);
 /**
  * Cast ids in the log, most recent first, deduped.
  *
+ * `kinds` narrows which entries count, and the two callers below want
+ * different answers from the same log — see `boardNotesFor`.
+ *
  * @param {Array<{kind?: string, colleagueId?: string}>} officeLog
+ * @param {((kind?: string) => boolean) | null} [eligible]
  * @returns {string[]}
  */
-function recentColleagues(officeLog) {
+function recentColleagues(officeLog, eligible = null) {
   /** @type {string[]} */
   const ids = [];
   for (let i = officeLog.length - 1; i >= 0; i -= 1) {
-    const id = officeLog[i]?.colleagueId;
+    const entry = officeLog[i];
+    if (eligible && !eligible(entry?.kind)) continue;
+    const id = entry?.colleagueId;
     if (typeof id === 'string' && id && !ids.includes(id)) ids.push(id);
   }
   return ids;
@@ -137,14 +144,21 @@ function openAuthors(bank, recent) {
  * is nothing to have misremembered, and with nobody in the log there is nobody
  * who could have heard about it. The office does not get to invent a witness.
  *
+ * Which is why the author comes from `witnesses` and not from `recent`: a
+ * direct message leaves no witness (`OFFICE_LOG_PRIVATE_KINDS`), so the last
+ * person you traded messages with is not somebody who could have heard about
+ * your diagram — and signing the room's most public surface with their name
+ * would make the whiteboard the thing that tells the floor you were talking to
+ * them. The board may be wrong about your work; it may not be a disclosure.
+ *
  * @param {{ bank: string, board: import('./officeFloorBoard.js').BoardState | null,
- *   officeLog: Array<{kind?: string, colleagueId?: string}>, recent: string[] }} params
+ *   officeLog: Array<{kind?: string, colleagueId?: string}>, witnesses: string[] }} params
  * @returns {BoardNote | null}
  */
-function heardNote({ bank, board, officeLog, recent }) {
+function heardNote({ bank, board, officeLog, witnesses }) {
   if (!bank || !board?.labels?.length) return null;
   if (!officeLog.some((entry) => HEARD_KINDS.has(entry?.kind))) return null;
-  const author = recent[0];
+  const author = witnesses[0];
   if (!author) return null;
   return {
     id: `heard:${author}`,
@@ -174,14 +188,22 @@ export function boardNotesFor({ officeLog = [], board = null, copy = null } = {}
   if (!copy) return [];
   const log = Array.isArray(officeLog) ? officeLog : [];
   const open = copy.open ?? {};
+  /*
+   * Two readings of the same log, and the difference is who is being served.
+   * `recent` is for *you*: whose handwriting is nearest the front, which is the
+   * reader's own recognition and discloses nothing — a private chat belongs in
+   * it. `witnesses` is for the room: who may be named on a public board, which
+   * a private chat does not qualify anybody for.
+   */
   const recent = recentColleagues(log);
+  const witnesses = recentColleagues(log, (kind) => !OFFICE_LOG_PRIVATE_KINDS.has(kind));
 
   /** @type {BoardNote[]} */
   const notes = copy.stale
     ? [{ id: 'stale', kind: 'stale', colleagueId: null, text: copy.stale }]
     : [];
 
-  const heard = heardNote({ bank: copy.heardAboutYours, board, officeLog: log, recent });
+  const heard = heardNote({ bank: copy.heardAboutYours, board, officeLog: log, witnesses });
   const room = Math.max(0, BOARD_MAX_NOTES - notes.length - (heard ? 1 : 0));
 
   for (const author of openAuthors(open, recent).slice(0, room)) {
