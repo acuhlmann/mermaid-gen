@@ -21,7 +21,7 @@
  * those are the ids every server prompt builder already speaks, so a line
  * lands as a reference rather than as a new proper noun to reconcile.
  *
- * **DM bodies never appear, and since slice 33 nor does the fact.** A chat
+ * **DM bodies never appear, and since 2026-11-02 nor does the fact.** A chat
  * logs that it happened and with whom, and that line is now handed only to the
  * person who was in it (`OFFICE_LOG_PRIVATE_KINDS`, `audience`). Email
  * subjects *are* included, which is the honest line rather than a lax one: in

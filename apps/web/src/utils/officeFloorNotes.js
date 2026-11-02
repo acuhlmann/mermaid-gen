@@ -100,8 +100,8 @@ const HEARD_KINDS = new Set(['run', 'pitch', 'meeting', 'huddle']);
 /**
  * Cast ids in the log, most recent first, deduped.
  *
- * `kinds` narrows which entries count, and the two callers below want
- * different answers from the same log — see `boardNotesFor`.
+ * `eligible` narrows which entries count, and the two readings in
+ * `boardNotesFor` want different answers from the same log.
  *
  * @param {Array<{kind?: string, colleagueId?: string}>} officeLog
  * @param {((kind?: string) => boolean) | null} [eligible]
