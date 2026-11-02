@@ -76,6 +76,7 @@ describe('the line itself', () => {
      * belongs to the name rather than to the sentence.
      */
     for (const bank of Object.values(copy.interrupt)) {
+      expect(bank.length, 'interrupt bank is empty — this proves nothing').toBeGreaterThan(0);
       for (const line of bank) {
         expect(line, line).not.toMatch(/\bthe \{prop\}/i);
       }

@@ -347,6 +347,9 @@ describe('fused composite group colorIndex', () => {
         GROUP_TINT_PLATE
       )
     );
+    // Coverage claim: an unpopulated tint list would pass the uniqueness check
+    // below while examining nothing.
+    expect(tints.length).toBe(groups.length);
     expect(new Set(tints).size).toBe(groups.length);
   });
 });

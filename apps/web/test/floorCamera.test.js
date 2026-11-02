@@ -175,7 +175,9 @@ describe('the boost table is the one tuning place', () => {
   });
 
   it('keeps every boost inside the ceiling', () => {
-    for (const boost of Object.values(CAMERA_BOOSTS)) {
+    const boosts = Object.values(CAMERA_BOOSTS);
+    expect(boosts.length, 'no camera boosts registered — this proves nothing').toBeGreaterThan(0);
+    for (const boost of boosts) {
       expect(cameraScaleFor(1.1, boost)).toBeLessThanOrEqual(CAMERA_MAX_SCALE);
     }
   });
