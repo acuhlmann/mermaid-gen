@@ -21,6 +21,7 @@ import {
   pushOfficeImReply
 } from '../state/officeMomentStore.js';
 import { threadTranscriptFor } from '../utils/officeImThreads.js';
+import { openTalkPartnersFrom, talkAnswererFrom } from '../utils/officeTalkAnswerer.js';
 import { hasWorkingMemoryFact } from '../state/officeWorkingMemoryStore.js';
 import {
   OFFICE_DESK_LLM_CAP,
@@ -504,7 +505,17 @@ export function useDeskActions(params) {
          walk-over is a walk-by, so it inherits the constraint along with the
          renderer. */
       const pool = shape === 'walkover' ? OFFICE_WALKBY_LLM_CAST : DESK_IM_CAST;
-      const target = colleagueId ?? pickRandomFrom(pool, random);
+      /* Undirected does not mean uniform. The composer's own word for this act
+         is that *somebody apt* answers, and until `officeTalkAnswerer.js` the
+         draw was a flat roll over the pool — so an answer to the colleague who
+         had just spoken to you reached them one time in sixteen, on the desk,
+         where this field is also the only way to reply to a line that landed
+         over your head. Anybody mid-conversation with you holds extra tickets;
+         the thumb is deliberately not a gate, because the target chip beside
+         this field is the act that *is* certain (see that module's header). */
+      const target =
+        colleagueId ??
+        talkAnswererFrom(pool, openTalkPartnersFrom(getOfficeSnapshot().imHistory), random);
       if (!target) return { ok: false, colleagueId: null, shape: null };
 
       // Your line lands before theirs, attributed to whoever answers — shared
