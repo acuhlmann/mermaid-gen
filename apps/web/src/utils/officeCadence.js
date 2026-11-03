@@ -459,6 +459,55 @@ export const OFFICE_PROP_NEWS_WINDOW_MS = 120_000;
 export const OFFICE_AMBIENT_FAMILIAR_TICKETS = 1;
 
 /**
+ * How long a spoken exchange stays *open* — the window inside which the person
+ * who last said something to you is still the likeliest to field your next
+ * undirected line (`openTalkPartnersFrom` in `officeTalkAnswerer.js`).
+ *
+ * **Why the dial is here and the derivation is not.** The same split the two
+ * entries above make: cadence owns *when* and *how much*, the content module
+ * owns *who*. `officeTalkAnswerer.js` reads `imHistory` and decides whose
+ * conversation is open; this file decides only how long "just now" lasts.
+ *
+ * **Ninety seconds, and the turn cost is the argument.** One turn of the talk
+ * channel is their delay plus a model round trip (`TALK_WALKOVER_DELAY_MIN_MS`
+ * 1.1–2.4 s, `TALK_SILENCE_DELAY_MIN_MS` 0.9–1.6 s, a few seconds of reply)
+ * plus the ten or twenty it takes you to read a line and type an answer — so
+ * ninety seconds covers a handful of turns, which is the same "reads as a
+ * handful of events" test `OFFICE_PROP_NEWS_WINDOW_MS` is sized by. Shorter and
+ * a reply typed at an ordinary pace falls outside the exchange it answers.
+ * Longer and it stops being an exchange: a dwell remark you never answered
+ * would keep steering the room for the rest of the visit, which is a standing
+ * preference wearing a reaction's clothes. The window *is* the decay, which is
+ * why this thumb needs no second table.
+ */
+export const OFFICE_TALK_OPEN_WINDOW_MS = 90_000;
+
+/**
+ * How much harder the room leans on whoever you are mid-conversation with when
+ * an undirected line needs an answerer — extra lottery tickets, same shape as
+ * `OFFICE_AMBIENT_FAMILIAR_TICKETS` above and a different fact behind it.
+ *
+ * **Three, because this thumb may be heavier than the ambient one and still
+ * must not capture the act.** A cold open happens every few minutes for a whole
+ * visit, so its bias is kept to one ticket; an open conversation closes itself
+ * in ninety seconds, so a stronger lean cannot turn the office into a one-person
+ * show. Three extra entries make an open partner four times as likely as any
+ * single colleague — 6.3% to 21% of the sixteen-name directory a shout draws
+ * from, 14% to 40% of the seven who can walk over — which is "usually somebody,
+ * often them".
+ *
+ * **It stops there on purpose.** `DeskTalkComposer` has two acts in one field,
+ * and the only thing separating them is whether a target chip is set: directed
+ * always answers, undirected is the room. A ticket count big enough to make the
+ * last speaker the favourite would collapse the two and make the chip
+ * decorative. Certainty is a button, not a dial.
+ *
+ * `0` is the uniform draw this office shipped with, so the rollback is this
+ * constant rather than a revert.
+ */
+export const OFFICE_TALK_OPEN_TICKETS = 3;
+
+/**
  * How full the room is, 0 (a dark building) to 1 (the office at full tilt) —
  * the third thing on this floor that the clock decides, and the first one the
  * soundscape asks about.

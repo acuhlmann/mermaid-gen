@@ -797,6 +797,18 @@ test:floor`; the floor test map is [`docs/agents/isometric-floor-tests.md`](../.
   (`officeFloorNotes.js`: `witnesses` for who may be named on a public board, `recent` for whose
   handwriting you recognise). Scoping runs **before** the caps, so a withheld line gives its budget
   back.
+- **Saying something to the room did not know who you were talking to.** `talkOutLoud`
+  (`useDeskActions.js`) drew its answerer with a flat `pickRandomFrom` over the pool, so an answer to
+  the colleague who had just spoken to you reached them **one time in sixteen** — and on the desk the
+  undirected composer is the only reply affordance there is. `openTalkPartnersFrom` /
+  `talkAnswererFrom` (`apps/web/src/utils/officeTalkAnswerer.js`) give anybody mid-conversation with
+  you extra tickets in the same draw: dials `OFFICE_TALK_OPEN_WINDOW_MS` (90 s) and
+  `OFFICE_TALK_OPEN_TICKETS` (3) in `officeCadence.js`. Three gates decide who counts as open —
+  **spoken only** (`isSpokenLine`; a restored session's `imHistory` is _entirely_ typed), **inbound
+  only** (your own line is stored under whoever the roll picked, including on the `ignored` shape, so
+  counting it would let a coin flip that ignored you become your partner) and **the window** (the
+  window is the decay, so the thumb needs no second table). A **thumb, not a gate**: the composer has
+  two acts in one field and the target chip is the certain one.
 
 ## Full findings
 
@@ -1904,3 +1916,64 @@ snapshot.battle}` the way the coffee one already did, or a declined scene re-ren
     recognition and attributes nothing, which is why `officeFloorProps.test.jsx`'s "puts the
     handwriting you recognise at the front" stays green **untouched** while the new case next to it
     went red before the fix.
+
+- **Who answers when you say something out loud and name nobody** (`officeTalkAnswerer.js`, the
+  undirected lane of `DeskTalkComposer`). The composer's own doc has always said this act is the one
+  where _"someone apt answers"_, and nothing made anybody apt: `talkOutLoud` rolled
+  `pickRandomFrom` over `DESK_IM_CAST` (the whole 16-name directory, for a shout) or
+  `OFFICE_WALKBY_LLM_CAST` (7, for a walk-over). **Measured over 2 000 synthetic sessions × 4
+  undirected lines, with the real `pickTalkAnswer` deciding the shape**: a line answering the
+  colleague who had just spoken to you reached them **5.5% → 14.1%** overall (shout 6.5% → 17.6%,
+  walk-over 6.5% → 14.9%, `ignored` 0% either way because nobody answers), and the reading that
+  matters more — **the exchange holds**, i.e. the next line goes back to whoever answered the last
+  one — **7.2% → 18.7%**. A four-turn conversation used to re-cast its partner on nineteen lines in
+  twenty.
+  - **Three gates decide who counts as "open", and each one is a defect avoided rather than a
+    tidy-up.** _Spoken only_ (`isSpokenLine`, imported rather than re-spelled): a typed Slop Chat™
+    thread is not a conversation the room can hear, and `persistImHistory` keeps typed lines while
+    dropping talk, so after a reload `imHistory` is **entirely** typed — a consumer without the
+    predicate would not weaken the feature, it would invert it. _Inbound only_: your own line is
+    written to `imHistory` attributed to whoever the roll just picked, **including on the `ignored`
+    shape where nobody answered at all**, so counting outbound lines would let one coin flip
+    bootstrap itself into a partner for the rest of the window. _A window_
+    (`OFFICE_TALK_OPEN_WINDOW_MS`, 90 s, asserted against `OFFICE_PROP_NEWS_WINDOW_MS` rather than a
+    bare number): an exchange you walked away from is over, and the window is what keeps this a
+    reaction instead of a standing bias — which is also why the thumb needs no decay table.
+  - **One draw, two facts, two dials.** `talkAnswererFrom` delegates to `ambientSpeakerFrom`, so the
+    office has exactly one weighted-draw implementation and inherits its properties for free (nobody
+    reaches zero, a weight cannot dominate, duplicate cast entries stay meaningful, and an ineligible
+    id gets no tickets — a senior you were talking to can shout from the glass room but cannot be
+    walked over, which the 43%-eligible column in the sweep shows working). What is **not** shared is
+    the reason: familiarity today is the ambient director's fact, and "we are mid-sentence" is this
+    one's. Somebody who heard you is not somebody the room sent.
+  - **A thumb, not a gate, and the composer is the argument.** `DeskTalkComposer` has two acts in one
+    field separated only by whether a target chip is set — directed always answers, undirected is the
+    room. A ticket count big enough to make the last speaker the favourite collapses the two and
+    makes the chip decoration, so the dial stops at four times any one stranger (21% of the sixteen,
+    40% of the seven) and the test pins `< 0.5` deliberately. **Certainty is a button, not a dial.**
+  - **The scripted visit is blind to this by subject, and its own report says so.** Step 7 types into
+    the **floor talk card**, which carries a `colleagueId` — so all three traces show `talk: 1`
+    answered by the colleague the card named, and the undirected path the slice changes is never
+    walked. That is 2026-09-09's shape (the visit's subject does not contain the slice) and not
+    2026-09-06's (a report missing an axis), so the sweep is the measurement and the traces stay the
+    regression check. The desk composer is a desk-mode surface and the visit is spent entirely on the
+    floor; a step for it would be an eighth step, which the harness forbids.
+  - **A sweep whose simulated exchange continues makes every control arm non-zero, and that is a
+    reading rather than noise.** The four control arms (typed-only, outbound-only, outside-window,
+    nothing-at-all) all sit at **5.5% → 5.5%** on the primed metric — 436 → 438 of 8 000, a drift of
+    0.03% — because the thumb favours the conversation you are **actually** in, which in those arms
+    is whoever answered your first line rather than the colleague the arm primed. Those same arms
+    move 7.3% → 21.2% on the continuity metric. A control that reads _exactly_ zero movement would
+    have meant the simulated room stopped answering.
+  - **Reverting the dial and reverting the wiring prove different things, so take the red in both
+    directions.** `OFFICE_TALK_OPEN_TICKETS = 0` reddens 3 cases (the two dial assertions and the
+    end-to-end one) and leaves every control green, which discharges "0 is the old uniform draw"
+    instead of asserting it. Putting `pickRandomFrom` back in `useDeskActions.js` while leaving the
+    module and the dials in place reddens **exactly one** — the end-to-end case — which is the
+    sensor that `battle-decline-was-a-dismiss` cost a slice for want of: a pure module can be
+    perfect and unwired, and only a case that goes through the verb can tell.
+  - **An exact-count assertion needs `N` divisible by _every_ pool it runs against.** The companion
+    to the 1320 finding above: here the counts run over a 16-pool and a 19-pool, and the test
+    computes `N` as their lcm × 10 from the constants themselves rather than hard-coding a number, so
+    re-tuning `OFFICE_TALK_OPEN_TICKETS` cannot turn an exact assertion into a rounding failure.
+    `(i + 0.5) / n` with `floor(r * poolLength)` buckets exactly when the pool divides `n`.

@@ -25,6 +25,8 @@ import {
   OFFICE_MIN_GAP_MS,
   OFFICE_AMBIENT_FAMILIAR_TICKETS,
   OFFICE_PROP_NEWS_WINDOW_MS,
+  OFFICE_TALK_OPEN_TICKETS,
+  OFFICE_TALK_OPEN_WINDOW_MS,
   OFFICE_SENIOR_EMAILS_PER_SESSION,
   OFFICE_SESSION_MOMENT_CAP,
   OFFICE_DAY_PHASES,
@@ -485,6 +487,40 @@ describe('what the room does when you say something out loud', () => {
     // …and the roll still spans the shapes that remain, rather than collapsing
     // to one — a gate that quietly silenced the room would pass a `not.toContain`.
     expect(new Set(shapesOf(rolls, { hasDiagram: false }))).toEqual(new Set(['shout', 'ignored']));
+  });
+
+  /*
+   * The two dials behind *who* answers an undirected line
+   * (`officeTalkAnswerer.js` does the drawing; this file owns the numbers).
+   *
+   * Both bounds are the design. The window has to outlast the time it takes to
+   * read a line and type an answer, or a reply at an ordinary pace falls
+   * outside the exchange it answers; and it has to stay well short of the
+   * office log's day, or an exchange you walked away from keeps steering the
+   * room — the same "reaction, not a standing bias" test the prop-news window
+   * is sized by, which is why it is asserted against that constant rather than
+   * against a bare number.
+   */
+  it('keeps a spoken exchange open for a handful of turns, and no longer', () => {
+    expect(OFFICE_TALK_OPEN_WINDOW_MS).toBeGreaterThan(30_000);
+    expect(OFFICE_TALK_OPEN_WINDOW_MS).toBeLessThanOrEqual(OFFICE_PROP_NEWS_WINDOW_MS);
+  });
+
+  /*
+   * And the ticket count, bounded on both sides for different reasons. Above
+   * zero, or a reply to the person who just spoke to you is the uniform draw
+   * this channel shipped with; below the pool size, because `DeskTalkComposer`
+   * has two acts in one field and the only thing separating them is the target
+   * chip. A thumb heavy enough to make the last speaker the favourite collapses
+   * the undirected act into the directed one and makes the chip decoration.
+   */
+  it('leans on the conversation you are in without capturing it', () => {
+    expect(OFFICE_TALK_OPEN_TICKETS).toBeGreaterThan(OFFICE_AMBIENT_FAMILIAR_TICKETS);
+    const thinnestPool = OFFICE_WALKBY_LLM_CAST.length;
+    const openShare = (1 + OFFICE_TALK_OPEN_TICKETS) / (thinnestPool + OFFICE_TALK_OPEN_TICKETS);
+    expect(openShare).toBeLessThan(0.5);
+    // …and still worth noticing: several times any one stranger's share.
+    expect(openShare).toBeGreaterThan(2 / thinnestPool);
   });
 });
 
