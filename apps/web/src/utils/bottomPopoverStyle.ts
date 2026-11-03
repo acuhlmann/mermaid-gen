@@ -1,3 +1,5 @@
+import type { CSSProperties } from 'react';
+
 /** Viewport-safe fixed positioning for bottom-row popovers anchored to a trigger. */
 
 const DEFAULT_GAP_PX = 7;
@@ -5,18 +7,18 @@ const DEFAULT_SAFE_INSET_PX = 8;
 const DEFAULT_MAX_WIDTH_PX = 280;
 const DEFAULT_MIN_WIDTH_PX = 200;
 
-/**
- * @param {DOMRect} anchorRect
- * @param {{
- *   gapPx?: number;
- *   safeInsetPx?: number;
- *   maxWidthPx?: number;
- *   minWidthPx?: number;
- *   align?: 'left' | 'center';
- * }} [options]
- * @returns {import('react').CSSProperties}
- */
-export function computeBottomLeftPopoverStyle(anchorRect, options = {}) {
+export type BottomLeftPopoverStyleOptions = {
+  gapPx?: number;
+  safeInsetPx?: number;
+  maxWidthPx?: number;
+  minWidthPx?: number;
+  align?: 'left' | 'center';
+};
+
+export function computeBottomLeftPopoverStyle(
+  anchorRect: DOMRect,
+  options: BottomLeftPopoverStyleOptions = {}
+): CSSProperties {
   const gapPx = options.gapPx ?? DEFAULT_GAP_PX;
   const safeInsetPx = options.safeInsetPx ?? DEFAULT_SAFE_INSET_PX;
   const maxWidthPx = options.maxWidthPx ?? DEFAULT_MAX_WIDTH_PX;

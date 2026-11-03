@@ -23,6 +23,8 @@
     "src/state/applyAgentStreamInsightEvent.ts",
     "src/utils/agentStreamFailureStatus.ts",
     "src/utils/appConstants.ts",
+    "src/utils/appStreamDebug.ts",
+    "src/utils/bottomPopoverStyle.ts",
     "src/utils/appToolLabels.ts",
     "src/utils/castTiers.ts",
     "src/utils/appReadySignal.ts",
