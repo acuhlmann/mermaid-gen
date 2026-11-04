@@ -78,6 +78,7 @@ import { liveTileOf, prefersReducedMotion } from './useWalkAnimation.js';
 import { seatFor } from '../../utils/officeFloorPlan.js';
 import { sameTile } from '../../utils/officeFloorMovement.js';
 import {
+  unfinishedErrandFrom,
   wanderNewsFrom,
   wanderTripWeight,
   wanderTripsFor,
@@ -85,6 +86,7 @@ import {
 } from '../../utils/officeFloorWander.js';
 import { wanderBiasAt } from '../../utils/officeCadence.js';
 import { getOfficeLogSnapshot } from '../../state/officeLogStore.js';
+import { getWorkingMemoryWith } from '../../state/officeWorkingMemoryStore.js';
 import { propHandsFor } from '../../utils/officeFloorProps.js';
 import { interruptionFor } from '../../utils/officeFloorInterrupt.js';
 
@@ -119,8 +121,8 @@ function pick(list) {
 }
 
 /**
- * Where they are heading, with three thumbs on the scale: the hour's
- * (slice 24), their own, and yours.
+ * Where they are heading, with four thumbs on the scale: the hour's
+ * (slice 24), their own, yours, and whatever you owe them.
  *
  * **One `Math.random()` whatever applies**, which is not an optimisation — it
  * is the property that keeps this change invisible to every suite that mounts
@@ -133,16 +135,16 @@ function pick(list) {
  * it was safe to remove — with no bias and no habit every share is 1, so the
  * list is `options` and the single roll lands where it always did.
  *
- * A multiplier rather than a schedule, on all three dials: somebody whose
+ * A multiplier rather than a schedule, on all four dials: somebody whose
  * errands do not include the favoured prop is picked from exactly as before,
- * and `wanderTripWeight` takes the largest of the three rather than their
- * product so that an hour, a habit and a prop you just used pulling the same
- * way cannot compound into a rota.
+ * and `wanderTripWeight` takes the largest of the four rather than their
+ * product so that an hour, a habit, a prop you just used and an errand you
+ * ruined pulling the same way cannot compound into a rota.
  */
-function pickTrip(seatId, options, bias, news) {
+function pickTrip(seatId, options, bias, news, owed) {
   const weighted = [];
   for (const trip of options) {
-    const share = wanderTripWeight(seatId, trip.kind, bias, news);
+    const share = wanderTripWeight(seatId, trip.kind, bias, news, owed);
     for (let copy = 0; copy < share; copy += 1) weighted.push(trip);
   }
   return pick(weighted);
@@ -204,12 +206,21 @@ function departure(busy, avoid) {
    * repaint the room every time anything was recorded, which is the one thing
    * the floor may not do. Sampling it on the edge that already exists costs a
    * single array read per errand and keeps the store out of the render path.
+   *
+   * What you did to *this* colleague is the fourth read and obeys the same
+   * rule, with one difference worth naming: it is asked **after** the walker is
+   * drawn, because it is a fact about them rather than about the room, and
+   * `getWorkingMemoryWith` is a map lookup for one id rather than a scan of
+   * everybody. Who gets up is still a uniform draw over whoever is free — being
+   * owed an errand changes where somebody goes, never how often they rise,
+   * which keeps the whole thing a destination and not a summons.
    */
   const { kind, mark } = pickTrip(
     seatId,
     options,
     wanderBiasAt(),
-    wanderNewsFrom(getOfficeLogSnapshot())
+    wanderNewsFrom(getOfficeLogSnapshot()),
+    unfinishedErrandFrom(getWorkingMemoryWith(seatId)?.beats)
   );
   const seat = seatFor(seatId);
   return {

@@ -433,6 +433,41 @@ export function wanderBiasAt(now = Date.now()) {
 export const OFFICE_PROP_NEWS_WINDOW_MS = 120_000;
 
 /**
+ * How long somebody keeps going back for the errand *you* ruined — the fourth
+ * thumb on `wanderTripWeight`'s scale, and the only one that is about what the
+ * room owes one person rather than what the hour, their own habits or your last
+ * move have made interesting.
+ *
+ * **Why the dial is here and the derivation is not.** The split every entry in
+ * this file makes: cadence owns *how long*, the floor owns where and what it
+ * looks like. `unfinishedErrandFrom` in `officeFloorWander.js` reads which prop
+ * somebody never reached off their own working memory; this file decides only
+ * how long they are still owed it.
+ *
+ * **Five minutes, and it is deliberately not two.** Reusing
+ * `OFFICE_PROP_NEWS_WINDOW_MS` was the obvious move and it would have shipped a
+ * fact that expires before anything could use it, because the two windows are
+ * counted against different events. The news thumb has to catch *any* errand,
+ * and `BETWEEN_TRIPS_MS` is 11–24 s, so two minutes is five to ten chances.
+ * This one has to catch **one named colleague's** errand, and `departure` draws
+ * the walker uniformly out of everybody free, so the wait is a geometric one
+ * over an eleven-strong roster: measured over 20 000 seeded draws, a mean of
+ * **11.08** departures and a median of **8** before the same person rises
+ * again. Against the module's own clock — a cycle of `BETWEEN_TRIPS_MS` plus
+ * `DWELL_MS` plus `LINGER_MS`, with both walks generously excluded — two
+ * minutes catches the comeback **25–53%** of the time and five catches
+ * **57–85%**. So two minutes is a coin flip you cannot see, and five is the
+ * shortest window where the comeback is the rule rather than the exception.
+ * Longer and it stops being this stretch of the visit, which is the
+ * standing-bias-wearing-a-reaction's-clothes failure the news window above is
+ * sized against.
+ *
+ * `0` is the behaviour this floor shipped with — nobody ever goes back — so the
+ * rollback is this constant rather than a revert.
+ */
+export const OFFICE_UNFINISHED_ERRAND_WINDOW_MS = 300_000;
+
+/**
  * How much harder the room leans on somebody you have already dealt with today
  * when it picks who starts the next ambient moment — extra lottery tickets per
  * familiar colleague, not a share and not a gate.

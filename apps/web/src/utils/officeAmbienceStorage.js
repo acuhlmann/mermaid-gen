@@ -624,6 +624,21 @@ export function normalizeWorkingMemoryBeat(beat, at) {
   if (beat.inviteDeclined === true) next.inviteDeclined = true;
   if (OFFICE_WORKING_MEMORY_INTERRUPTIONS.includes(beat.interrupted)) {
     next.interrupted = beat.interrupted;
+    /*
+     * Which errand it was, and only ever beside the interruption that ruined
+     * it: a prop on its own says nothing happened to anybody.
+     *
+     * **A bounded slug rather than an enum, deliberately.** Every other
+     * constrained field here checks membership of a list this module owns, and
+     * a list of prop kinds is the one thing it must not own — `usablePropKinds()`
+     * is the floor's answer and a copy of it here would drift the first time a
+     * prop is added or made unreachable. So storage bounds the *shape* and the
+     * consumer refuses the *value*: `unfinishedErrandFrom` drops any kind the
+     * room can no longer give anybody a mark for, which is the same refusal
+     * `wanderNewsFrom` already makes about a prop kind read back off the log.
+     */
+    const prop = typeof beat.interruptedProp === 'string' ? beat.interruptedProp.trim() : '';
+    if (prop && prop.length <= 32 && /^[a-zA-Z]+$/.test(prop)) next.interruptedProp = prop;
   }
   if (OFFICE_WORKING_MEMORY_SCENE_DECLINES.includes(beat.sceneDeclined)) {
     next.sceneDeclined = beat.sceneDeclined;
