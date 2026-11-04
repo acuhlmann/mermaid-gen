@@ -11,6 +11,7 @@ new tools here instead of growing the hub file.
 | `registerGetSessionBootstrap.js` | `get_session_bootstrap`                                                                        |
 | `registerOpenSessionPairing.js`  | `open_session_pairing`                                                                         |
 | `registerAgentHandshakeTools.js` | `register_agent`, `get_handshake_status`, `subscribe_session_events`, `wait_for_session_event` |
+| `registerDiagramSessionTools.js` | `get_session_state`, `open_diagram_canvas`, `propose_diagram_edit`                             |
 | `registerHumanOnlyAppTools.js`   | `resolve_handshake`, `resolve_proposal`, `request_proposal_changes`, `request_critique_fix`    |
 
 Shared binding JSON lives in `apps/server/src/mcp/mcpBindingSnapshot.js`.
