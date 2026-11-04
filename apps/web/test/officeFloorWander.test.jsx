@@ -8,16 +8,21 @@ import { officeChromeCopy } from '../src/utils/officeCast.js';
 import { OFFICE_FLOOR_TEST_MIDDAY, renderFloor } from './helpers/officeFloorTestUtils.jsx';
 import {
   _resetWanderHabitsForTests,
+  unfinishedErrandFrom,
   wanderHabitFor,
   wanderNewsFrom,
   wanderTripWeight,
   wanderTripsFor,
   wanderingSeatIds
 } from '../src/utils/officeFloorWander.js';
+import { useFloorInterruptMemory } from '../src/components/officeFloor/useFloorInterruptMemory.js';
 import { deskDoingFor } from '../src/utils/officeFloorActivity.js';
 import { approachTileFor, propTileFor, usablePropKinds } from '../src/utils/officeFloorMovement.js';
 import { propHandsFor, propUseFor } from '../src/utils/officeFloorProps.js';
-import { OFFICE_PROP_NEWS_WINDOW_MS } from '../src/utils/officeCadence.js';
+import {
+  OFFICE_PROP_NEWS_WINDOW_MS,
+  OFFICE_UNFINISHED_ERRAND_WINDOW_MS
+} from '../src/utils/officeCadence.js';
 import { _resetOfficeLogForTests, recordOfficeLogEntry } from '../src/state/officeLogStore.js';
 import { interruptSpeech } from '../src/utils/officeFloorInterrupt.js';
 import {
@@ -34,6 +39,7 @@ import {
   _resetOfficeWorkingMemoryForTests,
   getWorkingMemoryWith,
   hasWorkingMemoryFact,
+  rememberWorkingMemoryBeat,
   workingMemoryPromptLines
 } from '../src/state/officeWorkingMemoryStore.js';
 
@@ -1515,6 +1521,22 @@ describe('walking into somebody else s errand, on a real floor', () => {
     expect(lines).toContain(`they said: ${drawn.text}`);
   });
 
+  it('remembers which errand it was, not only that there was one', () => {
+    /*
+     * The field `unfinishedErrandFrom` reads. It is written on both reactions
+     * on purpose: `gotIt` is what lets a finished trip *cancel* an earlier
+     * ruined one, so the newest errand beat is always the current answer.
+     * Nothing is owed here — Chad had already used the board.
+     */
+    interruptChad();
+    act(() => vi.advanceTimersByTime(1_800));
+
+    const [beat] = getWorkingMemoryWith(CHAD).beats;
+    expect(beat.interrupted).toBe('gotIt');
+    expect(beat.interruptedProp).toBe('whiteboard');
+    expect(unfinishedErrandFrom([beat])).toBeNull();
+  });
+
   it('records it once, not once per render of the same interruption', () => {
     /*
      * `interrupted` is set on the tick the trip turns round and survives into
@@ -1542,5 +1564,323 @@ describe('walking into somebody else s errand, on a real floor', () => {
 
     expect(wanderer).toBeTruthy();
     expect(hasWorkingMemoryFact(wanderer)).toBe(false);
+  });
+});
+
+/**
+ * The errand you ruined (`docs/automations/office-life.md` queue 1 family —
+ * question 1, "afterwards", and question 2, "because of me").
+ *
+ * The fourth claimant on the same pick, and the first one that is about a
+ * **person**: the hour pulls everybody, a habit is a constant of somebody's
+ * character, your last prop use is news about a place — and this is one named
+ * colleague going back for the coffee your elbow cost them.
+ *
+ * Two halves, for the reason the three describes above give: the derivation is
+ * a pure read of memory the room already keeps, and the *effect* is a
+ * distribution through the hook, because one trip proves nothing.
+ */
+describe('the errand you ruined', () => {
+  /** A fixed instant to hang the window arithmetic off, so no case reads a real clock. */
+  const NOW = 1_700_000_000_000;
+
+  const beatOf = (over = {}) => [
+    { at: NOW, interrupted: 'gaveUp', interruptedProp: 'printer', ...over }
+  ];
+
+  describe('is read off the memory the room already keeps', () => {
+    it('sends them back for every prop the floor can mark, kitchen included', () => {
+      /*
+       * The companion non-empty assertion, and a real difference from the news
+       * thumb in the same breath: news is recorded only for a prop with no
+       * verb, so the coffee machine can never be news — but an errand *to* the
+       * machine is exactly the one this slice was written about, and the beat
+       * carries the trip's own prop rather than a log entry.
+       */
+      expect(usablePropKinds().length).toBeGreaterThan(0);
+      expect(usablePropKinds()).toContain('coffeeMachine');
+      for (const kind of usablePropKinds()) {
+        expect(unfinishedErrandFrom(beatOf({ interruptedProp: kind }), NOW), kind).toEqual({
+          kind,
+          weight: 3
+        });
+      }
+    });
+
+    it('earns nothing when they had finished and stepped aside', () => {
+      // `gotIt` is the polite beat: they were done, so there is nothing to go
+      // back for. Only a ruined errand is owed.
+      expect(unfinishedErrandFrom(beatOf({ interrupted: 'gotIt' }), NOW)).toBeNull();
+    });
+
+    it('stops being owed after the window, so a grievance does not last all day', () => {
+      // The boundary either side, not a comfortable middle: working memory is
+      // day-scoped and persisted, so the window is the only decay there is.
+      expect(
+        unfinishedErrandFrom(beatOf({ at: NOW - OFFICE_UNFINISHED_ERRAND_WINDOW_MS + 1 }), NOW)
+      ).toEqual({ kind: 'printer', weight: 3 });
+      expect(
+        unfinishedErrandFrom(beatOf({ at: NOW - OFFICE_UNFINISHED_ERRAND_WINDOW_MS }), NOW)
+      ).toBeNull();
+    });
+
+    it('is cancelled by a later errand they did finish', () => {
+      /*
+       * Why the scan looks for the newest beat that names an *errand* and then
+       * reads its reaction, rather than for the newest `gaveUp`. Testing the
+       * latter would send somebody back for a coffee they have since had, which
+       * is the room remembering harder than the office did.
+       */
+      const beats = [
+        { at: NOW - 60_000, interrupted: 'gaveUp', interruptedProp: 'printer' },
+        { at: NOW - 5_000, interrupted: 'gotIt', interruptedProp: 'coffeeMachine' }
+      ];
+      expect(unfinishedErrandFrom(beats, NOW)).toBeNull();
+    });
+
+    it('survives an ordinary exchange landing on top of it', () => {
+      /*
+       * The pair of the case above. A beat that is not about an errand says
+       * nothing about whether they got their coffee, so talking to somebody
+       * afterwards must not settle the debt — only another errand can.
+       */
+      const beats = [
+        { at: NOW - 60_000, interrupted: 'gaveUp', interruptedProp: 'printer' },
+        { at: NOW - 5_000, theirs: 'Fine. What.' }
+      ];
+      expect(unfinishedErrandFrom(beats, NOW)).toEqual({ kind: 'printer', weight: 3 });
+    });
+
+    it('refuses anything that is not somewhere a person can be sent', () => {
+      expect(unfinishedErrandFrom([], NOW)).toBeNull();
+      expect(unfinishedErrandFrom(null, NOW)).toBeNull();
+      // An interruption with no errand named — every beat written before this
+      // slice, which must read as "nothing owed" rather than as a crash.
+      expect(unfinishedErrandFrom([{ at: NOW, interrupted: 'gaveUp' }], NOW)).toBeNull();
+      // A kind the room can no longer give anybody a mark for. The storage
+      // layer bounds the field's shape and this is where its value is refused,
+      // which is why no copy of the prop list lives beside the sanitizer.
+      expect(unfinishedErrandFrom(beatOf({ interruptedProp: 'teleporter' }), NOW)).toBeNull();
+    });
+
+    it('comes back through the store the floor actually writes to', () => {
+      /*
+       * The reader against the writer, with the real sanitizer in between: a
+       * pure derivation can be perfect and still be fed a field the store
+       * drops. Both refusals are the sanitizer's, and both are asserted from
+       * the floor's side rather than against `normalizeWorkingMemoryBeat`.
+       */
+      rememberWorkingMemoryBeat('dinesh', { interrupted: 'gaveUp', interruptedProp: 'printer' });
+      expect(unfinishedErrandFrom(getWorkingMemoryWith('dinesh').beats)).toEqual({
+        kind: 'printer',
+        weight: 3
+      });
+
+      // A prop with no interruption beside it is not a fact about anybody.
+      rememberWorkingMemoryBeat('russ', { theirs: 'Hm.', interruptedProp: 'printer' });
+      expect(getWorkingMemoryWith('russ').beats[0].interruptedProp).toBeUndefined();
+
+      // And the shape guard, which is what lets the consumer own the list.
+      rememberWorkingMemoryBeat('richard', {
+        interrupted: 'gaveUp',
+        interruptedProp: '../../etc/passwd'
+      });
+      expect(getWorkingMemoryWith('richard').beats[0].interruptedProp).toBeUndefined();
+      expect(unfinishedErrandFrom(getWorkingMemoryWith('richard').beats)).toBeNull();
+    });
+
+    it('weighs exactly what the other three thumbs weigh, so none can dominate', () => {
+      /*
+       * `wanderTripWeight` is a `Math.max`, so a bigger number here would not
+       * be a stronger pull — it would be a strictly dominant one, marching the
+       * person you interrupted to that prop and nowhere else. Equal weights
+       * make the four claimants peers: being owed an errand pulls the half of
+       * the roster with no habit and merely ties for the rest.
+       */
+      const habitual = wanderingSeatIds().find((id) => wanderHabitFor(id) !== null);
+      expect(habitual, 'nobody has a habit — this case needs one').toBeTruthy();
+      const habit = wanderHabitFor(habitual);
+      const owed = unfinishedErrandFrom(beatOf(), NOW);
+      expect(owed.weight).toBe(habit.weight);
+      expect(owed.weight).toBe(
+        wanderNewsFrom([{ at: NOW, kind: 'prop', detail: 'printer' }], NOW).weight
+      );
+
+      // Their own habit survives being owed something else, and the two
+      // together cannot compound past either one of them.
+      expect(wanderTripWeight(habitual, habit.kind, null, null, owed)).toBe(habit.weight);
+      const slump = { kind: 'coffeeMachine', weight: 3 };
+      expect(wanderTripWeight(habitual, habit.kind, slump, null, owed)).toBe(habit.weight);
+    });
+  });
+
+  describe('shows up in where they actually go', () => {
+    /** The prop this describe owes somebody, and two colleagues who can reach it. */
+    const OWED_PROP = 'printer';
+    const CHOOSY = wanderingSeatIds().find((id) => {
+      const kinds = wanderTripsFor(id).map((t) => t.kind);
+      return kinds.includes(OWED_PROP) && kinds.length > 1 && wanderHabitFor(id) === null;
+    });
+    const BYSTANDER = wanderingSeatIds().find((id) => {
+      const kinds = wanderTripsFor(id).map((t) => t.kind);
+      return (
+        id !== CHOOSY &&
+        kinds.includes(OWED_PROP) &&
+        kinds.length > 1 &&
+        wanderHabitFor(id) === null
+      );
+    });
+
+    /** Eleven in the morning: outside the slump, so the hour's thumb is off the scale. */
+    const QUIET_HOUR = 11;
+
+    /** @param {{ seatId: string, owes?: string | null, ageMs?: number, runs?: number }} opts */
+    function tripsOwing({ seatId, owes = null, ageMs = 0, runs = 200 }) {
+      return tripsFor({
+        seatId,
+        hour: QUIET_HOUR,
+        seed: 11,
+        runs,
+        prepare: () => {
+          _resetOfficeWorkingMemoryForTests();
+          if (owes) {
+            rememberWorkingMemoryBeat(owes.seatId, {
+              interrupted: 'gaveUp',
+              interruptedProp: owes.prop,
+              now: Date.now() - ageMs
+            });
+          }
+        }
+      });
+    }
+
+    beforeEach(() => {
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+    });
+
+    it('has two colleagues with a real choice to make, or the rest is vacuous', () => {
+      expect(CHOOSY, `nobody can reach ${OWED_PROP} with a choice and no habit`).toBeTruthy();
+      expect(BYSTANDER, 'only one such colleague — the control case needs two').toBeTruthy();
+      expect(wanderTripsFor(CHOOSY).map((t) => t.kind)).toContain(OWED_PROP);
+    });
+
+    it('sends them back for what they never got', () => {
+      const cold = tripsOwing({ seatId: CHOOSY });
+      const owed = tripsOwing({ seatId: CHOOSY, owes: { seatId: CHOOSY, prop: OWED_PROP } });
+      expect(cold.length, 'no trips started at all').toBeGreaterThan(50);
+      expect(owed.length).toBeGreaterThan(50);
+
+      const share = (kinds) => shareOf(kinds, OWED_PROP);
+      // A bias, not a schedule: they still go elsewhere, and they went there
+      // sometimes before. Only the proportion moves.
+      expect(share(owed)).toBeGreaterThan(share(cold));
+      expect(share(owed)).toBeLessThan(1);
+      expect(share(cold)).toBeGreaterThan(0);
+    });
+
+    it('owes it to one person, not to the room', () => {
+      /*
+       * The control that makes this a fact about somebody rather than a second
+       * news thumb: the beat is written on `CHOOSY` and `BYSTANDER`'s errands
+       * are drawn from exactly the same distribution as when nobody was owed
+       * anything. A read that scanned the whole store instead of the walker's
+       * own row would pull both.
+       */
+      const cold = tripsOwing({ seatId: BYSTANDER });
+      const theirsNotMine = tripsOwing({
+        seatId: BYSTANDER,
+        owes: { seatId: CHOOSY, prop: OWED_PROP }
+      });
+      expect(cold.length).toBeGreaterThan(50);
+      expect(shareOf(theirsNotMine, OWED_PROP)).toBe(shareOf(cold, OWED_PROP));
+    });
+
+    it('forgets about it again once the window has passed', () => {
+      /*
+       * The window measured through the hook rather than against the pure
+       * function, for the news thumb's reason: what could break is the
+       * sampling, and a memory read hoisted out of the fire-time path would
+       * keep the first run's answer for the whole visit.
+       */
+      const stale = tripsOwing({
+        seatId: CHOOSY,
+        owes: { seatId: CHOOSY, prop: OWED_PROP },
+        ageMs: OFFICE_UNFINISHED_ERRAND_WINDOW_MS
+      });
+      expect(shareOf(stale, OWED_PROP)).toBe(shareOf(tripsOwing({ seatId: CHOOSY }), OWED_PROP));
+    });
+
+    it('costs the same number of randoms owed or not', () => {
+      /*
+       * Slice 23's rule, re-pinned for the fourth dial: the weighted list is
+       * longer for somebody who is owed an errand and the roll count is not, so
+       * a suite that mounts the floor without pinning the PRNG sees no
+       * difference at all.
+       */
+      const busyExceptChoosy = wanderingSeatIds().filter((id) => id !== CHOOSY);
+      const rolls = (owes) => {
+        _resetOfficeWorkingMemoryForTests();
+        const spy = vi.spyOn(Math, 'random');
+        vi.setSystemTime(new Date(2026, 7, 10, QUIET_HOUR, 15, 0, 0));
+        if (owes) {
+          rememberWorkingMemoryBeat(CHOOSY, {
+            interrupted: 'gaveUp',
+            interruptedProp: OWED_PROP
+          });
+        }
+        function Probe() {
+          useFloorWander({ busyIds: busyExceptChoosy });
+          return null;
+        }
+        const view = render(<Probe />);
+        act(() => vi.advanceTimersByTime(9_000));
+        const count = spy.mock.calls.length;
+        view.unmount();
+        spy.mockRestore();
+        return count;
+      };
+
+      const cold = rolls(false);
+      expect(cold, 'no randoms consumed — the trip never started').toBeGreaterThan(0);
+      expect(rolls(true)).toBe(cold);
+    });
+  });
+
+  describe('is written by the floor, end to end', () => {
+    beforeEach(() => {
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+    });
+
+    it('turns a ruined errand into somewhere they go back to', () => {
+      /*
+       * The whole chain with nothing stubbed in the middle: the line the room
+       * drew (`interruptSpeech`, carrying the trip's prop), the writer that
+       * files it (`useFloorInterruptMemory`), the store's sanitizer, and the
+       * derivation that reads it back. Last night's lesson, one slice on: a
+       * pure module can be perfect and unwired, and only a case that walks the
+       * whole chain can tell.
+       *
+       * `gaveUp` rather than `gotIt` because that is the beat that owes
+       * anybody anything — and it is the one the whole-floor route above cannot
+       * produce, since a jsdom walk settles in the tick it starts and the
+       * figure is always already standing at the prop.
+       */
+      const said = interruptSpeech(
+        { seatId: 'dinesh', kind: 'printer', interrupted: { reaction: 'gaveUp', roll: 0.25 } },
+        FLOOR_COPY()
+      );
+      expect(said.kind).toBe('printer');
+
+      function Probe() {
+        useFloorInterruptMemory({ said, leg: 1 });
+        return null;
+      }
+      render(<Probe />);
+
+      expect(unfinishedErrandFrom(getWorkingMemoryWith('dinesh').beats)).toEqual({
+        kind: 'printer',
+        weight: 3
+      });
+    });
   });
 });

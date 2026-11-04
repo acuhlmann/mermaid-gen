@@ -25,6 +25,7 @@ import {
   OFFICE_MIN_GAP_MS,
   OFFICE_AMBIENT_FAMILIAR_TICKETS,
   OFFICE_PROP_NEWS_WINDOW_MS,
+  OFFICE_UNFINISHED_ERRAND_WINDOW_MS,
   OFFICE_TALK_OPEN_TICKETS,
   OFFICE_TALK_OPEN_WINDOW_MS,
   OFFICE_SENIOR_EMAILS_PER_SESSION,
@@ -426,6 +427,37 @@ describe('how long the room stays interested in what you did', () => {
      */
     const LONGEST_GAP_BETWEEN_ERRANDS_MS = 24_000;
     expect(OFFICE_PROP_NEWS_WINDOW_MS).toBeGreaterThan(2 * LONGEST_GAP_BETWEEN_ERRANDS_MS);
+  });
+
+  it('gives a ruined errand longer than news, because it waits on one named person', () => {
+    /*
+     * Why this is a second number rather than a reuse of the one above, and the
+     * arithmetic is the whole argument. News has to catch *any* errand, so two
+     * minutes is five to ten departures. Being owed an errand has to catch
+     * **one colleague's** errand, and `departure` draws the walker uniformly
+     * out of everybody free — so the wait is geometric over the roster, which
+     * measured 11.08 departures on the mean and 8 on the median over 20 000
+     * seeded draws. At the longest gap between errands that is minutes, not
+     * seconds, and a two-minute window would expire unused in three
+     * interruptions out of four.
+     *
+     * Asserted against the roster and the news window rather than against a
+     * bare number, because the claim is the relation: long enough for the
+     * median comeback, and still far short of the hour's own thumb, which is
+     * the standing-bias line the dial above is drawn on.
+     */
+    const LONGEST_GAP_BETWEEN_ERRANDS_MS = 24_000;
+    const MEDIAN_DEPARTURES_UNTIL_THE_SAME_PERSON = 8;
+    expect(OFFICE_UNFINISHED_ERRAND_WINDOW_MS).toBeGreaterThan(OFFICE_PROP_NEWS_WINDOW_MS);
+    expect(OFFICE_UNFINISHED_ERRAND_WINDOW_MS).toBeGreaterThan(
+      MEDIAN_DEPARTURES_UNTIL_THE_SAME_PERSON * LONGEST_GAP_BETWEEN_ERRANDS_MS
+    );
+
+    const slumpMs = WANDER_BIAS_WINDOWS.reduce(
+      (widest, w) => Math.max(widest, (w.until - w.from) * 60_000),
+      0
+    );
+    expect(OFFICE_UNFINISHED_ERRAND_WINDOW_MS).toBeLessThan(slumpMs / 2);
   });
 
   it('leans on a familiar colleague by a whole extra ticket, and no more than the cast can absorb', () => {

@@ -99,9 +99,17 @@ function sayableLines(bank, prop) {
  * apologising for a coffee they did not get" is what makes the pair testable
  * from the outside rather than only through the copy bank.
  *
+ * `kind` rides along for the same reason one step further out. The errand's prop
+ * is already read here to fill `{prop}`, and working memory now keeps it so the
+ * room can send somebody back for what they never got
+ * (`unfinishedErrandFrom`). Returning it rather than re-reading `wanderer.kind`
+ * at the writer is the one-derivation-many-consumers rule this module's own
+ * header states: the hand, the sentence and the memory cannot disagree about
+ * which errand was ruined if exactly one line of code decided it.
+ *
  * @param {{ seatId: string, kind?: string, interrupted?: Interruption | null } | null} wanderer
  * @param {Record<string, any>} copy the floor's copy bundle
- * @returns {{ speakerId: string, text: string, reaction: string } | null}
+ * @returns {{ speakerId: string, text: string, reaction: string, kind: string } | null}
  */
 export function interruptSpeech(wanderer, copy) {
   const said = wanderer?.interrupted;
@@ -115,7 +123,10 @@ export function interruptSpeech(wanderer, copy) {
   return {
     speakerId: wanderer.seatId,
     text: formatLocale(lines[index], { prop }),
-    reaction: said.reaction
+    reaction: said.reaction,
+    // The prop kind, never the localized name: a name is copy and changes with
+    // the bundle, and what the next errand needs is the key `propTileFor` takes.
+    kind: typeof wanderer.kind === 'string' ? wanderer.kind : ''
   };
 }
 

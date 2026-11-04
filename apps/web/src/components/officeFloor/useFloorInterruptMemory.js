@@ -23,6 +23,15 @@
  * the one-derivation-two-consumers rule ADR-0011 rule 1 asks for, extended to a
  * third consumer.
  *
+ * **The errand is part of the fact, not decoration.** `interruptedProp` is the
+ * prop kind the trip was for, taken off the same `interruptSpeech` answer, and
+ * it is what lets `unfinishedErrandFrom` send somebody back for the coffee they
+ * never got. It changes nothing about the line and nothing about the prompt:
+ * `workingMemoryPromptLines` reads `interrupted` alone, because naming the
+ * machine in a sentence the model will read is a delta the prompt cannot check
+ * (the situation rule in `docs/agents/domains/office.md`). It is a fact for the
+ * floor, not a fact for a mouth.
+ *
  * The dedupe key is `seatId:leg` rather than the line or the trip object.
  * `interrupted` is set on the same tick `leg` increments and survives into the
  * `lingering` update that follows, so keying on the trip's identity would write
@@ -60,7 +69,8 @@ export function useFloorInterruptMemory({ said, leg = 0 } = {}) {
     written.current = key;
     rememberWorkingMemoryBeat(said.speakerId, {
       theirs: said.text,
-      interrupted: said.reaction
+      interrupted: said.reaction,
+      interruptedProp: said.kind
     });
     // `said` is derived from the same trip as `key` and changes with it; depending
     // on it as well would re-run this on a copy bundle swap mid-linger.

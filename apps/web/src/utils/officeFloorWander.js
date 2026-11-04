@@ -31,6 +31,15 @@
  * existed every ambient trip on this floor was decided by a clock and a trait
  * row, so the honest answer to "did anything happen because of me" was no.
  *
+ * `unfinishedErrandFrom` is the one thumb here that is about **them**, and it
+ * is the only one that exists because of something you did *to a person*
+ * rather than to the room. Until it existed the floor modelled the whole beat
+ * — somebody's errand, ruined by you, their hand empty on the way back, a line
+ * about it and a mark in their working memory — and then the next errand was
+ * drawn as though none of it had happened. Nothing new is written and nothing
+ * new fires: the beat is already in working memory, the errand clock is
+ * untouched, and only the *destination* knows they are still owed a coffee.
+ *
  * `wanderHabitFor` is that pay-off collected a second time, for *where* rather
  * than *who*. Until it existed the only thumb on the scale was the hour
  * (`wanderBiasAt`), one global row that moved every persona alike, so the
@@ -52,7 +61,7 @@ import {
 import { propTileFor, usablePropKinds } from './officeFloorMovement.js';
 import { deskDoingFor } from './officeFloorActivity.js';
 import { propHandsFor } from './officeFloorProps.js';
-import { OFFICE_PROP_NEWS_WINDOW_MS } from './officeCadence.js';
+import { OFFICE_PROP_NEWS_WINDOW_MS, OFFICE_UNFINISHED_ERRAND_WINDOW_MS } from './officeCadence.js';
 
 /**
  * @typedef {{ kind: string, mark: { x: number, y: number } }} WanderTrip
@@ -235,6 +244,59 @@ export function wanderNewsFrom(officeLog = [], now = Date.now()) {
 }
 
 /**
+ * The prop this colleague never reached because of you, while they are still
+ * owed it, or `null`.
+ *
+ * The fourth thumb, and the first one that is about a **person** rather than
+ * about the room: the hour pulls everybody, a habit is a constant of somebody's
+ * character, your last prop use is news about a place — and this is one named
+ * colleague going back for the coffee your elbow cost them. It is what makes
+ * two colleagues behave differently for a reason you can point at, which no
+ * table on this floor could ever express.
+ *
+ * **Nothing new is written and nothing new fires.** `useFloorInterruptMemory`
+ * has recorded the interruption since queue 2 and now records which errand it
+ * was; this reads that back. The errand clock is untouched — a trip that was
+ * going to start still starts, and only its destination knows anybody was
+ * wronged — which is the same line between *record* and *trigger* (ADR-0010)
+ * that `wanderNewsFrom` sits on.
+ *
+ * **`gaveUp` only, and the newest errand beat decides.** `gotIt` means they had
+ * finished and stepped aside, so there is nothing to go back for; it is still
+ * read, because scanning for the newest beat that names an errand and then
+ * testing its reaction is what lets a later completed trip *cancel* an earlier
+ * ruined one. Testing the newest `gaveUp` instead would send somebody back for
+ * a coffee they have since had, which is the room remembering harder than the
+ * office did.
+ *
+ * **Two refusals, both of them the shape this module already uses.** A prop
+ * kind the room can no longer give anybody a mark for is not somewhere to be
+ * sent (`wanderNewsFrom`'s guard, and the reason the storage layer bounds the
+ * field's shape rather than owning a list of prop kinds), and a fact older than
+ * `OFFICE_UNFINISHED_ERRAND_WINDOW_MS` is not a grievance any more — the window
+ * *is* the decay, so this thumb needs no second table and no write to clear it.
+ *
+ * @param {Array<{at?: number, interrupted?: string, interruptedProp?: string}>} [beats]
+ *   `getWorkingMemoryWith(seatId)?.beats`, sampled by the caller — this module
+ *   stays pure and subscribes to nothing.
+ * @param {number} [now]
+ * @returns {{ kind: string, weight: number } | null}
+ */
+export function unfinishedErrandFrom(beats = [], now = Date.now()) {
+  const list = Array.isArray(beats) ? beats : [];
+  for (let i = list.length - 1; i >= 0; i -= 1) {
+    const beat = list[i];
+    if (!beat?.interruptedProp) continue;
+    if (beat.interrupted !== 'gaveUp') return null;
+    if (!(now - beat.at < OFFICE_UNFINISHED_ERRAND_WINDOW_MS)) return null;
+    return usablePropKinds().includes(beat.interruptedProp)
+      ? { kind: beat.interruptedProp, weight: WANDER_HABIT_WEIGHT }
+      : null;
+  }
+  return null;
+}
+
+/**
  * The thumb on the scale for one colleague's one possible errand.
  *
  * **The largest of the three multipliers, never their product.** The hour, the
@@ -257,18 +319,29 @@ export function wanderNewsFrom(officeLog = [], now = Date.now()) {
  * is interest rather than a rota. That it is also "the same kind of number" the
  * other two dials are is why there is one constant and not three.
  *
+ * **The fourth dial weighs the same as the other three, and ties are the
+ * answer rather than a shrug.** A ruined errand and a habit pulling the same
+ * way is the same trip either way; a ruined errand against the hour's slump is
+ * a person with a reason beating a room-wide drift, and at equal weight under
+ * `Math.max` the reason wins the tie-break by being the only thumb that names
+ * *this* colleague. Giving it a bigger number would make the person you
+ * interrupted march to that prop and nowhere else, which is the rota every dial
+ * in this file is sized against.
+ *
  * @param {string} seatId
  * @param {string} kind a prop kind from `wanderTripsFor(seatId)`
  * @param {{ kind: string, weight: number } | null} [bias] `wanderBiasAt()`
  * @param {{ kind: string, weight: number } | null} [news] `wanderNewsFrom()`
+ * @param {{ kind: string, weight: number } | null} [owed] `unfinishedErrandFrom()`
  * @returns {number} a whole-number multiplier against a uniform pick
  */
-export function wanderTripWeight(seatId, kind, bias = null, news = null) {
+export function wanderTripWeight(seatId, kind, bias = null, news = null, owed = null) {
   const habit = wanderHabitFor(seatId);
   return Math.max(
     habit && habit.kind === kind ? habit.weight : 1,
     bias && bias.kind === kind ? bias.weight : 1,
-    news && news.kind === kind ? news.weight : 1
+    news && news.kind === kind ? news.weight : 1,
+    owed && owed.kind === kind ? owed.weight : 1
   );
 }
 

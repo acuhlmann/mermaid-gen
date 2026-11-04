@@ -809,6 +809,21 @@ test:floor`; the floor test map is [`docs/agents/isometric-floor-tests.md`](../.
   counting it would let a coin flip that ignored you become your partner) and **the window** (the
   window is the decay, so the thumb needs no second table). A **thumb, not a gate**: the composer has
   two acts in one field and the target chip is the certain one.
+- **An errand you ruined was forgotten by the only table that could act on it.** The floor has
+  modelled the whole beat since slice 18 — somebody's trip, your elbow, an empty hand, a line about
+  it and a working-memory mark — and then drew their next destination as though none of it had
+  happened. `unfinishedErrandFrom` (`officeFloorWander.js`) is the fourth thumb on
+  `wanderTripWeight`, reading the newest beat that **names an errand** off that colleague's own row:
+  `gaveUp` is a debt, `gotIt` cancels it, a beat that is not about an errand (an ordinary exchange)
+  leaves it standing. Two new facts travel with it — `interruptSpeech` returns the trip's `kind`
+  (one derivation for the hand, the sentence _and_ the memory) and the beat carries
+  `interruptedProp`, the one working-memory field `workingMemoryPromptLines` deliberately never
+  reads (naming the machine in a sentence is a delta the prompt cannot check). The dial is
+  `OFFICE_UNFINISHED_ERRAND_WINDOW_MS` (5 min, `officeCadence.js`), and **it is not the news
+  window**: `departure` draws the walker uniformly, so a window sized to catch _any_ errand catches
+  _one named person's_ errand a quarter to a half of the time. **Storage bounds the shape, the
+  consumer refuses the value** — a prop-kind list beside the sanitizer would drift from
+  `usablePropKinds()`.
 
 ## Full findings
 
@@ -1977,3 +1992,49 @@ snapshot.battle}` the way the coffee one already did, or a declined scene re-ren
     computes `N` as their lcm × 10 from the constants themselves rather than hard-coding a number, so
     re-tuning `OFFICE_TALK_OPEN_TICKETS` cannot turn an exact assertion into a rounding failure.
     `(i + 0.5) / n` with `floor(r * poolLength)` buckets exactly when the pool divides `n`.
+
+### An errand you ruined, and the fourth thumb on the wander pick
+
+**Date:** 2026-11-04 · **Slice:** `unfinished-errand-pulls-them-back` · **Queue:** 1 family
+(question 1 "afterwards", question 2 "because of me")
+
+The floor could ruin somebody's errand from the day slice 18 shipped, and it recorded the whole beat:
+`goHome({ byYou })` turns them round, `interruptSpeech` gives them a line, `useFloorInterruptMemory`
+writes it to working memory, the dwell gate reads it. The one table that could make them _act_ on it
+never saw it — `departure` drew the next destination from the hour, their habit and your last prop
+use, so the person whose coffee you cost them was no likelier to go back for it than anybody else was
+to go anywhere. Five things are worth keeping.
+
+- **The newest beat that names an errand, not the newest `gaveUp`.** Scanning for the latest
+  reaction and then testing it is what lets a finished trip cancel a ruined one; scanning for the
+  latest refusal would send somebody back for a coffee they have since had, which is the room
+  remembering harder than the office did. It also means `gotIt` must be **written**, not skipped —
+  the polite beat is the eraser. A beat that is not about an errand at all (a dwell remark, an email)
+  leaves the debt standing, which is the pair of that rule and is pinned from both sides.
+- **The window is sized against a different event from the news window, and reusing the news
+  constant would have shipped a dead feature.** `OFFICE_PROP_NEWS_WINDOW_MS` (2 min) has to catch
+  _any_ errand and `BETWEEN_TRIPS_MS` is 11–24 s, so it is five to ten chances. This thumb has to
+  catch **one named colleague's** errand, and `departure` draws the walker uniformly out of everybody
+  free — measured over 20 000 seeded draws, mean **11.08** departures and median **8** before the
+  same person rises again. Against the module's own clock that is two minutes catching the comeback
+  **25–53%** of the time against five minutes at **57–85%**. The generalisation: _a window is
+  meaningless until you know what event it is counted against._
+- **Storage bounds the shape; the consumer refuses the value.** Every other constrained beat field
+  checks membership of a list `officeAmbienceStorage.js` owns, and a list of prop kinds is the one
+  thing it must not own — `usablePropKinds()` is the floor's answer and a copy would drift the first
+  time a prop is added or made unreachable. So the sanitizer takes a bounded `[a-zA-Z]{1,32}` slug
+  and `unfinishedErrandFrom` drops any kind the room cannot mark, which is the refusal
+  `wanderNewsFrom` already makes about a kind read back off the log.
+- **A field in working memory is not automatically a field in the prompt.** `interruptedProp` is the
+  first beat field `workingMemoryPromptLines` deliberately ignores. Naming the machine in a sentence
+  the model reads is a delta the rest of the prompt cannot check, which is the measured
+  situation-rule failure (8 of 12 turns fabricating a change) arriving through memory instead of
+  through a `situation`. It is a fact for the floor, not a fact for a mouth.
+- **The wiring sensor is one case, and it is the case the last slice wished it had.** Three red
+  directions prove three different things: the dial at `0` (7 red, the distribution identical at
+  0.34, every control green) discharges "0 is the old behaviour" rather than asserting it; stashing
+  `apps/web/src` (12 red) proves the suite is about the product; and reverting **only** the call site
+  in `useFloorWander.js` while leaving the module and the dials in place goes **exactly 1 red** — a
+  pure module can be perfect and unwired, and only the distribution-through-the-hook case can tell.
+  The per-person control is the other half: write the beat on one colleague and measure a _second_
+  one's errands, which catches a read that scanned the whole store instead of the walker's own row.

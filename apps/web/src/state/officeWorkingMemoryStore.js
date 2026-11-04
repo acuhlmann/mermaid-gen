@@ -159,7 +159,7 @@ const SCENE_DECLINED_PROMPT_LINES = Object.freeze({
   battle: 'they wanted you in on an argument; you walked away and it carried on without you'
 });
 
-/** @typedef {{ at: number, theirs?: string, yours?: string, pitchTaken?: boolean, errandDropped?: boolean, inviteDeclined?: boolean, interrupted?: 'gotIt' | 'gaveUp', sceneDeclined?: 'coffee' | 'battle', medium?: 'email' }} WorkingMemoryBeat */
+/** @typedef {{ at: number, theirs?: string, yours?: string, pitchTaken?: boolean, errandDropped?: boolean, inviteDeclined?: boolean, interrupted?: 'gotIt' | 'gaveUp', interruptedProp?: string, sceneDeclined?: 'coffee' | 'battle', medium?: 'email' }} WorkingMemoryBeat */
 /** @typedef {{ beats: WorkingMemoryBeat[], boardFingerprint?: string }} WorkingMemoryRow */
 
 /** @type {{ [colleagueId: string]: WorkingMemoryRow }} */
@@ -278,8 +278,14 @@ export function listWorkingMemoryColleagueIds() {
  * @param {string} colleagueId
  * @param {{ theirs?: string, yours?: string, pitchTaken?: boolean,
  *   errandDropped?: boolean, inviteDeclined?: boolean,
- *   interrupted?: 'gotIt' | 'gaveUp', sceneDeclined?: 'coffee' | 'battle',
+ *   interrupted?: 'gotIt' | 'gaveUp', interruptedProp?: string,
+ *   sceneDeclined?: 'coffee' | 'battle',
  *   medium?: 'email', now?: number }} beat
+ *   `interruptedProp` is the only field here the prompt never reads: it names
+ *   the errand an interruption ruined so the floor can send them back for it
+ *   (`unfinishedErrandFrom`), and it is kept out of
+ *   `workingMemoryPromptLines` on purpose — a line naming the machine would
+ *   state a delta the rest of the prompt cannot check.
  *   `interrupted`, `errandDropped`, `inviteDeclined` and `sceneDeclined` are
  *   the beat fields that are not something either of you said — the first is
  *   their errand ending because of you, the second is yours ending because you
