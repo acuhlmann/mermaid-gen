@@ -144,6 +144,11 @@ test('MCP: end-to-end handshake → presence → propose → accept → state ad
     proposeTool?._meta?.ui?.resourceUri ?? proposeTool?._meta?.['ui/resourceUri'],
     'ui://archislop/web-companion.html'
   );
+  const canvasTool = tools.tools.find((t) => t.name === 'open_diagram_canvas');
+  assert.equal(
+    canvasTool?._meta?.ui?.resourceUri ?? canvasTool?._meta?.['ui/resourceUri'],
+    'ui://archislop/canvas-preview.html'
+  );
 
   const resources = await client.listResources();
   const resourceUris = new Set(resources.resources.map((r) => r.uri));
