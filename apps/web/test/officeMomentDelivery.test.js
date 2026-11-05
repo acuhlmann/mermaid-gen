@@ -6,6 +6,7 @@ import {
   llmColleagueFor
 } from '../src/utils/officeMomentDelivery.js';
 import { ambientSpeakerFrom } from '../src/utils/officeAmbientSpeaker.js';
+import { BOARD_RECALL_LINES } from '../src/utils/officeBoardRecall.js';
 import { officeWalkbyFallbacks } from '../src/utils/officeWalkbyFallbacks.js';
 import { _resetForTests, getOfficeSnapshot } from '../src/state/officeMomentStore.js';
 import { _resetOfficeLogForTests, recordOfficeLogEntry } from '../src/state/officeLogStore.js';
@@ -315,6 +316,62 @@ describe('deliverLlmMoment carries a pitch to every surface', () => {
     );
     expect(getOfficeSnapshot().walkBy.actionPrompt).toBeUndefined();
     _resetOfficeWorkingMemoryForTests();
+  });
+});
+
+/**
+ * The board a colleague last looked at is stored as an identity —
+ * `mermaid:Auth|Billing:30` — and used to be pushed onto the wire as itself,
+ * under `last board they noticed:`. These cases are the end of the derivation
+ * `officeBoardRecall.js` owns: the only thing that reaches the model is which
+ * of three things is true, and the comparison is against the board sampled in
+ * the same `ctx` the request is built from.
+ */
+describe('the board they remember is compared, not recited', () => {
+  it('sends the comparison against the live board and never the fingerprint', async () => {
+    const {
+      _resetOfficeWorkingMemoryForTests: reset,
+      boardFingerprintOf,
+      stampWorkingMemoryBoard
+    } = await import('../src/state/officeWorkingMemoryStore.js');
+    reset();
+    // Exactly the board `CTX` describes, so this colleague is up to date.
+    stampWorkingMemoryBoard('intern', boardFingerprintOf(CTX));
+
+    const fetchMock = vi.fn(async () => ({
+      ok: true,
+      json: async () => ({ moment: { body: 'still four boxes then', colleagueId: 'intern' } })
+    }));
+    globalThis.fetch = fetchMock;
+    await deliverLlmMoment('walkby', CTX, { memory: memory(), colleagueId: 'intern' });
+    const sent = JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body ?? '{}'));
+    expect(sent.officeWorkingMemory).toContain(BOARD_RECALL_LINES.same);
+    expect(String(sent.officeWorkingMemory)).not.toContain('last board they noticed');
+    expect(String(sent.officeWorkingMemory)).not.toContain(boardFingerprintOf(CTX));
+
+    // Same colleague, a board they have not seen: the only field that moves is
+    // the verdict, and the request still carries the current board in full.
+    const moved = { ...CTX, diagramSource: `${CTX.diagramSource}\n  Billing-->Ledger` };
+    await deliverLlmMoment('walkby', moved, { memory: memory(), colleagueId: 'intern' });
+    const after = JSON.parse(String(fetchMock.mock.calls[1]?.[1]?.body ?? '{}'));
+    expect(after.officeWorkingMemory).toContain(BOARD_RECALL_LINES.changed);
+    expect(after.diagramSource).toContain('Billing-->Ledger');
+    reset();
+  });
+
+  it('sends no recall line for somebody who has never looked', async () => {
+    const { _resetOfficeWorkingMemoryForTests: reset } =
+      await import('../src/state/officeWorkingMemoryStore.js');
+    reset();
+    const fetchMock = vi.fn(async () => ({
+      ok: true,
+      json: async () => ({ moment: { body: 'hello', colleagueId: 'hr' } })
+    }));
+    globalThis.fetch = fetchMock;
+    await deliverLlmMoment('walkby', CTX, { memory: memory(), colleagueId: 'hr' });
+    const sent = JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body ?? '{}'));
+    expect(sent.officeWorkingMemory).toEqual([]);
+    reset();
   });
 });
 

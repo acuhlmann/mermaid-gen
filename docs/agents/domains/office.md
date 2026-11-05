@@ -824,6 +824,18 @@ test:floor`; the floor test map is [`docs/agents/isometric-floor-tests.md`](../.
   _one named person's_ errand a quarter to a half of the time. **Storage bounds the shape, the
   consumer refuses the value** — a prop-kind list beside the sanitizer would drift from
   `usablePropKinds()`.
+- **A fingerprint is for comparing, and it was being recited.** `boardFingerprintOf`
+  (`officeWorkingMemoryStore.js`) builds `type:labels:len` as an **identity** so two sightings of a
+  board can be told apart; its only consumer pushed the string itself into `/moment` as
+  `last board they noticed: mermaid::50` — the one line in that block that is not a sentence, and a
+  character count inside a block whose closing instruction is _"do not recite them and never count
+  them"_. `officeBoardRecall.js` is the comparison instead: three closed lines
+  (`unknown` / `same` / `changed`), no label, no number, no separator. **Compare, never parse** —
+  `boardFingerprintOf` joins the user's own node labels on `|` unescaped, which is harmless for
+  equality and fatal for a parser. **`changed` names a time, never a difference**: nothing anywhere
+  carries the board they saw, so "your diagram changed" is the measured 8-of-12 fabrication, and the
+  identity is byte-sensitive anyway (one keystroke flips it). `boardNow` is a parameter defaulted at
+  the call site, like `memoryIds` and the office log.
 
 ## Full findings
 
@@ -2038,3 +2050,48 @@ to go anywhere. Five things are worth keeping.
   pure module can be perfect and unwired, and only the distribution-through-the-hook case can tell.
   The per-person control is the other half: write the beat on one colleague and measure a _second_
   one's errands, which catches a read that scanned the whole store instead of the walker's own row.
+
+### The board a colleague remembers: compare the fingerprint, never recite it
+
+- **The defect was a reading, not a recording.** `stampWorkingMemoryBoard` has stored a correct
+  fingerprint since v1 of working memory, and `boardFingerprintOf`'s own docstring says what it is
+  for — telling one sighting of a board from another. Nothing ever compared two. The single consumer,
+  `workingMemoryPromptLines`, rendered the identity as prose: `last board they noticed:
+mermaid:Login|Verify email:482`. On the scripted visit's own fixture the whole line read
+  `last board they noticed: mermaid::50` — empty labels and a character count. **When a fact looks
+  wrong in the prompt, check whether the value was built to be read or built to be matched.**
+- **Compare, never parse, and the reason is in the writer.** `boardFingerprintOf` joins the user's
+  own node labels with `|` and escapes nothing, so a label containing `|` or `:` makes the string
+  ambiguous. Equality survives that; a parser reads `mermaid:a|b:7` and `mermaid:a:b:7` as the same
+  board. Equality is also the only question the value was built to answer, so the derivation is a
+  three-member closed set and not a diff.
+- **`changed` states when they last looked, never what differs.** The request carries the board as it
+  is now (`diagramSource`, `visibleLabels`, `officeBoard`) and nothing carries the one they saw, so a
+  line asserting a delta is exactly the situation-rule failure this domain measured at 8 of 12 turns.
+  The identity is byte-sensitive on top of that — it ends in `diagramSource.length`, so one keystroke
+  flips `same` to `changed` — so "not the same board" is all the comparison can honestly claim. A
+  colleague told their picture is out of date can ask; one told the diagram changed has to invent the
+  change.
+- **The audition's result was "no risk", not "better lines", and the block explains why.** 6 samples
+  × 4 arms (recite / changed / same / a control with no board line at all), one fixed diagram,
+  DeepSeek flash at the route's own temperature, judged by a second model at 0.1 — never a keyword
+  regex (§ the register finding). `fabricatedChange` was **0 of 6 in every arm including `changed`**,
+  which is the one thing that could have blocked the change. Every other dimension was
+  indistinguishable across all four arms, control included: `buildOfficeWorkingMemoryBlock` closes
+  with _"Keep these beats UNDER the line: do not recite them and never count them"_, so **no line in
+  that block should be expected to surface**, and an audition of a line inside it cannot separate
+  arms by construction. Measure the block, not a line in it, if a future rung wants this fact acted
+  on.
+- **The instrument can see this one, and it reports a verdict production never produces.**
+  `afterwards.workingMemory[].promptLines` moved from `last board they noticed: mermaid::50` to
+  `they have already looked at your board today` in 3 of 3 runs, with every other trace axis
+  identical — a rare night where the fixed visit has a real before/after. But the harness reads
+  `workingMemoryPromptLines` with no board in hand, so it always prints `unknown`, while
+  `boardFingerprintOf` never returns an empty string and every production caller therefore lands on
+  `same` or `changed`. The instrument shows the shape of the fix and not the verdict the room uses.
+- **Three red directions, three different facts.** Stashing `apps/web/src` goes 3 red with the old
+  string printed in the diff (`+ "last board they noticed: mermaid:Auth:40"`); reverting **only** the
+  store goes the same 3 red, which is what proves the old behaviour was the recitation rather than a
+  missing module; and reverting **only** the call site in `officeMomentDelivery.js` — module and
+  store intact — goes **exactly 1 red**, the wire case. A pure module can be perfect and unwired, and
+  only an assertion on the request body can tell.
