@@ -31,7 +31,7 @@ they need access to outer-closure state.
 
 ## Progress
 
-### `mcpServer.js` (~1 542 → ~1 022 LOC)
+### `mcpServer.js` (~1 542 → ~1 014 LOC)
 
 - ✅ Helpers extracted to `apps/server/src/mcp/mcpHelpers.js`
   (`textResult`, `jsonResult`, `safeError`, `humanOnlyMcpToolBlocked`,

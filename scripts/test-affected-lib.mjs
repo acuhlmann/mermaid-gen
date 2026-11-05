@@ -94,6 +94,7 @@ export const AGENT_TOOLING_BLAST_TESTS = [
   'scripts/verify-eslint-guidance-sync.test.mjs',
   'scripts/verify-isometric-floor-suites.test.mjs',
   'scripts/verify-mermaid-pins.test.mjs',
+  'scripts/verify-monolith-loc-register.test.mjs',
   'scripts/verify-prettier-ignore-sync.test.mjs',
   'scripts/verify-ratchet-no-gate.test.mjs',
   'scripts/verify-ratchet.test.mjs',
@@ -386,6 +387,11 @@ export const BLAST_RADIUS_RULES = [
     match:
       /(^|\/)package\.json$|apps\/server\/src\/mcp\/apps\/mcpAppDiagramPreview\.js|scripts\/verify-mermaid-pins\.mjs/,
     tests: ['scripts/verify-mermaid-pins.test.mjs']
+  },
+  {
+    // CLAUDE.md's file-size budgets bullet carries hand-maintained ~LOC figures (improve item 1).
+    match: /^CLAUDE\.md$|scripts\/verify-monolith-loc-register\.mjs/,
+    tests: ['scripts/verify-monolith-loc-register.test.mjs']
   }
 ];
 
