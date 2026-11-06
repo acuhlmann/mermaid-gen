@@ -39,6 +39,7 @@
  * record-never-trigger as this file contains.
  */
 
+import { boardRecallLine } from '../utils/officeBoardRecall.js';
 import {
   OFFICE_WORKING_MEMORY_BEAT_CAP,
   normalizeWorkingMemoryBeat,
@@ -347,16 +348,27 @@ export function markWorkingMemoryPitchTaken(colleagueId, now = Date.now()) {
  * Prompt lines for `/moment`'s `officeWorkingMemory` field. Empty when there
  * is nothing, so the server drops the heading rather than announcing an absence.
  *
+ * `boardNow` is the fingerprint of the board as it stands, handed in by the
+ * caller rather than read here — the same discipline `wanderNewsFrom` and
+ * `ambientSpeakerFrom` get, so the board is sampled at the moment the request
+ * is built and this module still only ever reads its own rows (ADR-0010: record,
+ * never trigger, and never subscribe from a producer).
+ *
+ * Omitting it is not an error: a caller with no board in hand gets the
+ * `unknown` recall line, which is the part of the fact that does not need a
+ * comparison. What it must never do is pass the fingerprint through unread —
+ * see `officeBoardRecall.js` for why a machine id is not a sentence.
+ *
  * @param {string} colleagueId
+ * @param {{ boardNow?: string }} [options]
  * @returns {string[]}
  */
-export function workingMemoryPromptLines(colleagueId) {
+export function workingMemoryPromptLines(colleagueId, { boardNow = '' } = {}) {
   const row = getWorkingMemoryWith(colleagueId);
   if (!row) return [];
   const lines = [];
-  if (row.boardFingerprint) {
-    lines.push(`last board they noticed: ${row.boardFingerprint}`);
-  }
+  const recall = boardRecallLine(row.boardFingerprint, boardNow);
+  if (recall) lines.push(recall);
   for (const beat of row.beats) {
     /*
      * Before the quote, not after it: the interruption is what *you* did, and a
