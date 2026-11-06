@@ -40,6 +40,7 @@ import { reachTileFor, whereaboutsOf } from '../utils/officeFloorReach.js';
 import { interruptSpeech } from '../utils/officeFloorInterrupt.js';
 import { useFloorDwell } from './officeFloor/useFloorDwell.js';
 import { useFloorInterruptMemory } from './officeFloor/useFloorInterruptMemory.js';
+import { useFloorPeekMemory } from './officeFloor/useFloorPeekMemory.js';
 import { useFloorShopTalk } from './officeFloor/useFloorShopTalk.js';
 import { useOfficeDayPhase } from './officeFloor/useOfficeDayPhase.js';
 import {
@@ -434,6 +435,14 @@ function OfficeFloorView({ bridge, viewPhase }) {
    * why recording it is not triggering anything (ADR-0010).
    */
   useFloorInterruptMemory({ said: wandererSaid, leg: wanderer?.leg });
+
+  /*
+   * …and the other thing you can do to one named person that the room used to
+   * forget entirely: stand at their desk and read their screen. Same division
+   * as above — the floor reports that you got there, the beat is written once,
+   * and nothing is scheduled by it (ADR-0010). See `useFloorPeekMemory`.
+   */
+  useFloorPeekMemory({ peek });
 
   /*
    * Slice 19: who you are stood next to, and the line they eventually break the
