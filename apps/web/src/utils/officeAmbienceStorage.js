@@ -608,7 +608,7 @@ export const OFFICE_WORKING_MEMORY_MEDIUMS = Object.freeze(['email']);
  * @param {number} at
  * @returns {{ at: number, theirs?: string, yours?: string, pitchTaken?: boolean,
  *   errandDropped?: boolean, inviteDeclined?: boolean, interrupted?: string,
- *   sceneDeclined?: string, medium?: string } | null}
+ *   sceneDeclined?: string, peeked?: boolean, medium?: string } | null}
  */
 export function normalizeWorkingMemoryBeat(beat, at) {
   const next = { at };
@@ -643,6 +643,14 @@ export function normalizeWorkingMemoryBeat(beat, at) {
   if (OFFICE_WORKING_MEMORY_SCENE_DECLINES.includes(beat.sceneDeclined)) {
     next.sceneDeclined = beat.sceneDeclined;
   }
+  /*
+   * You walked over and read what was on their screen. A boolean rather than a
+   * `look` — which screen they had up is `deskWorkFor`'s answer and it is
+   * already in the request on its own block (`officeDeskWork`), so storing it
+   * here would be the same fact in two places with one copy able to go stale.
+   * What the beat adds is that *you* were standing behind them while it was up.
+   */
+  if (beat.peeked === true) next.peeked = true;
   if (
     !next.theirs &&
     !next.yours &&
@@ -650,7 +658,8 @@ export function normalizeWorkingMemoryBeat(beat, at) {
     !next.errandDropped &&
     !next.inviteDeclined &&
     !next.interrupted &&
-    !next.sceneDeclined
+    !next.sceneDeclined &&
+    !next.peeked
   ) {
     return null;
   }
@@ -667,7 +676,7 @@ export function normalizeWorkingMemoryBeat(beat, at) {
  * @param {unknown} beat
  * @returns {{ at: number, theirs?: string, yours?: string, pitchTaken?: boolean,
  *   errandDropped?: boolean, inviteDeclined?: boolean, interrupted?: string,
- *   sceneDeclined?: string } | null}
+ *   sceneDeclined?: string, peeked?: boolean } | null}
  */
 function sanitizeWorkingMemoryBeat(beat) {
   if (!beat || typeof beat !== 'object') return null;

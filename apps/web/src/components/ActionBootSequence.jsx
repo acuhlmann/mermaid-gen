@@ -45,11 +45,19 @@ export default function ActionBootSequence({ trigger, variant }) {
       : (VARIANT_DURATION_MS[variant] ?? DEFAULT_DURATION_MS);
 
     const token = { variant, trigger };
-    setPlaying(token);
+    // Defer initial state to the microtask queue so this effect does not synchronously chain
+    // a second render (react-hooks/set-state-in-effect); behaviour stays a single paint before draw.
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (!cancelled) setPlaying(token);
+    });
     const handle = setTimeout(() => {
       setPlaying((current) => (current === token ? null : current));
     }, ms);
-    return () => clearTimeout(handle);
+    return () => {
+      cancelled = true;
+      clearTimeout(handle);
+    };
   }, [trigger, variant]);
 
   if (!playing) return null;

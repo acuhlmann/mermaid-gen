@@ -9,6 +9,13 @@ import {
 } from '../src/state/officeViewModeStore.js';
 import { setOfficeCaptions, setOfficeNarration } from '../src/state/officeMomentStore.js';
 import { renderFloor, unpinOfficeFloorDeterminism } from './helpers/officeFloorTestUtils.jsx';
+import {
+  _resetOfficeWorkingMemoryForTests,
+  getWorkingMemoryWith,
+  hasWorkingMemoryFact,
+  listWorkingMemoryColleagueIds,
+  workingMemoryPromptLines
+} from '../src/state/officeWorkingMemoryStore.js';
 
 /**
  * Without a WAAPI engine (jsdom) `useWalkAnimation` settles immediately, which
@@ -163,5 +170,70 @@ describe('desk peeking (slice 6)', () => {
     const view = renderFloor();
     const screens = view.container.querySelectorAll('.floor-screen');
     expect(screens.length).toBeGreaterThan(10);
+  });
+});
+
+/**
+ * Reading somebody's screen is the sixth aimed edge to leave a mark, and this
+ * is the case that says it is actually wired: `useFloorPeekMemory` can be a
+ * perfect hook and never be called, and only an assertion through the real
+ * floor can tell the two apart (the sensor this ledger has twice paid a slice
+ * for want of).
+ *
+ * The store is module state, so these reset it rather than relying on the
+ * `localStorage.clear()` above — half the cases in this file peek at Ulrich
+ * for other reasons and their beats are still in memory.
+ */
+describe('a peek the colleague remembers (question 1)', () => {
+  beforeEach(() => {
+    _resetOfficeWorkingMemoryForTests();
+  });
+
+  afterEach(() => {
+    _resetOfficeWorkingMemoryForTests();
+  });
+
+  it('leaves the fact on the person whose screen you read, and on nobody else', () => {
+    renderFloor();
+    expect(hasWorkingMemoryFact('greybeard')).toBe(false);
+
+    walkOverTo(/Ulrich/);
+
+    expect(hasWorkingMemoryFact('greybeard')).toBe(true);
+    expect(workingMemoryPromptLines('greybeard')).toEqual([
+      'you walked over and read what was on their screen'
+    ]);
+    // Their neighbours were sitting right there and saw nothing of the sort.
+    expect(hasWorkingMemoryFact('gilfoyle')).toBe(false);
+    expect(hasWorkingMemoryFact('dinesh')).toBe(false);
+  });
+
+  it('is one beat for one peek, however long you stand there', () => {
+    const view = renderFloor();
+    walkOverTo(/Ulrich/);
+    view.rerender(<OfficeFloor />);
+    view.rerender(<OfficeFloor />);
+
+    expect(getWorkingMemoryWith('greybeard')?.beats).toHaveLength(1);
+  });
+
+  it('counts the second time you come back as a second time', () => {
+    renderFloor();
+    walkOverTo(/Ulrich/);
+    fireEvent.click(screen.getByRole('button', { name: /Back to my desk/i }));
+    walkOverTo(/Ulrich/);
+
+    expect(getWorkingMemoryWith('greybeard')?.beats).toHaveLength(2);
+  });
+
+  it('writes nothing for a person you only looked up in the directory', () => {
+    renderFloor({ onMessage: vi.fn() });
+    fireEvent.click(screen.getByRole('button', { name: /Chad/ }));
+
+    // The card offers the verb; opening it is not using it. Asserted over the
+    // whole store rather than over Chad's id, so the case cannot pass by
+    // naming the wrong colleague.
+    expect(screen.getByRole('button', { name: /Their screen/i })).toBeTruthy();
+    expect(listWorkingMemoryColleagueIds()).toEqual([]);
   });
 });

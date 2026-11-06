@@ -97,6 +97,27 @@ it names. Merging the two into a single pass is worth doing and is not urgent �
   invite closed the list on 2026-10-27 at the same shape and a different surface
   (`apps/web/src/utils/officeInviteMemory.js`, the beat on the **organizer**, because a calendar
   decline is the one thing on this list that reaches exactly one person).
+- **Reading somebody's screen is an aimed act, so it leaves a mark too.** Desk peeking was the last
+  verb aimed at one named person that wrote nothing: you cross the floor, stand at their desk, read
+  their monitor, they say a line about it — and two tiles later you were a stranger again.
+  `apps/web/src/components/officeFloor/useFloorPeekMemory.js` writes one boolean beat (`peeked`) on
+  the person whose screen you read, on **arrival** (`phase === 'looking'`, never the abandonable
+  walk) and **once per peek** (latched on the colleague id, cleared when the peek ends — two visits
+  are two beats, one long look is one). Three consequences follow with no further wiring, which is
+  the argument for writing a _fact_ rather than a feature: `hasWorkingMemoryFact` turns true, so a
+  later dwell spends the generous reserve (3) instead of the stranger one (2);
+  `workingMemoryPromptLines` gains a line, so the next thing they say has something to say it from;
+  and `listWorkingMemoryColleagueIds` holds them, so the ambient director's own weighted draw is
+  likelier to pick the person you were reading — measured through the real `ambientSpeakerFrom` at
+  **13.8% → 23.9%** (walk-by), **20.5% → 32.6%** (email), **24.6% → 38.8%** (IM) over 2 000 seeded
+  draws each. The line says you looked and **never what was on the screen**: that is `deskWorkFor`'s
+  answer and it already rides the same request on its own block, so naming it here would be one fact
+  in two places and a claim about what you saw that the prompt cannot check. It is also the one beat
+  writer that deliberately does **not** quote the line it heard — a peek's sentence is the single
+  fixed string that colleague owns, and `deskWorkPromptLines` already refuses to send it for exactly
+  that reason. `FloorPeek.jsx`'s header used to claim _"nothing about a peek reaches a store"_; it is
+  corrected in the same change, because the sign-off rule it was defending forbids the cast producing
+  **work**, and a memory of being looked at is not work.
 - **A dismissal is not an answer, so the store must not guess which one it was.** The invite half of
   the rule above is where this becomes visible: `dismissOfficeMeetingInvite` has **four** callers
   and only one of them is a refusal — accepting clears the toast on the way into the glass room, and
@@ -824,6 +845,18 @@ test:floor`; the floor test map is [`docs/agents/isometric-floor-tests.md`](../.
   _one named person's_ errand a quarter to a half of the time. **Storage bounds the shape, the
   consumer refuses the value** — a prop-kind list beside the sanitizer would drift from
   `usablePropKinds()`.
+- **A fingerprint is for comparing, and it was being recited.** `boardFingerprintOf`
+  (`officeWorkingMemoryStore.js`) builds `type:labels:len` as an **identity** so two sightings of a
+  board can be told apart; its only consumer pushed the string itself into `/moment` as
+  `last board they noticed: mermaid::50` — the one line in that block that is not a sentence, and a
+  character count inside a block whose closing instruction is _"do not recite them and never count
+  them"_. `officeBoardRecall.js` is the comparison instead: three closed lines
+  (`unknown` / `same` / `changed`), no label, no number, no separator. **Compare, never parse** —
+  `boardFingerprintOf` joins the user's own node labels on `|` unescaped, which is harmless for
+  equality and fatal for a parser. **`changed` names a time, never a difference**: nothing anywhere
+  carries the board they saw, so "your diagram changed" is the measured 8-of-12 fabrication, and the
+  identity is byte-sensitive anyway (one keystroke flips it). `boardNow` is a parameter defaulted at
+  the call site, like `memoryIds` and the office log.
 
 ## Full findings
 
@@ -2038,3 +2071,87 @@ to go anywhere. Five things are worth keeping.
   pure module can be perfect and unwired, and only the distribution-through-the-hook case can tell.
   The per-person control is the other half: write the beat on one colleague and measure a _second_
   one's errands, which catches a read that scanned the whole store instead of the walker's own row.
+
+### The board a colleague remembers: compare the fingerprint, never recite it
+
+- **The defect was a reading, not a recording.** `stampWorkingMemoryBoard` has stored a correct
+  fingerprint since v1 of working memory, and `boardFingerprintOf`'s own docstring says what it is
+  for — telling one sighting of a board from another. Nothing ever compared two. The single consumer,
+  `workingMemoryPromptLines`, rendered the identity as prose: `last board they noticed:
+mermaid:Login|Verify email:482`. On the scripted visit's own fixture the whole line read
+  `last board they noticed: mermaid::50` — empty labels and a character count. **When a fact looks
+  wrong in the prompt, check whether the value was built to be read or built to be matched.**
+- **Compare, never parse, and the reason is in the writer.** `boardFingerprintOf` joins the user's
+  own node labels with `|` and escapes nothing, so a label containing `|` or `:` makes the string
+  ambiguous. Equality survives that; a parser reads `mermaid:a|b:7` and `mermaid:a:b:7` as the same
+  board. Equality is also the only question the value was built to answer, so the derivation is a
+  three-member closed set and not a diff.
+- **`changed` states when they last looked, never what differs.** The request carries the board as it
+  is now (`diagramSource`, `visibleLabels`, `officeBoard`) and nothing carries the one they saw, so a
+  line asserting a delta is exactly the situation-rule failure this domain measured at 8 of 12 turns.
+  The identity is byte-sensitive on top of that — it ends in `diagramSource.length`, so one keystroke
+  flips `same` to `changed` — so "not the same board" is all the comparison can honestly claim. A
+  colleague told their picture is out of date can ask; one told the diagram changed has to invent the
+  change.
+- **The audition's result was "no risk", not "better lines", and the block explains why.** 6 samples
+  × 4 arms (recite / changed / same / a control with no board line at all), one fixed diagram,
+  DeepSeek flash at the route's own temperature, judged by a second model at 0.1 — never a keyword
+  regex (§ the register finding). `fabricatedChange` was **0 of 6 in every arm including `changed`**,
+  which is the one thing that could have blocked the change. Every other dimension was
+  indistinguishable across all four arms, control included: `buildOfficeWorkingMemoryBlock` closes
+  with _"Keep these beats UNDER the line: do not recite them and never count them"_, so **no line in
+  that block should be expected to surface**, and an audition of a line inside it cannot separate
+  arms by construction. Measure the block, not a line in it, if a future rung wants this fact acted
+  on.
+- **The instrument can see this one, and it reports a verdict production never produces.**
+  `afterwards.workingMemory[].promptLines` moved from `last board they noticed: mermaid::50` to
+  `they have already looked at your board today` in 3 of 3 runs, with every other trace axis
+  identical — a rare night where the fixed visit has a real before/after. But the harness reads
+  `workingMemoryPromptLines` with no board in hand, so it always prints `unknown`, while
+  `boardFingerprintOf` never returns an empty string and every production caller therefore lands on
+  `same` or `changed`. The instrument shows the shape of the fix and not the verdict the room uses.
+- **Three red directions, three different facts.** Stashing `apps/web/src` goes 3 red with the old
+  string printed in the diff (`+ "last board they noticed: mermaid:Auth:40"`); reverting **only** the
+  store goes the same 3 red, which is what proves the old behaviour was the recitation rather than a
+  missing module; and reverting **only** the call site in `officeMomentDelivery.js` — module and
+  store intact — goes **exactly 1 red**, the wire case. A pure module can be perfect and unwired, and
+  only an assertion on the request body can tell.
+
+### A peek the colleague remembers: the sixth aimed edge
+
+- **The gap was found by asking the brief's own first question of each verb in turn.** Question 1
+  lists what you can do to a person — _"click them, walk into them, stand beside them, hand them a
+  sentence"_ — and four of those five already wrote a beat. **Clicking them, which is the first item
+  on the list, was the one that did not.** Desk peeking has been in the room since slice 6 and is the
+  most deliberate approach the floor has (you choose it off a card, you cross the room, your own seat
+  empties), and it was also the only one the room forgot the instant you sat down. When a surface
+  looks fully built, check it against the list of edges that write, not against its own
+  documentation.
+- **`standingFree` is why a peek could never have been fixed by the dwell channel.**
+  `useFloorDwell` is gated on `activity.standingFree`, which is `Boolean(presence) && !peek && !talk
+&& !prop` — so an open peek card switches **off** the floor's provoked, model-first line for as long
+  as you stand there. That is correct (a card open is a _reason_ to be stood there, and the peek
+  speaks for itself), and it means the peek is the one approach guaranteed to say something written
+  in advance: `deskWorkFor(id).line`, one fixed sentence per colleague, every peek, every session.
+  **Converting that line is a separate slice and it does not fit this playbook's `maxFiles`** — see
+  the ledger's `peek-line-is-still-recited` row for the costed design.
+- **Arrival, not the walk; the id, not the trip.** `phase` goes `walking` → `looking` and stays
+  there, so an unlatched effect writes a beat on every render while you read. The latch is the
+  colleague id, cleared when the peek ends — which is what makes two peeks two beats and one long
+  peek one, the same correction `useFloorInterruptMemory` records about `leg`. Firing on `walking`
+  would also record a peek that never happened: Escape sends you home from the corridor and a
+  meeting takes the room outright, both pinned in `officeFloorPeek.test.jsx`.
+- **The third red direction discharged a claim instead of asserting one.** Stashing `apps/web/src`
+  goes 8 red; reverting **only** the hook's call site in `OfficeFloor.jsx` goes **exactly 3 red** (the
+  end-to-end cases — a pure hook can be perfect and uncalled); and reverting **only**
+  `normalizeWorkingMemoryBeat`'s knowledge of the field goes **8 red again, not 1**. That third
+  result is the point: the writer and the read-back sanitizer were merged into one body by an earlier
+  slice, so "a field taught to one validator is a fact that survives until the next refresh" is now
+  structurally impossible rather than merely tested for.
+- **The instrument is blind to this slice, and the trace says why in its own output.** The fixed
+  visit has seven steps and not one of them reads a screen, so `afterwards.workingMemory` carries
+  `gilfoyle` / `dinesh` / `intern` and no `peeked` row at all — 2026-09-09's shape (the visit's
+  _subject_ does not contain the slice) rather than 2026-09-06's (a report missing an axis). Three
+  generated traces after the change are identical to each other and to the 2026-10-30 → 11-04
+  baselines on every axis. **An eighth step is an instrument change**, and a bigger one than the
+  fields added in versions 2–4: it belongs in its own run, never in the run that wants the number.

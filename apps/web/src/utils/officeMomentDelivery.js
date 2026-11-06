@@ -571,7 +571,14 @@ export async function deliverLlmMoment(kind, ctx, options) {
         // is actually about to talk, so it is empty for anybody you have not
         // dealt with today and the server drops the block entirely.
         officeRelationship: getOfficeRelationshipWith(colleagueId),
-        officeWorkingMemory: workingMemoryPromptLines(colleagueId),
+        // The board they last looked at, read as a comparison against the board
+        // on the screen now rather than recited as the `type:labels:len` id it
+        // is stored as (`officeBoardRecall.js`). `ctx` is sampled here, and the
+        // stamp for *this* exchange is written after the response lands, so the
+        // fingerprint on the row is genuinely the previous sighting.
+        officeWorkingMemory: workingMemoryPromptLines(colleagueId, {
+          boardNow: boardFingerprintOf(ctx)
+        }),
         // Their own work, which the room has always known and never told
         // anybody (`docs/office-parody.md` § 11). The two blocks above are
         // about *you*: what the office remembers of your day, and what this

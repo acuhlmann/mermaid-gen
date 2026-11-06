@@ -61,7 +61,7 @@ Do not copy `standUp(); render(<OfficeFloor />)` into new suites — extend the 
 | `officeCaptions.test.js`             | `shouldShowSpokenText` policy (captions × voiceActive)                                   |
 | `officeWalkBy.test.jsx`              | Desk-mode shoulder lean-in + voice-first caption hide                                    |
 | `deskActionsDock.test.jsx`           | Stand up primary control; Walk the floor removed from menu                               |
-| `officeFloorPeek.test.jsx`           | Desk peeking marks and fiction                                                           |
+| `officeFloorPeek.test.jsx`           | Desk peeking marks, fiction, and the beat it leaves on them                              |
 | `officeFloorProps.test.jsx`          | Usable props + `getCoffee` verb                                                          |
 | `officeFloorScene.test.jsx`          | Coffee + battle set pieces                                                               |
 | `officeFloorSceneJoin.test.jsx`      | Coffee/battle join offers, earshot range, scene pacing hooks                             |

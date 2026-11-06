@@ -3,6 +3,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { BOARD_RECALL_LINES, boardRecallKind } from '../src/utils/officeBoardRecall.js';
+import { DESK_WORK_LOOKS } from '../src/utils/officeDeskWork.js';
 import {
   OFFICE_WORKING_MEMORY_BEAT_CAP,
   OFFICE_WORKING_MEMORY_INTERRUPTIONS,
@@ -52,8 +54,14 @@ describe('officeWorkingMemoryStore', () => {
     expect(hasWorkingMemoryFact('intern')).toBe(true);
     expect(hasWorkingMemoryFact('greybeard')).toBe(false);
     expect(getWorkingMemoryWith('intern').boardFingerprint).toBe('mermaid:Auth:40');
+    /*
+     * The fingerprint is still stored verbatim — it is an identity and has to
+     * be — and it no longer reaches the prompt as itself. With no `boardNow`
+     * handed in there is nothing to compare against, so the line is the half of
+     * the fact that needs no comparison.
+     */
     expect(workingMemoryPromptLines('intern')).toEqual([
-      'last board they noticed: mermaid:Auth:40',
+      BOARD_RECALL_LINES.unknown,
       'they said: those boxes multiplied',
       'you said: yeah the auth path'
     ]);
@@ -386,5 +394,167 @@ describe('working memory does not trigger ambience', () => {
     const ambience = readFileSync(join(webRoot, 'src/hooks/useOfficeAmbience.js'), 'utf8');
     expect(cadence).not.toMatch(/officeWorkingMemoryStore/);
     expect(ambience).not.toMatch(/officeWorkingMemoryStore/);
+  });
+});
+
+/**
+ * The board a colleague remembers, as a fact rather than as its id.
+ *
+ * Two layers, deliberately pinned separately: `boardRecallKind` is the whole
+ * decision and is pure, and `workingMemoryPromptLines` is the only thing that
+ * turns it into a line. A suite that only drove the module would pass with the
+ * store still reciting the fingerprint, which is the perfect-but-unwired shape
+ * this ledger keeps paying for.
+ */
+describe('board recall', () => {
+  it('says nothing when they have never looked', () => {
+    expect(boardRecallKind('', 'mermaid:Auth:40')).toBe(null);
+    expect(boardRecallKind(null, 'mermaid:Auth:40')).toBe(null);
+    expect(boardRecallKind('   ', 'mermaid:Auth:40')).toBe(null);
+  });
+
+  it('separates the board they saw from the one on the screen', () => {
+    expect(boardRecallKind('mermaid:Auth:40', 'mermaid:Auth:40')).toBe('same');
+    expect(boardRecallKind('mermaid:Auth:40', 'mermaid:Auth:41')).toBe('changed');
+    expect(boardRecallKind('mermaid:Auth:40', 'chart:Auth:40')).toBe('changed');
+    expect(boardRecallKind('mermaid:Auth:40', 'mermaid:Billing:40')).toBe('changed');
+  });
+
+  it('treats an unreadable current board as no comparison, not as a change', () => {
+    expect(boardRecallKind('mermaid:Auth:40', '')).toBe('unknown');
+    expect(boardRecallKind('mermaid:Auth:40', undefined)).toBe('unknown');
+    expect(boardRecallKind('mermaid:Auth:40', 42)).toBe('unknown');
+  });
+
+  /*
+   * The reason `boardRecallKind` compares and never parses: the labels inside a
+   * fingerprint are the user's own node text, joined on `|` and unescaped, so a
+   * label holding the separator makes the string ambiguous. Equality survives
+   * that; a parser would read these two as the same board.
+   */
+  it('is not fooled by a label carrying the separators', () => {
+    expect(boardRecallKind('mermaid:a|b:7', 'mermaid:a|b:7')).toBe('same');
+    expect(boardRecallKind('mermaid:a|b:7', 'mermaid:a:b:7')).toBe('changed');
+  });
+
+  it('never leaks the fingerprint, a count or a label into a line', () => {
+    for (const line of Object.values(BOARD_RECALL_LINES)) {
+      expect(line).not.toMatch(/[|:]/);
+      expect(line).not.toMatch(/\d/);
+      // The per-line cap the `/moment` route enforces on this field.
+      expect(line.length).toBeLessThanOrEqual(200);
+    }
+  });
+
+  it('turns the comparison into the prompt line, through the store', async () => {
+    const { rememberWorkingMemoryBeat, stampWorkingMemoryBoard, workingMemoryPromptLines } =
+      await freshStore();
+    stampWorkingMemoryBoard('greybeard', 'mermaid:Auth:40', at(9, 0));
+    rememberWorkingMemoryBeat('greybeard', { theirs: 'it was four boxes', now: at(9, 1) });
+
+    expect(workingMemoryPromptLines('greybeard', { boardNow: 'mermaid:Auth:40' })).toEqual([
+      BOARD_RECALL_LINES.same,
+      'they said: it was four boxes'
+    ]);
+    expect(workingMemoryPromptLines('greybeard', { boardNow: 'mermaid:Auth:77' })).toEqual([
+      BOARD_RECALL_LINES.changed,
+      'they said: it was four boxes'
+    ]);
+  });
+
+  it('gives a stranger no recall line however the board has moved', async () => {
+    const { workingMemoryPromptLines } = await freshStore();
+    expect(workingMemoryPromptLines('hr', { boardNow: 'mermaid:Auth:40' })).toEqual([]);
+  });
+});
+
+/**
+ * Reading somebody's screen (`useFloorPeekMemory`).
+ *
+ * The sixth aimed edge to write a beat, and the first that refuses nobody
+ * anything: you walked across the room, stood at their desk and read their
+ * monitor. Three properties decide it, and the third is the whole reason the
+ * fact is worth a field rather than a line of copy — `listWorkingMemoryColleagueIds`
+ * is what the ambient director's weighted draw reads
+ * (`ambientSpeakerFrom`), so being looked at makes somebody likelier to be the
+ * next person who speaks to you.
+ */
+describe('a screen you read over their shoulder', () => {
+  it('is on its own enough of a fact, and reads as what you did', async () => {
+    const { hasWorkingMemoryFact, rememberWorkingMemoryBeat, workingMemoryPromptLines } =
+      await freshStore();
+    rememberWorkingMemoryBeat('greybeard', { peeked: true, now: at(10, 0) });
+
+    expect(hasWorkingMemoryFact('greybeard')).toBe(true);
+    expect(workingMemoryPromptLines('greybeard')).toEqual([
+      'you walked over and read what was on their screen'
+    ]);
+  });
+
+  it('puts what you did before what they said about it', async () => {
+    const { rememberWorkingMemoryBeat, workingMemoryPromptLines } = await freshStore();
+    rememberWorkingMemoryBeat('greybeard', { peeked: true, now: at(10, 0) });
+    rememberWorkingMemoryBeat('greybeard', {
+      theirs: 'Mainframe migration. Year eleven.',
+      now: at(10, 1)
+    });
+
+    // `interrupted`'s ordering, for its reason: the quote read first is a
+    // non-sequitur ahead of the thing it is about.
+    expect(workingMemoryPromptLines('greybeard')).toEqual([
+      'you walked over and read what was on their screen',
+      'they said: Mainframe migration. Year eleven.'
+    ]);
+  });
+
+  /*
+   * The line says you looked and stops. What was *on* the screen is
+   * `deskWorkFor`'s answer and already rides the same request on its own block
+   * (`officeDeskWork`), so naming it here would be one fact in two places —
+   * and a sentence claiming what you saw is a delta the rest of the prompt
+   * cannot check, which is measurably how a moment invents one.
+   */
+  it('never names the screen it was read off', async () => {
+    const { rememberWorkingMemoryBeat, workingMemoryPromptLines } = await freshStore();
+    rememberWorkingMemoryBeat('greybeard', { peeked: true });
+    const [line] = workingMemoryPromptLines('greybeard');
+
+    for (const look of DESK_WORK_LOOKS) {
+      expect(line).not.toContain(look);
+    }
+    expect(line).not.toMatch(/\d/);
+    // The per-line cap the `/moment` route enforces on this field.
+    expect(line.length).toBeLessThanOrEqual(200);
+  });
+
+  it('makes them a candidate the ambient director can weight', async () => {
+    const { listWorkingMemoryColleagueIds, rememberWorkingMemoryBeat } = await freshStore();
+    expect(listWorkingMemoryColleagueIds()).toEqual([]);
+
+    rememberWorkingMemoryBeat('greybeard', { peeked: true, now: at(10, 0) });
+
+    expect(listWorkingMemoryColleagueIds()).toEqual(['greybeard']);
+  });
+
+  it('is strictly a boolean, so a truthy value is still nothing worth keeping', async () => {
+    const { hasWorkingMemoryFact, rememberWorkingMemoryBeat } = await freshStore();
+    rememberWorkingMemoryBeat('greybeard', { peeked: 'yes' });
+    rememberWorkingMemoryBeat('dinesh', { peeked: 1 });
+    rememberWorkingMemoryBeat('hr', { peeked: false });
+
+    expect(hasWorkingMemoryFact('greybeard')).toBe(false);
+    expect(hasWorkingMemoryFact('dinesh')).toBe(false);
+    expect(hasWorkingMemoryFact('hr')).toBe(false);
+  });
+
+  it('is still there after a reload, which the write side alone cannot promise', async () => {
+    const first = await freshStore();
+    first.rememberWorkingMemoryBeat('greybeard', { peeked: true });
+    const second = await freshStore();
+
+    expect(second.hasWorkingMemoryFact('greybeard')).toBe(true);
+    expect(second.workingMemoryPromptLines('greybeard')).toEqual([
+      'you walked over and read what was on their screen'
+    ]);
   });
 });

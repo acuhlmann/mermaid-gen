@@ -20,10 +20,15 @@
  * everyone on a board-sample edge would be omniscience.
  *
  * "Few" is a rule about the *edge*, not a count — each writer is a moment the
- * user aimed at one named person, which is why the set has grown five times
+ * user aimed at one named person, which is why the set has grown six times
  * since v1's dwell-and-talk pair (an interruption, an email, a dropped errand,
- * a declined invite, then a declined set piece) without the rule moving. An
- * ambient moment must still never write here.
+ * a declined invite, a declined set piece, then reading somebody's screen)
+ * without the rule moving. An ambient moment must still never write here.
+ *
+ * The newest one is the clearest statement of what the rule is *for*: a peek
+ * costs nobody anything and refuses nobody anything, and it is still the most
+ * deliberate approach the floor has — you cross the room to one named person
+ * and stand behind them. The edge is aimed; the beat follows.
  *
  * The three refusals are the clearest case of why the rule is about the edge: a
  * press on _Not today_, _Decline_ or _Not my circus_ is aimed at the person who
@@ -39,6 +44,7 @@
  * record-never-trigger as this file contains.
  */
 
+import { boardRecallLine } from '../utils/officeBoardRecall.js';
 import {
   OFFICE_WORKING_MEMORY_BEAT_CAP,
   normalizeWorkingMemoryBeat,
@@ -159,7 +165,36 @@ const SCENE_DECLINED_PROMPT_LINES = Object.freeze({
   battle: 'they wanted you in on an argument; you walked away and it carried on without you'
 });
 
-/** @typedef {{ at: number, theirs?: string, yours?: string, pitchTaken?: boolean, errandDropped?: boolean, inviteDeclined?: boolean, interrupted?: 'gotIt' | 'gaveUp', interruptedProp?: string, sceneDeclined?: 'coffee' | 'battle', medium?: 'email' }} WorkingMemoryBeat */
+/**
+ * What reading their screen over their shoulder reads like to the model
+ * (`docs/automations/office-life.md` question 1 — the first thing its own list
+ * names, *"click them"*).
+ *
+ * Desk peeking was the one verb aimed at a single named person that left
+ * nothing behind. You cross the room, stand at their desk, and read what is on
+ * their monitor; they say something about it; and the next time you stood next
+ * to them the room was as blank as if you had never been there. The CISO's own
+ * peek line has been *"Do not read that. You have now read it. Noted in your
+ * file."* since the surface was built, and nothing was noted in anybody's file.
+ *
+ * **It states the circumstance and stops**, for `INTERRUPTION_PROMPT_LINES`'
+ * reason: not *"so they are guarded with you"* and not what was on the screen.
+ * Which screen they had up is `deskWorkFor`'s answer and rides the same request
+ * on its own block, so naming it here would be one fact in two places — and a
+ * line that said what you saw would hand the next prompt a delta it cannot
+ * check, which is measurably how a moment ends up inventing one.
+ *
+ * **The one beat writer that deliberately does not quote what it heard.** The
+ * interruption beat carries `theirs: said.text` because the line was improvised
+ * out of a bank the user never sees twice; a peek's line is the one fixed
+ * sentence that colleague has, and `deskWorkPromptLines` already refuses to
+ * send it (*"handing the model its own canned answer is an invitation to recite
+ * it back"*). So the beat records that you looked and leaves the sentence where
+ * it was said.
+ */
+const PEEKED_PROMPT_LINE = 'you walked over and read what was on their screen';
+
+/** @typedef {{ at: number, theirs?: string, yours?: string, pitchTaken?: boolean, errandDropped?: boolean, inviteDeclined?: boolean, interrupted?: 'gotIt' | 'gaveUp', interruptedProp?: string, sceneDeclined?: 'coffee' | 'battle', peeked?: boolean, medium?: 'email' }} WorkingMemoryBeat */
 /** @typedef {{ beats: WorkingMemoryBeat[], boardFingerprint?: string }} WorkingMemoryRow */
 
 /** @type {{ [colleagueId: string]: WorkingMemoryRow }} */
@@ -279,19 +314,21 @@ export function listWorkingMemoryColleagueIds() {
  * @param {{ theirs?: string, yours?: string, pitchTaken?: boolean,
  *   errandDropped?: boolean, inviteDeclined?: boolean,
  *   interrupted?: 'gotIt' | 'gaveUp', interruptedProp?: string,
- *   sceneDeclined?: 'coffee' | 'battle',
+ *   sceneDeclined?: 'coffee' | 'battle', peeked?: boolean,
  *   medium?: 'email', now?: number }} beat
  *   `interruptedProp` is the only field here the prompt never reads: it names
  *   the errand an interruption ruined so the floor can send them back for it
  *   (`unfinishedErrandFrom`), and it is kept out of
  *   `workingMemoryPromptLines` on purpose — a line naming the machine would
  *   state a delta the rest of the prompt cannot check.
- *   `interrupted`, `errandDropped`, `inviteDeclined` and `sceneDeclined` are
- *   the beat fields that are not something either of you said — the first is
- *   their errand ending because of you, the second is yours ending because you
- *   dropped it, the third is their meeting ending because you would not go, and
- *   the fourth is the one where nothing ended at all: you turned down the
- *   coffee break or the argument and it went ahead without you. All are still
+ *   `interrupted`, `errandDropped`, `inviteDeclined`, `sceneDeclined` and
+ *   `peeked` are the beat fields that are not something either of you said —
+ *   the first is their errand ending because of you, the second is yours ending
+ *   because you dropped it, the third is their meeting ending because you would
+ *   not go, the fourth is the one where nothing ended at all (you turned down
+ *   the coffee break or the argument and it went ahead without you), and the
+ *   fifth is the only one where you did not refuse anybody anything: you stood
+ *   at their desk and read their screen. All are still
  *   only a record — writing one schedules nothing (ADR-0010) — but it is what
  *   makes `hasWorkingMemoryFact` true for somebody you have never spoken to,
  *   which is the whole point: the next time you stand next to them, the office
@@ -347,16 +384,27 @@ export function markWorkingMemoryPitchTaken(colleagueId, now = Date.now()) {
  * Prompt lines for `/moment`'s `officeWorkingMemory` field. Empty when there
  * is nothing, so the server drops the heading rather than announcing an absence.
  *
+ * `boardNow` is the fingerprint of the board as it stands, handed in by the
+ * caller rather than read here — the same discipline `wanderNewsFrom` and
+ * `ambientSpeakerFrom` get, so the board is sampled at the moment the request
+ * is built and this module still only ever reads its own rows (ADR-0010: record,
+ * never trigger, and never subscribe from a producer).
+ *
+ * Omitting it is not an error: a caller with no board in hand gets the
+ * `unknown` recall line, which is the part of the fact that does not need a
+ * comparison. What it must never do is pass the fingerprint through unread —
+ * see `officeBoardRecall.js` for why a machine id is not a sentence.
+ *
  * @param {string} colleagueId
+ * @param {{ boardNow?: string }} [options]
  * @returns {string[]}
  */
-export function workingMemoryPromptLines(colleagueId) {
+export function workingMemoryPromptLines(colleagueId, { boardNow = '' } = {}) {
   const row = getWorkingMemoryWith(colleagueId);
   if (!row) return [];
   const lines = [];
-  if (row.boardFingerprint) {
-    lines.push(`last board they noticed: ${row.boardFingerprint}`);
-  }
+  const recall = boardRecallLine(row.boardFingerprint, boardNow);
+  if (recall) lines.push(recall);
   for (const beat of row.beats) {
     /*
      * Before the quote, not after it: the interruption is what *you* did, and a
@@ -367,6 +415,7 @@ export function workingMemoryPromptLines(colleagueId) {
     if (beat.errandDropped) lines.push(ERRAND_DROPPED_PROMPT_LINE);
     if (beat.inviteDeclined) lines.push(INVITE_DECLINED_PROMPT_LINE);
     if (beat.sceneDeclined) lines.push(SCENE_DECLINED_PROMPT_LINES[beat.sceneDeclined]);
+    if (beat.peeked) lines.push(PEEKED_PROMPT_LINE);
     const quote = MEDIUM_PROMPT_LINES[beat.medium] ?? SPOKEN_PROMPT_LINES;
     if (beat.yours) lines.push(`${quote.yours} ${beat.yours}`);
     if (beat.theirs) lines.push(`${quote.theirs} ${beat.theirs}`);
