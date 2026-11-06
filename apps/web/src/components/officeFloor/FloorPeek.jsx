@@ -10,8 +10,17 @@
  *
  * **This produces nothing.** The Sign-off rule (ADR-0010) is not a caveat here,
  * it is the design: a look is a handful of rectangles and a line is a line. No
- * slot content is written, no artifact is created, and nothing about a peek
- * reaches a store — the state below is view state and dies when you sit down.
+ * slot content is written and no artifact is created — the state below is view
+ * state and dies when you sit down.
+ *
+ * It no longer reaches **no** store, though, and the distinction is the one
+ * ADR-0010 actually draws. Since `useFloorPeekMemory` the colleague whose
+ * screen you read remembers that you did (one boolean beat on their own
+ * working-memory row, written by the floor, read by the next prompt). That is
+ * the *record* half of record-never-trigger, the same half the interruption,
+ * the dropped errand and the three refusals already use; what the sign-off rule
+ * forbids is the cast producing work, and a memory of being looked at is not
+ * work. Nothing about a peek is scheduled, re-offered or chased.
  *
  * Two exports for the same reason `FloorMeeting` has two (§ 6 rule 12): the
  * room is diegesis, the controls are chrome in the floor card slot, off the
