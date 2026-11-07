@@ -857,6 +857,38 @@ test:floor`; the floor test map is [`docs/agents/isometric-floor-tests.md`](../.
   carries the board they saw, so "your diagram changed" is the measured 8-of-12 fabrication, and the
   identity is byte-sensitive anyway (one keystroke flips it). `boardNow` is a parameter defaulted at
   the call site, like `memoryIds` and the office log.
+- **The scripted visit's steps went seven → eight, and an append is affordable only because the old
+  totals ship as a cut.** `officeVisitTrace.mjs`'s rule was "never add, reorder or retime a step",
+  which was doing two jobs; the ban on reordering/retiming/rewriting is absolute and stays, the ban
+  on **appending** broke the night a slice (`peeked`) was invisible because **no step read a
+  screen** — and no observation recovers a verb the visit never performs. Version 5 appends
+  `read-their-screen` after step 7 and reports `speech.throughStep7`, the same three totals cut at
+  the eighth step's `atMs`: measured **12 / narration 9, interrupt 1, dwell 1, talk 1 / model 2,
+  bank 10 in 3 of 3**, i.e. the version-4 figure exactly, so eight nights of baselines survive the
+  append instead of being discarded. **Append only in a run that wants nothing from the number**,
+  with the spec in the ledger first. `roomDelta.cards.after` is the other one-time move
+  (`talk-card` → `peek-card`): a peek ends with you at their desk, and walking you home to make the
+  delta look familiar would be editing the visit to protect a number.
+- **A surface the script cannot reach does not even report itself as unmapped.**
+  `office-floor-peek-line` was absent from `channelOf`'s table for eight weeks and had never once
+  surfaced as `other`, because nothing in a seven-step visit could draw it — so the "an unmapped
+  surface names itself so the next run can map it" protocol is only a sensor for surfaces some step
+  actually provokes. And a new step reaches channels nobody aimed it at: the eighth step produced the
+  harness's **first ever `shopTalk` line in 3 of 3** (`Half of this is in a different handwriting.`),
+  a channel 2026-09-09 recorded as never-fired because "the fixed visit never stands in the
+  overhearing ring while a wanderer dwells" — leaving a conversation and crossing to another desk
+  does exactly that, so the channel was unvisited rather than unreachable.
+- **An observation that reads a speech surface must read `.office-floor-bubble-body`, not the
+  surface.** `[data-testid="office-floor-peek-line"]`'s own `textContent` welds the speaker's name
+  and title onto the sentence — the same defect `harvest()`'s innermost-match filter exists to drop —
+  and a new field pays that cost again because it does not go through `harvest()`. It cost one run's
+  first trace a `drawn` string no bank holds.
+- **The peek line is now measured recited rather than argued recited.** `peek.isTheBankLine` is
+  **true in 3 of 3** against `deskWorkFor(id).line`, and across the same runs `/api/office/moment`
+  stays at **2** while `/api/office/speak` goes 3 → 5 — the peek draws one fixed sentence and asks no
+  model, which is `peek-line-is-still-recited`'s premise with a number under it. Report
+  `isTheBankLine` **beside** `source`, never instead of it: `bySource` attributes against what a 2xx
+  office response delivered, so a canned line and a line nobody asked for both read `bank`.
 
 ## Full findings
 
@@ -2155,3 +2187,56 @@ mermaid:Login|Verify email:482`. On the scripted visit's own fixture the whole l
   generated traces after the change are identical to each other and to the 2026-10-30 → 11-04
   baselines on every axis. **An eighth step is an instrument change**, and a bigger one than the
   fields added in versions 2–4: it belongs in its own run, never in the run that wants the number.
+
+### The visit grew an eighth step, and the rule it broke was two rules
+
+- **The sentence that forbade it was doing two jobs, and only one of them was load-bearing.**
+  `officeVisitTrace.mjs`'s header said a run "may never add, reorder or retime a step". _Never
+  reorder, retime or rewrite_ exists so a run cannot edit the visit to move a number, and that is
+  absolute. _Never append_ existed so eight nights of traces stay comparable — a weaker claim, and it
+  broke on 2026-11-06: the peek beat was invisible to the instrument because **not one of the seven
+  steps read a screen**, and `afterwards` cannot recover a verb the visit never performs. The
+  narrowed rule is **append only, after the last step, in a run that wants nothing from the number it
+  produces, with the spec in the ledger the night before**. That last clause is the one that makes it
+  safe: the run that wants a number is exactly the run that would append the step that produces it.
+- **The append is affordable because the old totals ship as a derived cut, not because they were
+  cheap to lose.** `speech.count`, `byChannel` and `bySource` sum over the whole visit, so a version-5
+  number and a version-4 number are two measurements with one name. `speech.throughStep7` is the same
+  three totals cut at the `atMs` the eighth step recorded on its way in, and it came back as
+  **12 / narration 9, interrupt 1, dwell 1, talk 1 / model 2, bank 10 in 3 of 3** — the version-4
+  figure exactly, in all three runs, with the cut landing at 39 390 / 39 403 / 39 597 ms. Without that
+  field the append would have quietly retired every generated baseline from 2026-10-30 onward; with
+  it, the rebaseline costs one sentence in the version note. **The general shape: when a fixed
+  instrument has to grow, publish the old measurement as a derived view of the new one.**
+- **The step is driven by what the room says, not by where things sit.** Three points, each a trap
+  the step pays for once. The card slot is single-occupancy and **a talk outranks both a peek and the
+  person card the peek verb lives on**, so the step leaves the conversation first with the same
+  `at(-1)` button step 4 uses — clicking the person through an open talk card does nothing. The peek
+  verb is found by matching `/screen/i` on `.office-floor-card-action`, because `talk` / `message` /
+  `peek` is _offer order_ and `message` is false on the floor, so "the second button" is true only
+  until somebody adds a verb; a missing verb is then a failed step rather than a silent second `talk`.
+  And **arrival is asserted on `office-floor-peek-line`, not on the card**: `FloorPeek` renders
+  nothing until `phase === 'looking'`, which is the exact condition `useFloorPeekMemory` latches on,
+  so the line being in the DOM and the beat being written are one fact — a step that waited for the
+  card would report `ok` for a walk Escape or a meeting had abandoned halfway.
+- **What the new axis caught that nobody aimed at.** `beats[].peeked` had to be added to the
+  `afterwards` projection as well as the step: the projection mapped `interrupted` / `theirs` /
+  `yours`, so even a visit that _had_ peeked would have shown the fact only as a sentence in
+  `promptLines` — the next exchange's view of the beat rather than the record, and a run holding only
+  the sentence cannot tell which half broke. Both are reported. The same run turned up the harness's
+  **first `shopTalk` line ever** (3 of 3), a channel 2026-09-09 filed as structurally unreachable:
+  leaving a conversation and crossing the floor stands you in the overhearing ring while the visit's
+  one errand dwells. A step added for one verb is a new vantage point on everything near it.
+- **`office-floor-peek-line` was unmapped for eight weeks without ever complaining.** `channelOf`'s
+  contract is that an unmapped surface reports `other` with its own name "so the next run can map
+  it" — a real sensor, and useless here, because no seven-step visit could draw the surface at all.
+  **A self-reporting protocol only covers what some step provokes**; everything else is absent rather
+  than flagged, and absence is what the eighth step was for.
+- **Zero spend, and the trace is what says so.** `/api/office/moment` stays at **2** across all three
+  after-runs while `/api/office/speak` goes 3 → 5 (Cloud TTS, excluded from the LLM count by
+  construction, for the peek line and the shop-talk line). So the eighth step asks no model, which is
+  both the honest reading of the instrument's cost and the measurement
+  `peek-line-is-still-recited` needs: `peek.isTheBankLine` **true in 3 of 3** against
+  `deskWorkFor(id).line`. Report it beside `source`, never instead of it — `bySource` attributes
+  against what a 2xx office response delivered, so a canned line and an unasked-for one both read
+  `bank`, and only the bank comparison can tell a recitation from a reply.

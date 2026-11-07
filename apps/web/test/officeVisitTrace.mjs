@@ -72,18 +72,45 @@
  * worse office, so a canned-fallback trace and a generated one are never
  * compared.
  *
- * **The seven steps are fixed; the report is not.** Those are two different
- * rules wearing one sentence, and collapsing them once cost a night: an
- * instrument that cannot observe the axis a slice is on reports "nothing
- * moved" for a slice that moved something, which is a false negative dressed
- * as a measurement. So a later run may add an *observation* — `afterwards`
- * below is the first, and it exists because queue 2 changed what the office
- * knows rather than what it draws — and may never add, reorder or retime a
- * step. Add the observation in **its own run**, never in the run that needs
- * the number it produces. `movement.wanderers` (version 4) is the second, and
- * it exists for the same reason one run later: 2026-10-29 made an ambient
- * errand's destination depend on what the player had just done, and no field
- * here named where a wanderer was going.
+ * **The steps are fixed; the report is not.** Those are two different rules
+ * wearing one sentence, and collapsing them once cost a night: an instrument
+ * that cannot observe the axis a slice is on reports "nothing moved" for a
+ * slice that moved something, which is a false negative dressed as a
+ * measurement. So a later run may add an *observation* — `afterwards` below is
+ * the first, and it exists because queue 2 changed what the office knows
+ * rather than what it draws. Add the observation in **its own run**, never in
+ * the run that needs the number it produces. `movement.wanderers` (version 4)
+ * is the second, and it exists for the same reason one run later: 2026-10-29
+ * made an ambient errand's destination depend on what the player had just
+ * done, and no field here named where a wanderer was going.
+ *
+ * **The step count moved once, from seven to eight, and the rule that
+ * forbade it is narrowed rather than dropped.** For eight weeks this header
+ * said a run "may never add, reorder or retime a step", full stop, and that
+ * sentence was doing two jobs: keeping a run from editing the visit to move a
+ * number, and keeping eight nights of traces comparable. The first job is
+ * untouched and absolute. The second broke on 2026-11-06, when a slice gave
+ * the colleague whose screen you read a memory of it and the trace reported
+ * **no `peeked` row in 3 of 3** — not because the report was missing an axis
+ * (that is 2026-09-06's shape and `afterwards` is its fix) but because **not
+ * one of the seven steps read a screen**. Desk peeking is the most deliberate
+ * approach the floor has: you choose it off a card, cross the room, your own
+ * seat empties. A visit with no peek in it cannot see a third of question 1's
+ * own list, and no observation can recover a verb the visit never performs.
+ *
+ * So the rule now reads: **a step may never be reordered, retimed or
+ * rewritten, and a step may be appended only in a run that wants nothing from
+ * the number it produces, with the ledger carrying the spec first.** This one
+ * was spec'd as `visit-has-no-peek-step` the night before it was built, and it
+ * is appended *after* step 7 so that every earlier step keeps its order, its
+ * waits and its subject. The cost is paid once and paid openly: totals that
+ * sum over the whole visit (`speech.count`, `byChannel`, `bySource`) are a
+ * version-5 number and are **not** comparable with versions ≤4, so
+ * `speech.throughStep7` reports the same totals cut at the eighth step's
+ * start — eight nights of baselines are read off that field instead of being
+ * thrown away. `roomDelta.cards.after` is the other one-time change: the visit
+ * used to end with the talk card open and now ends standing at somebody
+ * else's desk, which is where a peek leaves you.
  *
  * The harness page it writes into `apps/web/.office-visit/` is scratch and is
  * deleted on the way out. It never reaches a commit.
@@ -498,6 +525,15 @@ function installInstrument(config) {
      * is somebody whose coffee run you ended.
      */
     ['office-floor-wanderer', 'interrupt'],
+    /*
+     * What they say about what is on their monitor, once you have got there.
+     * Mapped 2026-11-07 with the step that provokes it: before the eighth step
+     * existed nothing on this floor could produce the surface, so it had never
+     * reported itself as `other` and there had been nothing to map. The card
+     * below is the chrome beside it (the way back and the caption) and is a
+     * different surface, not a duplicate.
+     */
+    ['office-floor-peek-line', 'peek'],
     /* Prop cards are read surfaces, not speech — see `readPropCardNow` / `state.read`. */
     ['office-floor-peek-card', 'peek'],
     ['office-floor-talk-card', 'talkCard'],
@@ -740,6 +776,9 @@ function installInstrument(config) {
       state.notes.push({ atMs: elapsed(), kind, payload: payload ?? null });
     },
     roomShot,
+    /* The instrument's own elapsed clock, so a mark the driver takes and an
+       `atMs` a line carries are the same number measured the same way. */
+    now: () => elapsed(),
     figures: () => [...positions.values()],
     wanderers: () => [...wanderers.values()],
     begin() {
@@ -944,6 +983,88 @@ async function walkTheVisit(page) {
     return `sent: ${COMPOSER_LINE}`;
   });
 
+  /*
+   * **The eighth step, appended 2026-11-07 — read the header's rule before
+   * touching it.** It exists because the verb it performs is the one aimed at a
+   * named person that the visit did not contain, so an entire slice (the peek
+   * beat, 2026-11-06) was unobservable here by construction.
+   *
+   * Three things in it are load-bearing.
+   *
+   * 1. **Leave the conversation first.** The card slot is single-occupancy and
+   *    ordered by how much of your body is committed (`FloorCardSlot`): a talk
+   *    outranks a peek *and* the person card the peek verb lives on, so a step
+   *    that clicked the person without leaving would be clicking through a card
+   *    that is still showing — the same trap step 4 pays for with the same
+   *    `at(-1)` button.
+   * 2. **The verb is found by what it says, not by where it sits.** The card's
+   *    actions are `talk` / `message` / `peek` in offer order and `message` is
+   *    false on the floor, so the peek is "the second button" only until
+   *    somebody adds a verb. Matching the label keeps the step aimed at the
+   *    verb rather than at an index, and a missing button is recorded as a
+   *    failed step rather than silently clicking `talk` again.
+   * 3. **Arrival is the assertion, and `office-floor-peek-line` is what proves
+   *    it.** `FloorPeek` renders nothing until `phase === 'looking'`, which is
+   *    also the exact condition `useFloorPeekMemory` latches on — so the line
+   *    being in the DOM and the beat being written are the same fact, and a
+   *    step that only waited for the card would report `ok` for a walk that
+   *    Escape or a meeting had abandoned halfway.
+   *
+   * It does not walk you home. A peek ends with you standing at their desk
+   * reading their screen; sending you back would be a second walk whose only
+   * purpose is to make `roomDelta` look like it used to, which is editing the
+   * visit to protect a number.
+   */
+  await step(steps, 'read-their-screen', async () => {
+    if (!named) throw new Error('no colleague whose screen to read');
+    /* The mark `speech.throughStep7` is cut at — see the header. Read from the
+       instrument's own clock so it is the same clock every line carries. */
+    const startedAtMs = await page.evaluate(() => {
+      window.__visit.state.eighthStepAtMs = window.__visit.now();
+      return window.__visit.state.eighthStepAtMs;
+    });
+    const left = await page.evaluate(() => {
+      const card = document.querySelector('[data-testid="office-floor-talk-card"]');
+      const leave = [...(card?.querySelectorAll('button') ?? [])].at(-1);
+      leave?.click();
+      return Boolean(leave);
+    });
+    await page.waitForTimeout(2_500);
+    await page.evaluate((name) => {
+      const target = [...document.querySelectorAll('.office-floor-person:not(.is-you)')].find(
+        (node) => node.querySelector('.office-floor-person-name')?.textContent?.trim() === name
+      );
+      target?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    }, named);
+    const pressed = await page.evaluate(() => {
+      const actions = [...document.querySelectorAll('.office-floor-card-action')];
+      const verb = actions.find((node) => /screen/i.test(node.textContent ?? ''));
+      verb?.click();
+      return verb ? (verb.textContent ?? '').trim() : null;
+    });
+    if (!pressed) {
+      throw new Error(`no peek verb on ${named}'s card (${left ? 'talk left' : 'no talk card'})`);
+    }
+    const line = await page
+      .waitForSelector('[data-testid="office-floor-peek-line"]', {
+        state: 'attached',
+        timeout: STEP_TIMEOUT_MS
+      })
+      .catch(() => null);
+    /* Long enough for the harvest tick (200 ms) to see the line it just drew,
+       and no longer: the beat is written in an effect on arrival, not on a
+       timer. */
+    await page.waitForTimeout(1_200);
+    const arrived = await page.evaluate(() =>
+      Boolean(document.querySelector('[data-testid="office-floor-peek-card"]'))
+    );
+    return (
+      `${named}; pressed “${pressed}”; ` +
+      `${arrived ? 'standing at their desk' : 'never arrived'}; ` +
+      `${line ? 'their screen line drew' : 'no line'} (step opened at ${startedAtMs} ms)`
+    );
+  });
+
   return steps;
 }
 
@@ -1122,6 +1243,16 @@ async function main() {
               colleagueId: id,
               beats: (row?.beats ?? []).map((beat) => ({
                 interrupted: beat.interrupted ?? null,
+                /*
+                 * Added 2026-11-07 with the step that produces it. The beat
+                 * `useFloorPeekMemory` writes is a boolean and was absent from
+                 * this projection, so even a visit that *had* peeked would have
+                 * shown the fact only indirectly, as a sentence in
+                 * `promptLines` — which is the next exchange's view of it, not
+                 * the record. Both are reported; they can disagree, and a run
+                 * that only had the sentence could not tell which half broke.
+                 */
+                peeked: beat.peeked ?? null,
                 theirs: beat.theirs ? String(beat.theirs).slice(0, 160) : null,
                 yours: beat.yours ? String(beat.yours).slice(0, 160) : null
               })),
@@ -1137,8 +1268,58 @@ async function main() {
       )
       .catch((err) => ({ error: String(err?.message ?? err).split('\n')[0] }));
 
+    /*
+     * **What the peek produced, read as a fact rather than inferred from a
+     * count.** The eighth step's whole purpose is a line addressed to you by
+     * somebody whose screen you just read, and the open question the ledger
+     * carries about it (`peek-line-is-still-recited`) is not *whether* a line
+     * appeared but whether it was `deskWorkFor(id).line` — one fixed sentence
+     * per colleague, every peek, every session. `speech.bySource` cannot
+     * answer that: it attributes against what a 2xx office response delivered,
+     * so a canned line and a line nobody asked for both read `bank`.
+     *
+     * So this reads the bank's own string beside the drawn one and leaves the
+     * comparison to `buildTrace`. The colleague comes from the **store**, not
+     * from the step's display name — the beat is the thing under test, and a
+     * block that looked up the name the driver typed could report a bank line
+     * for a colleague the room never wrote a beat about.
+     */
+    const peek = await page
+      .evaluate(() =>
+        import('/src/state/officeWorkingMemoryStore.js').then((memory) =>
+          import('/src/utils/officeDeskWork.js').then((deskWork) => {
+            const peeked = memory
+              .listWorkingMemoryColleagueIds()
+              .find((id) =>
+                (memory.getWorkingMemoryWith(id)?.beats ?? []).some((beat) => beat.peeked === true)
+              );
+            /* The **body**, not the surface. The surface's own `textContent`
+               welds the speaker's name and title onto the sentence ("Bertram
+               Gilfoyle · Systems Architect, UnimpressedI already fixed it…"),
+               which is the same shape the harvest's innermost-match filter
+               exists to drop — and reporting it here would make `drawn` a
+               string no bank holds. */
+            const surface = document.querySelector('[data-testid="office-floor-peek-line"]');
+            const node = surface?.querySelector('.office-floor-bubble-body') ?? surface;
+            const work = peeked ? deskWork.deskWorkFor(peeked) : null;
+            return {
+              colleagueId: peeked ?? null,
+              standingThere: Boolean(
+                document.querySelector('[data-testid="office-floor-peek-card"]')
+              ),
+              drawn: node ? (node.textContent ?? '').trim().slice(0, 400) : null,
+              bankLine: work?.line ?? null,
+              doing: work?.doing ?? null,
+              look: work?.look ?? null
+            };
+          })
+        )
+      )
+      .catch((err) => ({ error: String(err?.message ?? err).split('\n')[0] }));
+
     const collected = await page.evaluate(() => ({
       speech: window.__visit.state.speech,
+      eighthStepAtMs: window.__visit.state.eighthStepAtMs ?? null,
       read: window.__visit.state.read,
       fetches: window.__visit.state.fetches,
       notes: window.__visit.state.notes,
@@ -1156,7 +1337,7 @@ async function main() {
       steps,
       before,
       after,
-      collected: { ...collected, imHistoryAtEnd, afterwards }
+      collected: { ...collected, imHistoryAtEnd, afterwards, peek }
     });
     const json = JSON.stringify(trace, null, 2);
     console.log(json);
@@ -1258,6 +1439,53 @@ function buildTrace({ args, startedAt, t0, steps, before, after, collected }) {
     bySource[line.source] += 1;
   }
 
+  /*
+   * **The eight nights of baselines the eighth step would otherwise have
+   * thrown away.** Totals above now sum over a longer visit, so a version-5
+   * `speech.count` and a version-4 one are two different measurements with one
+   * name. This is the same three numbers cut at the mark the eighth step took
+   * on its way in, which makes it the version-4 figure and directly comparable
+   * with every generated run from 2026-10-30 onward. `null` when the eighth
+   * step never opened — in which case the totals above already *are* the
+   * seven-step ones and inventing a second copy of them would be the more
+   * confusing answer.
+   */
+  const cutAt = collected.eighthStepAtMs;
+  let throughStep7 = null;
+  if (typeof cutAt === 'number') {
+    const earlier = speech.filter((line) => line.atMs < cutAt);
+    const channels = {};
+    const sources = { model: 0, bank: 0 };
+    for (const line of earlier) {
+      channels[line.channel] = (channels[line.channel] ?? 0) + 1;
+      sources[line.source] += 1;
+    }
+    throughStep7 = { atMs: cutAt, count: earlier.length, byChannel: channels, bySource: sources };
+  }
+
+  /*
+   * Derived here rather than in the page, so the raw strings ship beside the
+   * verdict and a later run can disagree without re-running the visit. The
+   * comparison is the same loose form `attribute` uses — a surface may collapse
+   * whitespace — because the question is "is this the sentence the bank holds",
+   * not "are these two strings byte-equal".
+   */
+  const peek = collected.peek?.error
+    ? collected.peek
+    : {
+        ...(collected.peek ?? {}),
+        beatWritten: Boolean(collected.peek?.colleagueId),
+        isTheBankLine:
+          collected.peek?.drawn && collected.peek?.bankLine
+            ? loose(collected.peek.drawn).includes(loose(collected.peek.bankLine))
+            : null,
+        source: collected.peek?.drawn ? attribute({ text: collected.peek.drawn }) : null,
+        rule:
+          'derived: `isTheBankLine` compares the drawn line with `deskWorkFor(id).line`; ' +
+          '`source` is the same attribution `speech.bySource` uses, and the two answer ' +
+          'different questions — a canned line and an unasked-for one both read `bank`'
+      };
+
   const figures = collected.figures
     .map((figure) => ({
       id: figure.id,
@@ -1278,12 +1506,18 @@ function buildTrace({ args, startedAt, t0, steps, before, after, collected }) {
      * 2: `speech.bySource` is attributed by text against `speech.delivered`.
      * 3: `read.cards` records prop-card blurbs the visit opened (not speech).
      * 4: `movement.wanderers` names the prop each ambient errand was for.
+     * 5: an **eighth step** reads a colleague's screen, so `speech` totals are
+     * summed over a longer visit than versions ≤4 and are not comparable with
+     * them — read `speech.throughStep7` against those, and see the header for
+     * why the step was appended and what else moved once (`roomDelta.cards`).
+     * The report gained `peek`, `afterwards…beats[].peeked`, and a `peek`
+     * channel that can now actually fire.
      * Version 1 attributed `bySource` by an 8 s clock window, which over-credits any
      * bank line drawn behind a mid-visit model call — so a v1 `bySource.model`
      * from a run whose call was not the last thing to happen has to be re-read
      * against `modelTurns`, and this field is how a reader can tell which.
      */
-    version: 4,
+    version: 5,
     startedAt,
     durationMs: Date.now() - t0,
     mode: {
@@ -1319,6 +1553,7 @@ function buildTrace({ args, startedAt, t0, steps, before, after, collected }) {
       count: speech.length,
       byChannel,
       bySource,
+      throughStep7,
       modelTurns,
       delivered: collected.delivered ?? [],
       endSurfaces: collected.endSurfaces,
@@ -1327,6 +1562,7 @@ function buildTrace({ args, startedAt, t0, steps, before, after, collected }) {
         'derived: a line whose text matches text a 2xx /api/office response delivered is the ' +
         "model's; `delivered` is the raw evidence and `modelTurns` is the count to trust"
     },
+    peek,
     read: {
       cards: collected.read ?? [],
       rule:
