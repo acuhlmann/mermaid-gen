@@ -36,23 +36,22 @@ file by file:
 
 Priority list (by edit churn × LOC):
 
-1. ✅ `apps/server/src/routes/copilot.ts` (862 LOC, was `.js`) — converted; handlers
-   typed via `copilotRouteTypes.ts` + `CopilotAgentService`; included in
-   `apps/server/tsconfig.strict.json` with `diagramStateStore.ts` and
-   `sessionEventBus.ts`. Factory ESLint rules gated on `**/*.{ts,tsx}` are enabled
-   via `packages/eslint-config/factoryPluginCompat.js`.
-2. `apps/server/src/agents/mermaidLangChainAgent.js` (1 350 LOC) — once
+1. ✅ `apps/server/src/routes/copilot.ts` (~404 LOC, was `.js`) — converted; handlers
+   typed via `copilotRouteTypes.ts` + `copilotDiagramHandlers.ts` /
+   `copilotCollaborationRoutes.ts`; included in `apps/server/tsconfig.strict.json`
+   with `diagramStateStore.ts` and `sessionEventBus.ts`. Factory ESLint rules gated
+   on `**/*.{ts,tsx}` are enabled via `packages/eslint-config/factoryPluginCompat.js`.
+2. `apps/server/src/agents/mermaidLangChainAgent.js` (~1 156 LOC) — once
    `ToolApplyResultSchema` (ADR-0005's sibling work) is wired everywhere,
    the agent boundary is fully typed.
-3. `apps/server/src/mcp/mcpServer.js` (1 484 LOC) — wait for the per-tool
-   split (ADR-0005) so each tool can convert independently.
-4. `apps/web/src/state/diagramStore.js` (795 LOC) — wire/session peeled to
-   `diagramSession.ts` + `diagramWireTypes.ts` + `copilotStreamHttpAgent.ts`; state
-   machine remains `.js` until ADR-0005 split.
-5. `apps/web/src/App.jsx` (3 789 LOC) — convert as it's split (ADR-0005);
-   don't try to do both at once.
-6. `apps/web/src/components/DiagramCanvas.jsx` (1 376 LOC).
-7. `apps/web/src/components/InsightsPane.jsx` (1 475 LOC).
+3. `apps/server/src/mcp/mcpServer.js` (~1 014 LOC) — per-tool split in progress
+   (ADR-0005); convert remaining inline tools as each lands in `mcp/tools/`.
+4. ✅ `apps/web/src/state/diagramStore.js` (~174 LOC) — ADR-0005 slices 1–4 landed;
+   remaining REST submitter bundle may move out later (see balanced-coupling §5).
+5. `apps/web/src/ArchiSlop.jsx` (~1 028 LOC, `App.jsx` is a 12-line wrapper) —
+   convert as further shell slices land (ADR-0005); don't split and convert at once.
+6. `apps/web/src/components/DiagramCanvas.jsx` (~1 864 LOC).
+7. `apps/web/src/components/InsightsPane.jsx` (~1 835 LOC).
 
 Pure utility files (`apps/web/src/utils/*.js`) stay `.js` unless we're editing
 them anyway. They're stable, low-churn, and JSDoc-annotated where it matters.

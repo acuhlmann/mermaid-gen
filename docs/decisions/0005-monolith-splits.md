@@ -124,7 +124,7 @@ they need access to outer-closure state.
   `apps/web/src/state/diagramStoreMutations.js`; `diagramStore.js` re-exports.
   Remaining: REST submitters bundle (see
   [`docs/agents/balanced-coupling-priorities.md`](../agents/balanced-coupling-priorities.md)
-  § Next steps for agents).
+  § Next steps for agents). **Currently ~174 LOC** (down from ~945 before slices 1–4).
 
 ## Consequences
 
