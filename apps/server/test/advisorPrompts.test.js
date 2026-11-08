@@ -13,6 +13,7 @@ import {
 } from '../src/agents/advisorPrompts.js';
 
 test('every advisor persona has a non-trivial persona prompt', () => {
+  assert.ok(Object.keys(ADVISOR_PERSONAS).length > 0, 'ADVISOR_PERSONAS must not be empty');
   for (const [key, spec] of Object.entries(ADVISOR_PERSONAS)) {
     assert.ok(
       typeof spec.persona === 'string' && spec.persona.length > 40,

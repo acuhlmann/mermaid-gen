@@ -39,6 +39,8 @@ import {
 } from '@archislop/shared';
 
 test('AGUI_EVENT_TYPE values match @ag-ui/core EventType enum', () => {
+  // Coverage claim: an emptied constant map would pass the loop below untouched.
+  assert.ok(Object.keys(AGUI_EVENT_TYPE).length > 0);
   for (const [k, v] of Object.entries(AGUI_EVENT_TYPE)) {
     assert.equal(EventType[k], v, `EventType.${k} differs from local constant`);
   }

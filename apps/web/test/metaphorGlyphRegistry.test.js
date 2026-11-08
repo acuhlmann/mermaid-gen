@@ -10,6 +10,7 @@ describe('metaphor glyph registry', () => {
   });
 
   it('every registered entry is a renderable component', () => {
+    expect(Object.keys(GLYPH_REGISTRY).length).toBeGreaterThan(0);
     for (const [kind, component] of Object.entries(GLYPH_REGISTRY)) {
       expect(typeof component, `glyph ${kind}`).toBe('function');
     }
