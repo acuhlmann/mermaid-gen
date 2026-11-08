@@ -194,7 +194,45 @@ const SCENE_DECLINED_PROMPT_LINES = Object.freeze({
  */
 const PEEKED_PROMPT_LINE = 'you walked over and read what was on their screen';
 
-/** @typedef {{ at: number, theirs?: string, yours?: string, pitchTaken?: boolean, errandDropped?: boolean, inviteDeclined?: boolean, interrupted?: 'gotIt' | 'gaveUp', interruptedProp?: string, sceneDeclined?: 'coffee' | 'battle', peeked?: boolean, medium?: 'email' }} WorkingMemoryBeat */
+/**
+ * The two answers to the one question a colleague actually asks you
+ * (`docs/automations/office-life.md` queue 13 — the fourth and last ✕ on the
+ * original sweep's list).
+ *
+ * A walk-by carrying an `actionPrompt` is the only moment in this office that
+ * is a *question with two buttons*: **Do it** and ✕, on the same bubble, in
+ * both renderers. `taken` has been written since working memory existed — it
+ * is the oldest beat field here that is not a quote. `declined` was not, so
+ * the office remembered every idea of theirs you used and forgot every one you
+ * waved away, which is the asymmetry a room has when it is keeping score of
+ * its own successes.
+ *
+ * **Both state the circumstance and stop**, for `INTERRUPTION_PROMPT_LINES`'
+ * reason. Not *"so they have stopped offering"* — a mood the prompt cannot
+ * check — and not *what* they suggested: a walk-by's body is deliberately
+ * absent from the office log too (*"who came by, never what they said"*), an
+ * `actionPrompt` is free text against a 200-character cap on both sides, and a
+ * fixed sentence cannot spend somebody else's budget (the lesson the hearsay
+ * note on the whiteboard had to learn twice).
+ *
+ * **`declined` says "came over" and `taken` does not, and that is not sloppy
+ * symmetry.** Every adopt surface writes `taken` — an email, a Slop Chat ping,
+ * a huddle card — so its line has to be true of all of them. Only the walk-by
+ * writes `declined`, because only the walk-by's ✕ is an answer rather than the
+ * closing of a panel; a later slice that gives the inbox's dismiss a beat owes
+ * this line a second, surface-neutral form rather than a wider claim here.
+ *
+ * **Two booleans and not an enum**, unlike `sceneDeclined`: the two can both be
+ * true of one colleague and that reading is correct, not contradictory. You
+ * turned down one of Gilfoyle's ideas this morning and took a different one
+ * after lunch — that is two beats, two lines, and a relationship.
+ */
+const PITCH_PROMPT_LINES = Object.freeze({
+  taken: 'you took their suggestion earlier',
+  declined: 'they came over with a suggestion; you did not take it'
+});
+
+/** @typedef {{ at: number, theirs?: string, yours?: string, pitchTaken?: boolean, pitchDeclined?: boolean, errandDropped?: boolean, inviteDeclined?: boolean, interrupted?: 'gotIt' | 'gaveUp', interruptedProp?: string, sceneDeclined?: 'coffee' | 'battle', peeked?: boolean, medium?: 'email' }} WorkingMemoryBeat */
 /** @typedef {{ beats: WorkingMemoryBeat[], boardFingerprint?: string }} WorkingMemoryRow */
 
 /** @type {{ [colleagueId: string]: WorkingMemoryRow }} */
@@ -312,7 +350,7 @@ export function listWorkingMemoryColleagueIds() {
 /**
  * @param {string} colleagueId
  * @param {{ theirs?: string, yours?: string, pitchTaken?: boolean,
- *   errandDropped?: boolean, inviteDeclined?: boolean,
+ *   pitchDeclined?: boolean, errandDropped?: boolean, inviteDeclined?: boolean,
  *   interrupted?: 'gotIt' | 'gaveUp', interruptedProp?: string,
  *   sceneDeclined?: 'coffee' | 'battle', peeked?: boolean,
  *   medium?: 'email', now?: number }} beat
@@ -321,14 +359,17 @@ export function listWorkingMemoryColleagueIds() {
  *   (`unfinishedErrandFrom`), and it is kept out of
  *   `workingMemoryPromptLines` on purpose — a line naming the machine would
  *   state a delta the rest of the prompt cannot check.
- *   `interrupted`, `errandDropped`, `inviteDeclined`, `sceneDeclined` and
- *   `peeked` are the beat fields that are not something either of you said —
+ *   `interrupted`, `errandDropped`, `inviteDeclined`, `sceneDeclined`,
+ *   `peeked` and `pitchDeclined` are the beat fields that are not something
+ *   either of you said —
  *   the first is their errand ending because of you, the second is yours ending
  *   because you dropped it, the third is their meeting ending because you would
  *   not go, the fourth is the one where nothing ended at all (you turned down
- *   the coffee break or the argument and it went ahead without you), and the
- *   fifth is the only one where you did not refuse anybody anything: you stood
- *   at their desk and read their screen. All are still
+ *   the coffee break or the argument and it went ahead without you), the
+ *   fifth is the only one where you did not refuse anybody anything (you stood
+ *   at their desk and read their screen), and the sixth is the refusal with a
+ *   twin — `pitchDeclined` is ✕ on the bubble whose other button writes
+ *   `pitchTaken`. All are still
  *   only a record — writing one schedules nothing (ADR-0010) — but it is what
  *   makes `hasWorkingMemoryFact` true for somebody you have never spoken to,
  *   which is the whole point: the next time you stand next to them, the office
@@ -419,7 +460,8 @@ export function workingMemoryPromptLines(colleagueId, { boardNow = '' } = {}) {
     const quote = MEDIUM_PROMPT_LINES[beat.medium] ?? SPOKEN_PROMPT_LINES;
     if (beat.yours) lines.push(`${quote.yours} ${beat.yours}`);
     if (beat.theirs) lines.push(`${quote.theirs} ${beat.theirs}`);
-    if (beat.pitchTaken) lines.push('you took their suggestion earlier');
+    if (beat.pitchTaken) lines.push(PITCH_PROMPT_LINES.taken);
+    if (beat.pitchDeclined) lines.push(PITCH_PROMPT_LINES.declined);
   }
   return lines.slice(-6);
 }

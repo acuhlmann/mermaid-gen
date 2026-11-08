@@ -117,6 +117,7 @@ import { duckRoomTone, unduckRoomTone } from '../utils/officeRoomTone.js';
 import { isSpokenLine, threadTranscriptFor } from '../utils/officeImThreads.js';
 import { officeStatusOf } from '../utils/officePresence.js';
 import { declineOfficeMeetingInviteWithMemory } from '../utils/officeInviteMemory.js';
+import { dismissOfficeWalkByWithMemory } from '../utils/officeWalkByMemory.js';
 import { officeSpeakerSting } from '../utils/officeSpeakerStings.js';
 import { getDeskSlotElement, subscribeDeskSlotElement } from '../state/deskSlotStore.js';
 import {
@@ -860,9 +861,16 @@ export default function OfficeLayer({
     [onAdoptAllPrompts]
   );
 
+  /*
+   * The ✕ on the walk-by bubble — the other answer to the question `handleAdopt`
+   * above records. Through `officeWalkByMemory.js` rather than the bare store
+   * call, so somebody who walked over with an idea you waved away remembers it
+   * (queue 13). The TTL expiry still calls the store directly and still writes
+   * nothing: a walk-by that timed out was not refused.
+   */
   const handleDismissWalkBy = useCallback((id) => {
     cancelOfficeNarration();
-    dismissOfficeWalkBy(id);
+    dismissOfficeWalkByWithMemory(id);
   }, []);
 
   /*

@@ -798,10 +798,28 @@ export function pushOfficeWalkBy({ colleagueId, body, actionPrompt }) {
   return walkBy.id;
 }
 
+/**
+ * Clear the walk-by on screen.
+ *
+ * **It returns the walk-by it cleared and writes no memory itself**, which is
+ * the same split `dismissOfficeErrand` already uses: the store records state,
+ * and memory has one writer per edge (`officeWalkByMemory.js`). The reason it
+ * matters more here than there is the caller below — the TTL expiry comes
+ * through this same function, and a clock running out is not somebody saying
+ * no. Writing a beat in here would hand every colleague who walked over and
+ * was simply not answered in 24 s a memory of being turned down.
+ *
+ * @param {string} [id] the walk-by's id, when a caller holds one — a dismiss
+ *   aimed at a walk-by that is no longer on screen is ignored.
+ * @returns {{id: string, colleagueId: string, body: string, actionPrompt?: string,
+ *   createdAt: number} | null} the walk-by that was cleared, or `null`.
+ */
 export function dismissOfficeWalkBy(id) {
-  if (!state.walkBy || (id != null && state.walkBy.id !== id)) return;
+  if (!state.walkBy || (id != null && state.walkBy.id !== id)) return null;
+  const dismissed = state.walkBy;
   clearExpiry(state.walkBy.id);
   update({ walkBy: null });
+  return dismissed;
 }
 
 /**
