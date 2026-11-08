@@ -558,3 +558,99 @@ describe('a screen you read over their shoulder', () => {
     ]);
   });
 });
+
+/**
+ * An idea of theirs you waved away (`officeWalkByMemory.js`).
+ *
+ * The seventh aimed edge to write a beat, and the only one whose **opposite was
+ * already recorded**: `pitchTaken` has been written on whoever's suggestion you
+ * used since this store existed, and the ✕ beside that same **Do it** button
+ * wrote nothing at all. So the office kept a list of its own hits and forgot
+ * every miss.
+ *
+ * Four properties decide it. The line says you did not take it and stops; the
+ * two booleans are **independent** rather than an enum, because a colleague
+ * whose idea you refused in the morning and whose next one you used is a
+ * relationship and not a contradiction; the field is strict, so a truthy value
+ * cannot invent a refusal; and it survives a reload, which the write side alone
+ * cannot promise.
+ */
+describe('a suggestion of theirs you did not take', () => {
+  const DECLINED_LINE = 'they came over with a suggestion; you did not take it';
+  const TAKEN_LINE = 'you took their suggestion earlier';
+
+  it('is on its own enough of a fact, and reads as the answer you gave', async () => {
+    const { hasWorkingMemoryFact, rememberWorkingMemoryBeat, workingMemoryPromptLines } =
+      await freshStore();
+    rememberWorkingMemoryBeat('greybeard', { pitchDeclined: true, now: at(10, 0) });
+
+    expect(hasWorkingMemoryFact('greybeard')).toBe(true);
+    expect(workingMemoryPromptLines('greybeard')).toEqual([DECLINED_LINE]);
+  });
+
+  /*
+   * The whole argument for two booleans instead of `pitch: 'taken' | 'declined'`.
+   * Both are true of one person and the reading is correct: you turned one idea
+   * down and used the next one. An enum would have had to pick a winner, and
+   * whichever it picked would delete half of what the room actually saw.
+   */
+  it('coexists with having taken a different one, because both happened', async () => {
+    const { rememberWorkingMemoryBeat, workingMemoryPromptLines } = await freshStore();
+    rememberWorkingMemoryBeat('greybeard', { pitchDeclined: true, now: at(10, 0) });
+    rememberWorkingMemoryBeat('greybeard', { pitchTaken: true, now: at(14, 0) });
+
+    expect(workingMemoryPromptLines('greybeard')).toEqual([DECLINED_LINE, TAKEN_LINE]);
+  });
+
+  /*
+   * It names no suggestion, for the reason the hearsay note on the whiteboard
+   * had to learn twice: an `actionPrompt` is free text, the field is capped at
+   * 200 characters on both sides, and a fixed sentence cannot spend somebody
+   * else's budget. A walk-by's *body* is kept out of the office log for the
+   * same reason ("who came by, never what they said").
+   */
+  it('never names what they suggested', async () => {
+    const { rememberWorkingMemoryBeat, workingMemoryPromptLines } = await freshStore();
+    rememberWorkingMemoryBeat('greybeard', { pitchDeclined: true });
+    const [line] = workingMemoryPromptLines('greybeard');
+
+    expect(line).not.toMatch(/\d/);
+    expect(line.length).toBeLessThanOrEqual(200);
+  });
+
+  it('makes them a candidate the ambient director can weight', async () => {
+    const { listWorkingMemoryColleagueIds, rememberWorkingMemoryBeat } = await freshStore();
+    expect(listWorkingMemoryColleagueIds()).toEqual([]);
+
+    rememberWorkingMemoryBeat('greybeard', { pitchDeclined: true, now: at(10, 0) });
+
+    expect(listWorkingMemoryColleagueIds()).toEqual(['greybeard']);
+  });
+
+  it('is strictly a boolean, so a truthy value is still nothing worth keeping', async () => {
+    const { hasWorkingMemoryFact, rememberWorkingMemoryBeat } = await freshStore();
+    rememberWorkingMemoryBeat('greybeard', { pitchDeclined: 'yes' });
+    rememberWorkingMemoryBeat('dinesh', { pitchDeclined: 1 });
+    rememberWorkingMemoryBeat('hr', { pitchDeclined: false });
+
+    expect(hasWorkingMemoryFact('greybeard')).toBe(false);
+    expect(hasWorkingMemoryFact('dinesh')).toBe(false);
+    expect(hasWorkingMemoryFact('hr')).toBe(false);
+  });
+
+  /*
+   * The writer and the read-back sanitizer are one body
+   * (`normalizeWorkingMemoryBeat`), which is what makes "a field taught to one
+   * validator survives until the next refresh" structurally impossible here
+   * rather than merely tested for. This is the assertion that would catch it
+   * going back to two.
+   */
+  it('is still there after a reload, which the write side alone cannot promise', async () => {
+    const first = await freshStore();
+    first.rememberWorkingMemoryBeat('greybeard', { pitchDeclined: true });
+    const second = await freshStore();
+
+    expect(second.hasWorkingMemoryFact('greybeard')).toBe(true);
+    expect(second.workingMemoryPromptLines('greybeard')).toEqual([DECLINED_LINE]);
+  });
+});

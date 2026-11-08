@@ -607,8 +607,9 @@ export const OFFICE_WORKING_MEMORY_MEDIUMS = Object.freeze(['email']);
  * @param {Record<string, unknown>} beat
  * @param {number} at
  * @returns {{ at: number, theirs?: string, yours?: string, pitchTaken?: boolean,
- *   errandDropped?: boolean, inviteDeclined?: boolean, interrupted?: string,
- *   sceneDeclined?: string, peeked?: boolean, medium?: string } | null}
+ *   pitchDeclined?: boolean, errandDropped?: boolean, inviteDeclined?: boolean,
+ *   interrupted?: string, sceneDeclined?: string, peeked?: boolean,
+ *   medium?: string } | null}
  */
 export function normalizeWorkingMemoryBeat(beat, at) {
   const next = { at };
@@ -620,6 +621,13 @@ export function normalizeWorkingMemoryBeat(beat, at) {
     next.yours = quote(beat.yours);
   }
   if (beat.pitchTaken === true) next.pitchTaken = true;
+  /*
+   * The other answer to the same question (`PITCH_PROMPT_LINES` in
+   * `officeWorkingMemoryStore.js`). Strict `=== true` like its twin, so a
+   * caller handing this a truthy string writes nothing rather than writing
+   * a refusal nobody made.
+   */
+  if (beat.pitchDeclined === true) next.pitchDeclined = true;
   if (beat.errandDropped === true) next.errandDropped = true;
   if (beat.inviteDeclined === true) next.inviteDeclined = true;
   if (OFFICE_WORKING_MEMORY_INTERRUPTIONS.includes(beat.interrupted)) {
@@ -655,6 +663,7 @@ export function normalizeWorkingMemoryBeat(beat, at) {
     !next.theirs &&
     !next.yours &&
     !next.pitchTaken &&
+    !next.pitchDeclined &&
     !next.errandDropped &&
     !next.inviteDeclined &&
     !next.interrupted &&
@@ -675,8 +684,8 @@ export function normalizeWorkingMemoryBeat(beat, at) {
 /**
  * @param {unknown} beat
  * @returns {{ at: number, theirs?: string, yours?: string, pitchTaken?: boolean,
- *   errandDropped?: boolean, inviteDeclined?: boolean, interrupted?: string,
- *   sceneDeclined?: string, peeked?: boolean } | null}
+ *   pitchDeclined?: boolean, errandDropped?: boolean, inviteDeclined?: boolean,
+ *   interrupted?: string, sceneDeclined?: string, peeked?: boolean } | null}
  */
 function sanitizeWorkingMemoryBeat(beat) {
   if (!beat || typeof beat !== 'object') return null;

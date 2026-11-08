@@ -97,6 +97,21 @@ it names. Merging the two into a single pass is worth doing and is not urgent �
   invite closed the list on 2026-10-27 at the same shape and a different surface
   (`apps/web/src/utils/officeInviteMemory.js`, the beat on the **organizer**, because a calendar
   decline is the one thing on this list that reaches exactly one person).
+- **The only refusal whose acceptance was already recorded was the one still writing nothing.** The
+  walk-by bubble carries **Do it** and ✕ side by side, in both renderers, and
+  `handleAdopt` in `OfficeLayer.jsx` has written `pitchTaken` on whoever's idea you used since
+  working memory existed — while the ✕ beside it wrote nothing at all. A room that keeps its hits
+  and forgets its misses is keeping score of itself, not remembering you.
+  `apps/web/src/utils/officeWalkByMemory.js` is the writer (`pitchDeclined`), and three things in it
+  decide the shape. **The gate is `actionPrompt`**, which is also exactly what renders the **Do it**
+  button: with a prompt the bubble is a question and ✕ is an answer, without one it is somebody
+  saying a thing and closing it means you read it — a beat there would invent a suggestion to have
+  refused. **A clock is not a refusal**: `pushOfficeWalkBy` schedules its own 24 s expiry through
+  the store's own mutator, so the writer sits in a module the **press handler** calls, and the
+  timer cannot reach it by construction rather than by a check. And **two booleans, not an enum** —
+  unlike `sceneDeclined`, `pitchTaken` and `pitchDeclined` can both be true of one colleague, and
+  that reading is correct: you turned one idea down in the morning and used the next one, which is a
+  relationship rather than a contradiction.
 - **Reading somebody's screen is an aimed act, so it leaves a mark too.** Desk peeking was the last
   verb aimed at one named person that wrote nothing: you cross the floor, stand at their desk, read
   their monitor, they say a line about it — and two tiles later you were a stranger again.
@@ -2187,6 +2202,60 @@ mermaid:Login|Verify email:482`. On the scripted visit's own fixture the whole l
   generated traces after the change are identical to each other and to the 2026-10-30 → 11-04
   baselines on every axis. **An eighth step is an instrument change**, and a bigger one than the
   fields added in versions 2–4: it belongs in its own run, never in the run that wants the number.
+
+### The answer that was recorded, and the answer that was not
+
+- **The gap was found by looking for a write that already had a twin.** Every refusal slice on this
+  shelf started from a ✕ that recorded nothing, and queue 13's list was called closed once the
+  errand, the invite and the two set pieces had writers. The one nobody checked was the ✕ whose
+  **other button** was already wired: `markWorkingMemoryPitchTaken` is the oldest non-quote field in
+  `officeWorkingMemoryStore.js`, and `handleDismissWalkBy` three lines below it in `OfficeLayer.jsx`
+  called the bare store mutator. **A missing write is easiest to see beside a present one** — when a
+  surface looks finished, read the handlers that sit next to each other and ask whether both answers
+  to the same question land anywhere.
+- **`markWorkingMemoryPitchTaken`'s own call site is why its twin went unfound for so long.** It is
+  two inline lines inside a 1900-line component, not a module named after the edge. Every other beat
+  writer here (`officeErrandMemory.js`, `officeInviteMemory.js`, `officeSceneDeclineMemory.js`,
+  `officeWalkByMemory.js`, `useFloorInterruptMemory.js`, `useFloorPeekMemory.js`) is findable by
+  listing the files; that one is findable only by reading `OfficeLayer.jsx`. The lesson is about
+  discoverability rather than style: a per-edge module is also an index of which edges are covered.
+- **The store returns, the module writes, the handler calls — and here that split is load-bearing
+  rather than tidy.** `dismissOfficeWalkBy` now returns the walk-by it cleared (the shape
+  `dismissOfficeErrand` already had) and still writes nothing itself, because **the TTL expiry calls
+  that same mutator**: `pushOfficeWalkBy` schedules its own `WALKBY_TTL_MS` (24 s) dismiss, so a beat
+  inside the store would give a memory of being turned down to every colleague who walked over while
+  you were reading something else. On the other three refusals the split was a renderer-agnostic
+  argument; on this one it is the difference between a refusal and a timeout.
+- **The gate on `actionPrompt` is the same field that renders the button**, which is what keeps the
+  distinction from being a judgement call. The canned walk-by banks carry no `actionPrompt` at all,
+  so with no backend resolving the ✕ writes nothing — correctly: there was nothing to take. A beat on
+  a bubble that offered nothing is the situation rule's 8-of-12 fabrication arriving through memory
+  instead of through a prompt, and the line would be describing a suggestion that was never made.
+- **The sweep is the measurement, and the controls are most of it.** 2 000 seeded draws of the real
+  `ambientSpeakerFrom` per cast per arm, with the office's own store the only variable
+  (`rememberWorkingMemoryBeat` → `listWorkingMemoryColleagueIds()` → the draw, exactly the
+  production chain). The colleague whose idea you waved away goes **316/2000 (15.8%) → 513 (25.7%)**
+  on the walk-by cast, **397 → 630 (19.9% → 31.5%)** on email and **515 → 795 (25.8% → 39.8%)** on
+  IM. Four arms are **byte-identical to cold** on all three casts: a walk-by with nothing to take, a
+  walk-by pushed and never answered, `pitchDeclined: 'yes'` (the normalizer refuses it), and
+  `OFFICE_AMBIENT_FAMILIAR_TICKETS = 0` — so the rollback is still a constant. Refusing **twice** is
+  byte-identical to refusing once (a person, not a count), and refusing **somebody else** moves them
+  instead (richard 272 → 497) while moving the first colleague _down_ (316 → 275) and leaving email
+  and IM untouched, because richard is in neither of those casts — a cross-check that the draw knows
+  only the cast it is handed. The two non-distribution consequences, stated as values: the dwell
+  reserve for that colleague goes **2 → 3** (`OFFICE_DWELL_STRANGER_LLM_CAP` →
+  `OFFICE_DWELL_LLM_CAP`, read at `useDeskActions.js:602`), and `workingMemoryPromptLines` goes
+  `[]` → `['they came over with a suggestion; you did not take it']`.
+- **The fixture is a colleague who can actually walk over.** The first draft used `gilfoyle`, who is
+  in neither `OFFICE_WALKBY_LLM_CAST` nor the fallback bank — so the suite and the sweep would have
+  been describing a state the room never produces. `greybeard` is in the walk-by cast, the bank, and
+  all three ambient casts, which is what lets one name carry the unit cases and the sweep.
+- **The instrument is blind to this slice, and that is 2026-09-09's shape, not 2026-09-06's.** None
+  of the eight fixed steps answers a walk-by — the visit never receives one — so no addition to the
+  report reaches it and a ninth step would be an instrument change belonging to its own run. Three
+  generated traces after the change are identical to each other and to the 2026-11-07 post-append
+  baseline on every axis (version 5, 8/8 steps, `speech.count` 18, `throughStep7` 12, `bySource`
+  model 2 / bank 16, `afterwards.workingMemory` gilfoyle/dinesh/intern, `pageErrors: []`).
 
 ### The visit grew an eighth step, and the rule it broke was two rules
 
