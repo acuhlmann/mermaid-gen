@@ -4,7 +4,9 @@ import { createDiagramAgentDispatcher } from '../src/agents/diagramAgentDispatch
 import { createLabeledAgentStub } from './helpers/mockAgentService.js';
 
 function stubDispatcherServices(dispatcher) {
-  for (const [slot, service] of Object.entries(dispatcher._services)) {
+  const slots = Object.entries(dispatcher._services);
+  assert.ok(slots.length > 0, 'dispatcher must register at least one diagram slot');
+  for (const [slot, service] of slots) {
     const stub = createLabeledAgentStub(slot);
     service.applyIntent = stub.applyIntent;
     service.applyTransformIntent = stub.applyTransformIntent;

@@ -84,6 +84,10 @@ test('no office voice card forbids sarcasm outright', () => {
     /never meanness/i,
     /never mean(?!\s+(?:to|at)\s+the\s+user)/i
   ];
+  assert.ok(
+    Object.keys(OFFICE_COLLEAGUES).length > 0,
+    'OFFICE_COLLEAGUES must not be empty — the sweep below would pass on nothing'
+  );
   for (const [id, colleague] of Object.entries(OFFICE_COLLEAGUES)) {
     for (const pattern of BANNED) {
       assert.equal(

@@ -14,6 +14,7 @@ describe('their own work', () => {
   it('gives every cast member a row', () => {
     // Drift guard, same shape as the seat rows and the face traits: a new
     // colleague costs one row here, and this fails until they get one.
+    expect(CAST.length).toBeGreaterThan(0);
     for (const id of CAST) {
       expect(deskWorkFor(id), `${id} has nothing on their screen`).toBeTruthy();
     }

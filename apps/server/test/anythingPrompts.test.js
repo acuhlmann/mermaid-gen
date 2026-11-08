@@ -13,6 +13,7 @@ import { ANYTHING_SELF_CHECK } from '../src/prompts/anythingSyntaxGuard.js';
 // — and the old "there are no libraries" phrasing must not resurface.
 
 test('core rules advertise every allowlisted lib with marker syntax and version', () => {
+  assert.ok(ANYTHING_LIBS.length > 0, 'registry must list at least one lib');
   for (const lib of ANYTHING_LIBS) {
     assert.ok(
       ANYTHING_CORE_RULES.includes(`<!-- @lib:${lib.id} -->`),
@@ -25,6 +26,7 @@ test('core rules advertise every allowlisted lib with marker syntax and version'
 });
 
 test('self-check names the allowlisted lib ids', () => {
+  assert.ok(ANYTHING_LIBS.length > 0, 'registry must list at least one lib');
   for (const lib of ANYTHING_LIBS) {
     assert.ok(ANYTHING_SELF_CHECK.includes(lib.id), `self-check missing ${lib.id}`);
   }
