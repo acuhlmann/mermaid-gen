@@ -1,12 +1,9 @@
-/** @typedef {{ left: number, top: number, right: number, bottom: number }} ViewportBounds */
+export type ViewportBounds = { left: number; top: number; right: number; bottom: number };
 
 const VIEWPORT_MARGIN_PX = 8;
 
-/**
- * Read the visible viewport in layout coordinates (accounts for visualViewport on mobile).
- * @returns {ViewportBounds}
- */
-export function readViewportBounds() {
+/** Read the visible viewport in layout coordinates (accounts for visualViewport on mobile). */
+export function readViewportBounds(): ViewportBounds {
   const vv = typeof window !== 'undefined' ? window.visualViewport : null;
   if (vv) {
     return {
@@ -22,14 +19,13 @@ export function readViewportBounds() {
   return { left: 0, top: 0, right: 0, bottom: 0 };
 }
 
-/**
- * @param {number} left
- * @param {number} top
- * @param {{ width: number, height: number }} size
- * @param {ViewportBounds} [viewport]
- * @param {{ bottomReservePx?: number, minVisiblePx?: number }} [options]
- */
-export function clampWindowPosition(left, top, size, viewport, options = {}) {
+export function clampWindowPosition(
+  left: number,
+  top: number,
+  size: { width: number; height: number },
+  viewport?: ViewportBounds,
+  options: { bottomReservePx?: number; minVisiblePx?: number } = {}
+): { left: number; top: number } {
   const vv = viewport ?? readViewportBounds();
   const bottomReservePx = options.bottomReservePx ?? 0;
   const minVisiblePx = options.minVisiblePx ?? 48;
@@ -46,13 +42,11 @@ export function clampWindowPosition(left, top, size, viewport, options = {}) {
   };
 }
 
-/**
- * Resolve a default window position from a corner or center anchor.
- * @param {'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'top-center' | 'center'} corner
- * @param {{ width: number, height: number }} size
- * @param {{ offsetX?: number, offsetY?: number, cascade?: number, bottomReservePx?: number }} [options]
- */
-export function defaultWindowPosition(corner, size, options = {}) {
+export function defaultWindowPosition(
+  corner: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'top-center' | 'center',
+  size: { width: number; height: number },
+  options: { offsetX?: number; offsetY?: number; cascade?: number; bottomReservePx?: number } = {}
+): { left: number; top: number } {
   const vv = readViewportBounds();
   const offsetX = options.offsetX ?? 14;
   const offsetY = options.offsetY ?? 14;
@@ -115,10 +109,8 @@ export function defaultWindowPosition(corner, size, options = {}) {
   }
 }
 
-/**
- * Parse --mobile-bottom-chrome-est from the document root (falls back to 140px).
- */
-export function readMobileBottomChromeReservePx() {
+/** Parse --mobile-bottom-chrome-est from the document root (falls back to 140px). */
+export function readMobileBottomChromeReservePx(): number {
   if (typeof document === 'undefined') return 140;
   const raw = getComputedStyle(document.documentElement)
     .getPropertyValue('--mobile-bottom-chrome-est')
@@ -127,9 +119,9 @@ export function readMobileBottomChromeReservePx() {
   const match = raw.match(/^([\d.]+)rem$/);
   if (match) {
     const rootPx = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
-    return Math.round(parseFloat(match[1]) * rootPx);
+    return Math.round(parseFloat(match[1] ?? '0') * rootPx);
   }
   const pxMatch = raw.match(/^([\d.]+)px$/);
-  if (pxMatch) return Math.round(parseFloat(pxMatch[1]));
+  if (pxMatch) return Math.round(parseFloat(pxMatch[1] ?? '0'));
   return 140;
 }
