@@ -855,9 +855,24 @@ export function buildMomentUserPrompt({
        own afternoon. It is also the only block whose instruction is a register
        rather than a fact, which wants the recency. */
     buildOfficeDeskWorkBlock(officeDeskWork),
-    transcript
-      ? ['', transcriptHeading, transcript, '', `${saidHeading}: "${safeUserMessage}"`]
-      : null,
+    /* Two independent facts, and nesting them was a bug. The transcript is
+       *history* — it exists only once there are earlier turns with this person.
+       The said-line is *the thing being answered*, and it exists whenever they
+       opened their mouth or a text field, including the first time. Gated
+       together, the first sentence anybody ever says to a colleague was the one
+       sentence the prompt dropped, while `EMAIL REPLY MODE` above went on
+       promising "subject and/or body below" over nothing — `emailSomeone`
+       passes `threadTranscript: []` by construction, because an email has no IM
+       history to read. The two chat surfaces escaped it only by accident of
+       ordering: both push the user's own line into `imHistory` before reading
+       the thread back, so their transcript is never empty.
+
+       Order is unchanged for the case that already worked — history first, then
+       the line being answered — so a thread-bearing reply's prompt is
+       byte-identical to before. Gating the said-line on `safeUserMessage`
+       rather than on the transcript also retires a latent `: "null"`. */
+    transcript ? ['', transcriptHeading, transcript] : null,
+    safeUserMessage ? ['', `${saidHeading}: "${safeUserMessage}"`] : null,
     '',
     'Current diagram source (for context):',
     '```',

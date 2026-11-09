@@ -474,6 +474,92 @@ test('the user-prompt reminder stands down for a reply, matching the system prom
   assert.doesNotMatch(prompt, /They have said NOTHING/);
 });
 
+/*
+ * The one shape no existing case had: a sentence the user typed with no thread
+ * behind it. Every other reply test here hands the builder a `threadTranscript`
+ * as well, which is exactly how this survived — the said-line was nested inside
+ * the transcript branch, so the first thing you ever say to somebody was the one
+ * thing the prompt dropped.
+ *
+ * `emailSomeone` is the live caller: it passes `threadTranscript: []` by
+ * construction (an email has no IM history), while the system prompt it is
+ * paired with opens *"The user just emailed you (subject and/or body below)"*.
+ * The two chat surfaces escape it only because they push the user's own line
+ * into `imHistory` before reading it back, so their transcript is never empty.
+ */
+test('a first email carries what the user wrote, with no thread behind it', () => {
+  const payload = {
+    kind: 'email',
+    contentType: 'mermaid',
+    visibleLabels: ['Verify email'],
+    recentMoments: [],
+    userMessage: 'Funnel review\n\nWhich step should I move first?'
+  };
+  const prompt = buildMomentUserPrompt(payload);
+  assert.match(prompt, /THE USER JUST SENT/);
+  assert.match(prompt, /Which step should I move first\?/);
+  // And the system prompt it ships with promises exactly that content.
+  assert.match(
+    buildMomentSystemPrompt({ kind: 'email', colleagueId: 'linda', isReply: true }),
+    /subject and\/or body below/
+  );
+});
+
+test('a spoken sentence with no thread behind it is still the thing being answered', () => {
+  const prompt = buildMomentUserPrompt({
+    kind: 'im',
+    contentType: 'mermaid',
+    visibleLabels: [],
+    recentMoments: [],
+    situation: 'turnedTo',
+    userMessage: 'are we square, you and me'
+  });
+  assert.match(prompt, /THE USER JUST SAID, OUT LOUD/);
+  assert.match(prompt, /are we square, you and me/);
+  // No thread, so no heading over one — the two facts are independent.
+  assert.doesNotMatch(prompt, /Earlier with them today/);
+  assert.doesNotMatch(prompt, /Slop Chat thread so far/);
+});
+
+/*
+ * The two controls. Ungating the said-line must not invent one where nothing
+ * was said, and must not reorder the case that already worked — a transcript is
+ * history and the said-line is the thing being answered, in that order.
+ */
+test('a moment nobody spoke into carries no said-line', () => {
+  const prompt = buildMomentUserPrompt({
+    kind: 'walkby',
+    contentType: 'mermaid',
+    visibleLabels: ['Verify email'],
+    recentMoments: []
+  });
+  assert.doesNotMatch(prompt, /THE USER JUST SENT/);
+  assert.doesNotMatch(prompt, /THE USER JUST SAID/);
+});
+
+test('a thread-bearing reply still reads history first, then the line being answered', () => {
+  const prompt = buildMomentUserPrompt({
+    kind: 'im',
+    contentType: 'mermaid',
+    visibleLabels: [],
+    recentMoments: [],
+    userMessage: 'and the second one?',
+    threadTranscript: [
+      { from: 'user', body: 'which box is wrong' },
+      { from: 'colleague', body: 'both of them' }
+    ]
+  });
+  assert.match(prompt, /Slop Chat thread so far/);
+  assert.ok(
+    prompt.indexOf('Slop Chat thread so far') < prompt.indexOf('THE USER JUST SENT'),
+    'the transcript heading must still precede the said-line'
+  );
+  assert.match(prompt, /- USER: which box is wrong/);
+  assert.match(prompt, /and the second one\?/);
+  // Exactly one said-line, not one per branch.
+  assert.equal(prompt.match(/THE USER JUST SENT/g).length, 1);
+});
+
 test('moment user prompt lists labels and recent moments', () => {
   const prompt = buildMomentUserPrompt({
     contentType: 'mermaid',

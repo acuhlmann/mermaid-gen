@@ -904,6 +904,38 @@ test:floor`; the floor test map is [`docs/agents/isometric-floor-tests.md`](../.
   model, which is `peek-line-is-still-recited`'s premise with a number under it. Report
   `isTheBankLine` **beside** `source`, never instead of it: `bySource` attributes against what a 2xx
   office response delivered, so a canned line and a line nobody asked for both read `bank`.
+- **The sentence the user typed is a different fact from the thread behind it, and nesting the two
+  dropped the first thing anybody ever says.** `buildMomentUserPrompt`
+  (`apps/server/src/agents/officePersonas.js`) printed `THE USER JUST SENT: "…"` **inside** the
+  `threadTranscript` branch, so a provoked moment with no earlier turns reached the model with the
+  user's own words missing — while `EMAIL REPLY MODE` above it went on promising _"subject and/or
+  body below"_ over nothing. `emailSomeone` (`useDeskActions.js`) is the live caller: an email has
+  no IM history, so it passes `threadTranscript: []` by construction, and **every first email you
+  write gets a reply to nothing.** Measured on the real builders, 16 samples per arm, judged at 0.1:
+  the colleague answered the question **2/16 → 16/16**, opened an unrelated topic **12/16 → 0/16**,
+  and engaged the user's own subject line **1/16 → 16/16** — the old arm invented `Re: the funnel`
+  where the user had written `Funnel review`, which is the user-visible tell. The two chat surfaces
+  escape it only by accident of ordering: `handleMessengerSend` and `handleTalkReply`
+  (`OfficeLayer.jsx`) both `pushOfficeImReply` **before** reading `imHistory` back, so their
+  transcript is never empty. The rule, for any provoked surface added later: **gate the said-line on
+  the message, the transcript heading on the transcript** — a surface that does not pre-push to
+  `imHistory` inherits the bug otherwise. `officePersonas.test.js` pins both halves plus two
+  controls (nothing said → no said-line; thread present → history first, then the line, exactly
+  once).
+- **The working-memory block's bullets and its frame use "you" for opposite people.** Every bullet
+  the client writes is from the **user's** side — `'they came over with a suggestion; you did not
+take it'`, `'you walked over and read what was on their screen'`
+  (`apps/web/src/state/officeWorkingMemoryStore.js`), `'they have already looked at your board
+today'` (`officeBoardRecall.js`), `'you said:'` / `'they said:'` for the quotes — while
+  `buildOfficeWorkingMemoryBlock` around them addresses the **colleague**: _"What you already share
+  with this user today"_, _"You have already spoken with this person today, or you already looked at
+  their board."_ The frame's second clause and the board-recall bullet state **one fact with the
+  pronouns swapped, three lines apart.** `buildOfficeRelationship` is the same convention but names
+  the colleague by id (`'you and gilfoyle have crossed paths 3 times today'`), so there the model has
+  something to disambiguate against; the working-memory bullets name nobody. Recorded, **not fixed**
+  — a flip touches ~12 strings plus the quote prefixes, where "they" would have to become "you" in
+  the one place it currently means the colleague. See `working-memory-bullets-are-user-pov` in the
+  ledger.
 
 ## Full findings
 
@@ -2309,3 +2341,58 @@ mermaid:Login|Verify email:482`. On the scripted visit's own fixture the whole l
   `deskWorkFor(id).line`. Report it beside `source`, never instead of it — `bySource` attributes
   against what a 2xx office response delivered, so a canned line and an unasked-for one both read
   `bank`, and only the bank comparison can tell a recitation from a reply.
+
+### The said-line and the thread are two facts, and one was nested inside the other
+
+**`buildMomentUserPrompt` printed what the user typed only when there were earlier turns to print it
+under.** The branch was one expression — `transcript ? ['', transcriptHeading, transcript, '',
+'THE USER JUST SENT: "…"'] : null` — so `userMessage` arrived at the server, passed the schema, was
+sliced to 400 characters, named the medium correctly, and then fell out of the prompt whenever
+`threadTranscript` was absent. The server was not missing the fact; it was declining to say it.
+
+**`emailSomeone` is the live caller, and its `threadTranscript: []` is correct code.** An email has
+no IM history to read back, so the verb passes an empty array by construction (`useDeskActions.js`),
+the delivery layer turns empty into `undefined` on the wire (`officeMomentDelivery.js`, which is
+also correct — an empty heading is worse than none), and the branch above dropped the subject and
+body with it. Meanwhile `EMAIL REPLY MODE` in the system prompt opens _"The user just emailed you
+(subject and/or body below). Your reply must directly address what they wrote."_ **The prompt
+announced the missing content.** Every first email the user writes got an answer to nothing.
+
+**The two chat surfaces escape it by accident of ordering, which is why it survived.**
+`handleMessengerSend` and `handleTalkReply` (`OfficeLayer.jsx`) both call `pushOfficeImReply` and
+_then_ read `getOfficeSnapshot().imHistory`, so the user's own line is already in the thread and
+`threadTranscriptFor` never returns empty for them. Every reply test in `officePersonas.test.js`
+passed a `threadTranscript` alongside its `userMessage` for the same reason — the shape that breaks
+had no case, so the suite could not see it.
+
+**Measured on the real builders, two rounds of 8, judged at 0.1 (a register property scored with a
+phrase regex is the retracted claim in the playbook's § 14).** The handler was replicated rather than
+paraphrased, the arms differ only in whether the said-line block is present, and the `shipped` arm
+asserts its own strip landed — two identical arms is what a silent no-op looks like.
+
+| judged, 16 samples/arm | shipped (nested) | fixed |
+| ---------------------- | ---------------- | ----- |
+| answered the question  | 2/16             | 16/16 |
+| named a step to move   | 2/16             | 16/16 |
+| opened another topic   | 12/16            | 0/16  |
+| engaged their subject  | 1/16             | 16/16 |
+
+The subject line is the user-visible tell: the old arm replies `Re: the funnel` to an email the user
+headed `Funnel review`, because it never saw the heading. And the measurement has a control built in
+— the fixed arm's prompt is **byte-identical** to the old one wherever a transcript exists, which is
+the case 785 server tests already covered.
+
+**The rule this leaves behind.** Gate the said-line on the **message** and the transcript heading on
+the **transcript**; they are a history and a question, not one thing. Any provoked surface added
+later that does not happen to pre-push into `imHistory` inherits the old failure otherwise, and it
+fails silently — the model answers fluently, in character, about the right diagram, and simply never
+mentions what you asked. Ungating it also retires a latent `: "null"` for a transcript with no
+message, which no caller sends today.
+
+**And the general shape, which is the transferable half:** an audition that will not engage is
+evidence about the prompt, not about the model. Tonight's run went looking for whether working-memory
+beats change what a colleague says, and its arms came back flat twice — once scoring diagram
+critique as familiarity, once with 24 of 24 lines ignoring a direct question. The second flat result
+_was_ this bug: the harness faithfully replicated a caller that sends no transcript, so no arm ever
+had the question in it. A measurement that cannot move is worth reading as a finding before it is
+rewritten.
