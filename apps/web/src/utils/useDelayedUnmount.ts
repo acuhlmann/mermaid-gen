@@ -6,7 +6,10 @@ import { useEffect, useState } from 'react';
  *   - `mounted` is true while the child should be in the DOM (during open + the exit delay)
  *   - `closing` is true during the exit delay so the child can apply an exit-animation class
  */
-export function useDelayedUnmount(open, exitDurationMs = 240) {
+export function useDelayedUnmount(
+  open: boolean,
+  exitDurationMs = 240
+): { mounted: boolean; closing: boolean } {
   const [mounted, setMounted] = useState(Boolean(open));
   const [closing, setClosing] = useState(false);
 
