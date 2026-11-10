@@ -49,9 +49,9 @@ import { _resetOfficeViewModeForTests } from '../src/state/officeViewModeStore.j
 import { OFFICE_CHROME_COPY } from '../src/utils/officeCast.js';
 
 const COFFEE_LINE =
-  'they asked you along for a coffee; you stayed at your desk and they went anyway';
+  'you asked the user along for a coffee; they stayed at their desk and you went anyway';
 const BATTLE_LINE =
-  'they wanted you in on an argument; you walked away and it carried on without you';
+  'you wanted the user in on an argument; they walked away and it carried on without them';
 
 const COFFEE_CAST = [
   { speakerId: 'gary', text: 'Kitchen?' },

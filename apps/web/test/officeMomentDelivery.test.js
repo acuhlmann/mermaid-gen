@@ -402,10 +402,10 @@ describe('an emailed exchange is a fact about the two of you', () => {
     // over to a stranger.
     expect(hasWorkingMemoryFact('jared')).toBe(true);
     const lines = workingMemoryPromptLines('jared');
-    expect(lines).toContain('you emailed them: does billing read the ledger?');
+    expect(lines).toContain('the user emailed you: does billing read the ledger?');
     // The *filled* reply, not the template: a beat quoting `{userName}` back at
     // the model is a memory of a sentence nobody read.
-    expect(lines.some((line) => line.startsWith('they wrote back:'))).toBe(true);
+    expect(lines.some((line) => line.startsWith('you wrote back:'))).toBe(true);
     expect(String(lines)).not.toContain('{');
     _resetOfficeWorkingMemoryForTests();
   });
@@ -443,8 +443,8 @@ describe('an emailed exchange is a fact about the two of you', () => {
     // The board fingerprint this rung also stamps leads the list; the quotes
     // are the two lines after it.
     expect(workingMemoryPromptLines('jared').slice(-2)).toEqual([
-      'you emailed them: does billing read the ledger?',
-      'they wrote back: Filed as a finding.'
+      'the user emailed you: does billing read the ledger?',
+      'you wrote back: Filed as a finding.'
     ]);
     _resetOfficeWorkingMemoryForTests();
   });
@@ -466,8 +466,8 @@ describe('an emailed exchange is a fact about the two of you', () => {
     });
 
     expect(workingMemoryPromptLines('jared').slice(-2)).toEqual([
-      'you said: does billing read the ledger?',
-      'they said: no.'
+      'the user said: does billing read the ledger?',
+      'you said: no.'
     ]);
     _resetOfficeWorkingMemoryForTests();
   });

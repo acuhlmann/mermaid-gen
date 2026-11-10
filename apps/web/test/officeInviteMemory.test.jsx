@@ -36,7 +36,7 @@ import { _resetOfficeViewModeForTests } from '../src/state/officeViewModeStore.j
 import { OFFICE_CHROME_COPY } from '../src/utils/officeCast.js';
 
 const copy = OFFICE_CHROME_COPY.meetingInvite;
-const DECLINED_LINE = 'they put a meeting on your calendar; you did not go to it';
+const DECLINED_LINE = "you put a meeting on the user's calendar; they did not go to it";
 
 const INVITE = {
   colleagueId: 'scrumMaster',

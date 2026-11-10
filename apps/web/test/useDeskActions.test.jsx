@@ -323,8 +323,8 @@ describe('useDeskActions', () => {
     expect(lines.some((line) => line.includes('is this diagram too spicy?'))).toBe(true);
     // Written, not said: the office voices no email, so memory must not put one
     // in anybody's mouth.
-    expect(lines.some((line) => line.startsWith('you emailed them:'))).toBe(true);
-    expect(String(lines)).not.toContain('you said:');
+    expect(lines.some((line) => line.startsWith('the user emailed you:'))).toBe(true);
+    expect(String(lines)).not.toContain('the user said:');
   });
 
   it('tells the model why a dwell remark is happening, and only that verb', async () => {

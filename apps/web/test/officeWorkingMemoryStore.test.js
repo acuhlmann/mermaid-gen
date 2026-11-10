@@ -9,6 +9,7 @@ import {
   OFFICE_WORKING_MEMORY_BEAT_CAP,
   OFFICE_WORKING_MEMORY_INTERRUPTIONS,
   OFFICE_WORKING_MEMORY_MEDIUMS,
+  OFFICE_WORKING_MEMORY_SCENE_DECLINES,
   OFFICE_WORKING_MEMORY_STORAGE_KEY,
   readOfficeWorkingMemory,
   writeOfficeWorkingMemory
@@ -62,8 +63,8 @@ describe('officeWorkingMemoryStore', () => {
      */
     expect(workingMemoryPromptLines('intern')).toEqual([
       BOARD_RECALL_LINES.unknown,
-      'they said: those boxes multiplied',
-      'you said: yeah the auth path'
+      'you said: those boxes multiplied',
+      'the user said: yeah the auth path'
     ]);
   });
 
@@ -104,11 +105,11 @@ describe('officeWorkingMemoryStore', () => {
     vi.setSystemTime(today);
     expect(store.hasWorkingMemoryFact('intern')).toBe(false);
     store.rememberWorkingMemoryBeat('intern', { theirs: 'fresh today', now: today });
-    expect(store.workingMemoryPromptLines('intern')).toEqual(['they said: fresh today']);
+    expect(store.workingMemoryPromptLines('intern')).toEqual(['you said: fresh today']);
 
     vi.resetModules();
     const reloaded = await freshStore();
-    expect(reloaded.workingMemoryPromptLines('intern')).toEqual(['they said: fresh today']);
+    expect(reloaded.workingMemoryPromptLines('intern')).toEqual(['you said: fresh today']);
     vi.useRealTimers();
   });
 
@@ -124,7 +125,7 @@ describe('officeWorkingMemoryStore', () => {
     store.rememberWorkingMemoryBeat('intern', { theirs: 'first today', now: today });
 
     expect(store.hasWorkingMemoryFact('intern')).toBe(true);
-    expect(store.workingMemoryPromptLines('intern')).toEqual(['they said: first today']);
+    expect(store.workingMemoryPromptLines('intern')).toEqual(['you said: first today']);
     vi.useRealTimers();
   });
 });
@@ -146,7 +147,7 @@ describe('an errand you walked into is a fact about you', () => {
 
     expect(hasWorkingMemoryFact('intern')).toBe(true);
     expect(workingMemoryPromptLines('intern')).toEqual([
-      'you got in the way of their errand; they went back to their desk empty-handed'
+      'the user got in the way of your errand; you went back to your desk empty-handed'
     ]);
   });
 
@@ -160,8 +161,8 @@ describe('an errand you walked into is a fact about you', () => {
     // The quote read first would be a non-sequitur — same reason `yours`
     // precedes `theirs`.
     expect(workingMemoryPromptLines('intern')).toEqual([
-      'you took the spot they were using; they had finished and stepped aside',
-      'they said: All yours.'
+      'the user took the spot you were using; you had finished and stepped aside',
+      'you said: All yours.'
     ]);
   });
 
@@ -195,7 +196,7 @@ describe('an errand you walked into is a fact about you', () => {
     rememberWorkingMemoryBeat('hr', { errandDropped: true, now: at(9, 0) });
     expect(hasWorkingMemoryFact('hr')).toBe(true);
     expect(workingMemoryPromptLines('hr')).toEqual([
-      'they sent you to have a word with somebody; you let it go'
+      'you sent the user to have a word with somebody; they let it go'
     ]);
 
     rememberWorkingMemoryBeat('hr', {
@@ -206,9 +207,9 @@ describe('an errand you walked into is a fact about you', () => {
     // What you did, then what they said about it — `interrupted`'s ordering,
     // for the same reason: the quote read first is a non-sequitur.
     expect(workingMemoryPromptLines('hr')).toEqual([
-      'they sent you to have a word with somebody; you let it go',
-      'they sent you to have a word with somebody; you let it go',
-      'they said: No, no. Totally fine.'
+      'you sent the user to have a word with somebody; they let it go',
+      'you sent the user to have a word with somebody; they let it go',
+      'you said: No, no. Totally fine.'
     ]);
   });
 
@@ -218,7 +219,7 @@ describe('an errand you walked into is a fact about you', () => {
     const second = await freshStore();
     expect(second.hasWorkingMemoryFact('hr')).toBe(true);
     expect(second.workingMemoryPromptLines('hr')).toEqual([
-      'they sent you to have a word with somebody; you let it go'
+      'you sent the user to have a word with somebody; they let it go'
     ]);
   });
 
@@ -234,7 +235,7 @@ describe('an errand you walked into is a fact about you', () => {
     rememberWorkingMemoryBeat('scrumMaster', { inviteDeclined: true, now: at(14, 0) });
     expect(hasWorkingMemoryFact('scrumMaster')).toBe(true);
     expect(workingMemoryPromptLines('scrumMaster')).toEqual([
-      'they put a meeting on your calendar; you did not go to it'
+      "you put a meeting on the user's calendar; they did not go to it"
     ]);
 
     rememberWorkingMemoryBeat('scrumMaster', {
@@ -244,9 +245,9 @@ describe('an errand you walked into is a fact about you', () => {
     });
     // What you did, then what they said about it — `interrupted`'s ordering.
     expect(workingMemoryPromptLines('scrumMaster')).toEqual([
-      'they put a meeting on your calendar; you did not go to it',
-      'they put a meeting on your calendar; you did not go to it',
-      'they said: No worries! I will send a recap.'
+      "you put a meeting on the user's calendar; they did not go to it",
+      "you put a meeting on the user's calendar; they did not go to it",
+      'you said: No worries! I will send a recap.'
     ]);
   });
 
@@ -256,7 +257,7 @@ describe('an errand you walked into is a fact about you', () => {
     const second = await freshStore();
     expect(second.hasWorkingMemoryFact('scrumMaster')).toBe(true);
     expect(second.workingMemoryPromptLines('scrumMaster')).toEqual([
-      'they put a meeting on your calendar; you did not go to it'
+      "you put a meeting on the user's calendar; they did not go to it"
     ]);
   });
 
@@ -273,7 +274,7 @@ describe('an errand you walked into is a fact about you', () => {
     const second = await freshStore();
     expect(second.hasWorkingMemoryFact('intern')).toBe(true);
     expect(second.workingMemoryPromptLines('intern')).toEqual([
-      'you got in the way of their errand; they went back to their desk empty-handed'
+      'the user got in the way of your errand; you went back to your desk empty-handed'
     ]);
   });
 });
@@ -284,7 +285,7 @@ describe('a beat you typed at an inbox is not a beat you said', () => {
    * see it — `isSpokenLine` never voices one, and a mail never reaches a talk
    * surface. Working memory is the one place it could leak back in as speech,
    * because the prompt line is written here and nowhere else: a colleague told
-   * `you said: <a subject line>` is being handed a conversation that did not
+   * `the user said: <a subject line>` is being handed a conversation that did not
    * happen, on the same failure the situation rule was measured on.
    */
   it('quotes an emailed exchange as writing', async () => {
@@ -297,8 +298,8 @@ describe('a beat you typed at an inbox is not a beat you said', () => {
     });
 
     expect(workingMemoryPromptLines('jared')).toEqual([
-      'you emailed them: Re: auth — can billing read the ledger directly?',
-      'they wrote back: Short answer no. Long answer also no, with a diagram.'
+      'the user emailed you: Re: auth — can billing read the ledger directly?',
+      'you wrote back: Short answer no. Long answer also no, with a diagram.'
     ]);
   });
 
@@ -310,7 +311,10 @@ describe('a beat you typed at an inbox is not a beat you said', () => {
   it('leaves a spoken beat phrased exactly as it always was', async () => {
     const { workingMemoryPromptLines, rememberWorkingMemoryBeat } = await freshStore();
     rememberWorkingMemoryBeat('dinesh', { yours: 'morning', theirs: 'is it', now: at(9, 0) });
-    expect(workingMemoryPromptLines('dinesh')).toEqual(['you said: morning', 'they said: is it']);
+    expect(workingMemoryPromptLines('dinesh')).toEqual([
+      'the user said: morning',
+      'you said: is it'
+    ]);
   });
 
   it('is an enum, and a medium alone is still nothing worth remembering', async () => {
@@ -330,7 +334,7 @@ describe('a beat you typed at an inbox is not a beat you said', () => {
     // Free text selects no sentence, so it is dropped and the beat falls back
     // to the spoken pair rather than interpolating a floor's string.
     rememberWorkingMemoryBeat('hr', { yours: 'hi', medium: 'carrier pigeon', now: at(9, 1) });
-    expect(workingMemoryPromptLines('hr')).toEqual(['you said: hi']);
+    expect(workingMemoryPromptLines('hr')).toEqual(['the user said: hi']);
 
     // And a medium is never itself the fact: how an exchange happened is not a
     // memory of one happening.
@@ -355,8 +359,8 @@ describe('a beat you typed at an inbox is not a beat you said', () => {
     });
 
     expect(workingMemoryPromptLines('russ')).toEqual([
-      'you emailed them: quick question does Triage have a reject branch?',
-      'they wrote back: no. and stop emailing me'
+      'the user emailed you: quick question does Triage have a reject branch?',
+      'you wrote back: no. and stop emailing me'
     ]);
   });
 
@@ -365,7 +369,7 @@ describe('a beat you typed at an inbox is not a beat you said', () => {
     first.rememberWorkingMemoryBeat('jared', { theirs: 'filed as a finding', medium: 'email' });
     const second = await freshStore();
     expect(second.workingMemoryPromptLines('jared')).toEqual([
-      'they wrote back: filed as a finding'
+      'you wrote back: filed as a finding'
     ]);
   });
 });
@@ -454,11 +458,11 @@ describe('board recall', () => {
 
     expect(workingMemoryPromptLines('greybeard', { boardNow: 'mermaid:Auth:40' })).toEqual([
       BOARD_RECALL_LINES.same,
-      'they said: it was four boxes'
+      'you said: it was four boxes'
     ]);
     expect(workingMemoryPromptLines('greybeard', { boardNow: 'mermaid:Auth:77' })).toEqual([
       BOARD_RECALL_LINES.changed,
-      'they said: it was four boxes'
+      'you said: it was four boxes'
     ]);
   });
 
@@ -487,7 +491,7 @@ describe('a screen you read over their shoulder', () => {
 
     expect(hasWorkingMemoryFact('greybeard')).toBe(true);
     expect(workingMemoryPromptLines('greybeard')).toEqual([
-      'you walked over and read what was on their screen'
+      'the user walked over and read what was on your screen'
     ]);
   });
 
@@ -502,8 +506,8 @@ describe('a screen you read over their shoulder', () => {
     // `interrupted`'s ordering, for its reason: the quote read first is a
     // non-sequitur ahead of the thing it is about.
     expect(workingMemoryPromptLines('greybeard')).toEqual([
-      'you walked over and read what was on their screen',
-      'they said: Mainframe migration. Year eleven.'
+      'the user walked over and read what was on your screen',
+      'you said: Mainframe migration. Year eleven.'
     ]);
   });
 
@@ -554,7 +558,7 @@ describe('a screen you read over their shoulder', () => {
 
     expect(second.hasWorkingMemoryFact('greybeard')).toBe(true);
     expect(second.workingMemoryPromptLines('greybeard')).toEqual([
-      'you walked over and read what was on their screen'
+      'the user walked over and read what was on your screen'
     ]);
   });
 });
@@ -576,8 +580,8 @@ describe('a screen you read over their shoulder', () => {
  * cannot promise.
  */
 describe('a suggestion of theirs you did not take', () => {
-  const DECLINED_LINE = 'they came over with a suggestion; you did not take it';
-  const TAKEN_LINE = 'you took their suggestion earlier';
+  const DECLINED_LINE = 'you came over with a suggestion; the user did not take it';
+  const TAKEN_LINE = 'the user took your suggestion earlier';
 
   it('is on its own enough of a fact, and reads as the answer you gave', async () => {
     const { hasWorkingMemoryFact, rememberWorkingMemoryBeat, workingMemoryPromptLines } =
@@ -652,5 +656,107 @@ describe('a suggestion of theirs you did not take', () => {
 
     expect(second.hasWorkingMemoryFact('greybeard')).toBe(true);
     expect(second.workingMemoryPromptLines('greybeard')).toEqual([DECLINED_LINE]);
+  });
+});
+
+/**
+ * The POV sensor. Every sentence this module hands `/moment` is read by a model
+ * that has just been told *"You are writing ONE office moment"* — the speaker is
+ * the colleague, and `buildOfficeWorkingMemoryBlock` frames these bullets with
+ * *"What you already share with this user today"*. Until 2026-11-10 the bullets
+ * underneath were written from the **user's** side, three lines under a frame
+ * saying the opposite, and the frame won: asked to recall the day, the colleague
+ * reported 23 of 24 facts with the two people swapped (it had read the user's
+ * screen; the user had pitched and it had declined), against 0 of 24 once the
+ * other party was named, with a no-block control inventing none of them.
+ *
+ * So the contract is **name the user, never imply them**: a line may address the
+ * speaker as "you", and the moment it reaches for the other party it says `the
+ * user` out loud. That is lexical, which is the one kind of property a pattern
+ * may be trusted with (the playbook's § 14 retraction is about regexes standing
+ * in for *semantic* properties) — and it is why this is a sweep rather than
+ * another string literal: a twelfth bank added in the user's voice fails here
+ * without anybody having to think of it.
+ */
+describe("every prompt line is written in the speaker's second person", () => {
+  /*
+   * One beat field per colleague, because `workingMemoryPromptLines` caps at six
+   * lines and a single stacked beat would hide most of the banks behind the cap.
+   * The three enum-driven families are derived from the enums themselves, so a
+   * new interruption, scene or medium is swept without editing this list; a new
+   * **boolean** field is not enumerable anywhere, so it owes this sweep a row.
+   */
+  const BOOLEAN_ARMS = [
+    ['jared', { errandDropped: true }],
+    ['hr', { inviteDeclined: true }],
+    ['gilfoyle', { peeked: true }],
+    ['greybeard', { pitchTaken: true }],
+    ['chad', { pitchDeclined: true }]
+  ];
+
+  async function sweepLines() {
+    const { rememberWorkingMemoryBeat, workingMemoryPromptLines } = await freshStore();
+    const lines = [];
+    let seat = 0;
+    const push = (beat) => {
+      const id = `sweep-${(seat += 1)}`;
+      rememberWorkingMemoryBeat(id, { ...beat, now: at(9, 0) });
+      const own = workingMemoryPromptLines(id);
+      // The companion assertion: an arm that produced nothing swept nothing,
+      // and a sweep over an empty corpus passes while examining it.
+      expect(own.length).toBeGreaterThan(0);
+      lines.push(...own);
+    };
+
+    for (const reaction of OFFICE_WORKING_MEMORY_INTERRUPTIONS) push({ interrupted: reaction });
+    for (const scene of OFFICE_WORKING_MEMORY_SCENE_DECLINES) push({ sceneDeclined: scene });
+    for (const medium of OFFICE_WORKING_MEMORY_MEDIUMS) {
+      push({ yours: 'does billing read the ledger?', theirs: 'no.', medium });
+    }
+    push({ yours: 'morning', theirs: 'is it' });
+    for (const [, beat] of BOOLEAN_ARMS) push(beat);
+    // The board is the one line in this block that comes from another module.
+    lines.push(...Object.values(BOARD_RECALL_LINES));
+    return lines;
+  }
+
+  it('names the user wherever the other party appears', async () => {
+    const lines = await sweepLines();
+    expect(new Set(lines).size).toBeGreaterThanOrEqual(16);
+
+    const thirdPerson = /\b(they|them|their|theirs)\b/i;
+    const impliedUser = lines.filter(
+      (line) => thirdPerson.test(line) && !/\bthe user\b/.test(line)
+    );
+    expect(impliedUser).toEqual([]);
+  });
+
+  /*
+   * The one line the sweep above cannot see, and the sharpest instance of the
+   * defect: `you said:` over the user's own sentence tells the model it said
+   * something it did not, and it carries no third-person pronoun to be caught
+   * by. So the pair is asserted directly — whose words the prefix introduces
+   * decides which person it may address.
+   */
+  it('introduces the user\'s own words with the user, and its own with "you"', async () => {
+    const { rememberWorkingMemoryBeat, workingMemoryPromptLines } = await freshStore();
+    rememberWorkingMemoryBeat('dinesh', { yours: 'morning', theirs: 'is it', now: at(9, 0) });
+    const [mine, theirs] = workingMemoryPromptLines('dinesh');
+
+    expect(mine).toBe('the user said: morning');
+    expect(theirs).toBe('you said: is it');
+
+    expect(OFFICE_WORKING_MEMORY_MEDIUMS.length).toBeGreaterThan(0);
+    for (const medium of OFFICE_WORKING_MEMORY_MEDIUMS) {
+      rememberWorkingMemoryBeat('jared', {
+        yours: 'subject line',
+        theirs: 'short answer no',
+        medium,
+        now: at(9, 1)
+      });
+      const [wrote, replied] = workingMemoryPromptLines('jared');
+      expect(wrote.startsWith('the user ')).toBe(true);
+      expect(replied.startsWith('you ')).toBe(true);
+    }
   });
 });
