@@ -201,7 +201,7 @@ describe('a peek the colleague remembers (question 1)', () => {
 
     expect(hasWorkingMemoryFact('greybeard')).toBe(true);
     expect(workingMemoryPromptLines('greybeard')).toEqual([
-      'you walked over and read what was on their screen'
+      'the user walked over and read what was on your screen'
     ]);
     // Their neighbours were sitting right there and saw nothing of the sort.
     expect(hasWorkingMemoryFact('gilfoyle')).toBe(false);

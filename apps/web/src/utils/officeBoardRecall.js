@@ -57,17 +57,26 @@
 /**
  * The one sentence each verdict is allowed to be.
  *
- * Phrased as facts about *them* rather than about the diagram, which is what
- * keeps `changed` on the right side of the situation rule. Each is well under
- * the 200-character per-line cap `OfficeWorkingMemoryField` enforces on the
- * route, so none of them can cost another beat its place.
+ * Phrased as facts about the sighting rather than about the diagram, which is
+ * what keeps `changed` on the right side of the situation rule. Each is well
+ * under the 200-character per-line cap `OfficeWorkingMemoryField` enforces on
+ * the route, so none of them can cost another beat its place.
+ *
+ * **Second person is the speaker, and the other party is named.** These lines
+ * land in `buildOfficeWorkingMemoryBlock`, whose own closing sentence already
+ * says *"you already looked at their board"* — so until 2026-11-10 this bank
+ * stated the same fact with the pronouns swapped, three lines away from it. The
+ * convention, and the measurement behind it, are in
+ * `officeWorkingMemoryStore.js` beside `INTERRUPTION_PROMPT_LINES`; the short
+ * version is that a colleague asked to recall the day got 23 of 24 facts
+ * backwards while the block disagreed with its own frame.
  *
  * @type {Readonly<Record<BoardRecallKind, string>>}
  */
 export const BOARD_RECALL_LINES = Object.freeze({
-  unknown: 'they have already looked at your board today',
-  same: 'they have already looked at your board, exactly as it stands now',
-  changed: 'they last looked at your board before the state it is in now'
+  unknown: "you have already looked at the user's board today",
+  same: "you have already looked at the user's board, exactly as it stands now",
+  changed: "you last looked at the user's board before the state it is in now"
 });
 
 /**

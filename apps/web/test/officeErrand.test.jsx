@@ -166,7 +166,7 @@ describe('refusing an errand', () => {
 
     expect(hasWorkingMemoryFact('hr')).toBe(true);
     expect(workingMemoryPromptLines('hr')).toEqual([
-      'they sent you to have a word with somebody; you let it go'
+      'you sent the user to have a word with somebody; they let it go'
     ]);
     /*
      * The half that is a fiction rule rather than a wiring one: Chad was never
@@ -216,7 +216,7 @@ describe('refusing an errand', () => {
 
     expect(getOfficeSnapshot().errand).toBeNull();
     expect(workingMemoryPromptLines('hr')).toEqual([
-      'they sent you to have a word with somebody; you let it go'
+      'you sent the user to have a word with somebody; they let it go'
     ]);
   });
 });

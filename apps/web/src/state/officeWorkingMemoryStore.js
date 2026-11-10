@@ -57,22 +57,40 @@ import {
 /**
  * What each interruption reads like to the model.
  *
- * The phrasing lives here beside `you said:` / `they said:` rather than in the
+ * The phrasing lives here beside the two quote prefixes rather than in the
  * floor, because the beat carries the *fact* and this function owns every
  * sentence in the prompt — the same split `pitchTaken` already uses. Both
  * entries state the circumstance and stop: naming a consequence the prompt does
  * not otherwise carry is how a moment ends up fabricating one (the situation
  * rule in `docs/agents/domains/office.md`).
+ *
+ * **Every line in this file is written in the SPEAKER's second person**, and it
+ * has to be: the block these lines land in (`buildOfficeWorkingMemoryBlock`)
+ * addresses the colleague as "you", and so does the system prompt above it
+ * ("You are writing ONE office moment", "The user just emailed you"). The
+ * bullets were written from the user's side until 2026-11-10, three lines under
+ * a frame saying the opposite, and the model read the frame: asked to recall the
+ * day it reported **23 of 24 facts with the two people swapped** — it had read
+ * the user's screen, the user had pitched and it had declined — against 0 of 24
+ * once the parties were named, with a no-block control inventing none of them.
+ *
+ * So the convention is not a pronoun flip but a **naming** one: say `the user`
+ * out loud wherever the other party appears. Measured against the flip on the
+ * same arms, naming is referenced more often (6 of 16 vs 2 of 16 on a stance
+ * probe), it cannot be re-broken by a later rewording of the frame, and the one
+ * risk it looked like it carried is not real — "the user" never once leaked
+ * into a spoken line, while the control arm, which has no block at all, said it
+ * 4 times in 8 about the funnel's own end-users.
  */
 const INTERRUPTION_PROMPT_LINES = Object.freeze({
-  gotIt: 'you took the spot they were using; they had finished and stepped aside',
-  gaveUp: 'you got in the way of their errand; they went back to their desk empty-handed'
+  gotIt: 'the user took the spot you were using; you had finished and stepped aside',
+  gaveUp: 'the user got in the way of your errand; you went back to your desk empty-handed'
 });
 
 /**
  * The same two quotes, for a beat that was not spoken.
  *
- * `you said:` is the default because until the email channel started writing
+ * Speech is the default because until the email channel started writing
  * beats every one of them was a dwell, a talk or an interruption — somebody in
  * the room, in earshot. An email is the one exchange the office deliberately
  * keeps off every talk surface, so quoting it as speech hands the next prompt a
@@ -83,11 +101,22 @@ const INTERRUPTION_PROMPT_LINES = Object.freeze({
  * Keyed by `medium`, with the absent case falling through to the default pair,
  * so adding a member here is a copy row rather than a branch.
  */
+/*
+ * `yours` / `theirs` name whose words the beat holds — the user's and the
+ * colleague's — and the prefixes are in the speaker's second person, so the
+ * pair reads inverted against the field names on purpose. `theirs` is the
+ * speaker's own line, and a prefix is the one place where getting this backwards
+ * is not a nuance: `you said:` over the user's sentence tells the model it said
+ * something it did not.
+ */
 const MEDIUM_PROMPT_LINES = Object.freeze({
-  email: { yours: 'you emailed them:', theirs: 'they wrote back:' }
+  email: { yours: 'the user emailed you:', theirs: 'you wrote back:' }
 });
 
-const SPOKEN_PROMPT_LINES = Object.freeze({ yours: 'you said:', theirs: 'they said:' });
+const SPOKEN_PROMPT_LINES = Object.freeze({
+  yours: 'the user said:',
+  theirs: 'you said:'
+});
 
 /**
  * What dropping their errand reads like to the model
@@ -103,7 +132,7 @@ const SPOKEN_PROMPT_LINES = Object.freeze({ yours: 'you said:', theirs: 'they sa
  * next line a mood the prompt cannot check, and a situation that states a delta
  * is measurably how a moment ends up inventing one.
  */
-const ERRAND_DROPPED_PROMPT_LINE = 'they sent you to have a word with somebody; you let it go';
+const ERRAND_DROPPED_PROMPT_LINE = 'you sent the user to have a word with somebody; they let it go';
 
 /**
  * What declining their meeting reads like to the model
@@ -128,7 +157,8 @@ const ERRAND_DROPPED_PROMPT_LINE = 'they sent you to have a word with somebody; 
  * 200 characters on both sides, and a fixed sentence cannot spend somebody
  * else's budget.
  */
-const INVITE_DECLINED_PROMPT_LINE = 'they put a meeting on your calendar; you did not go to it';
+const INVITE_DECLINED_PROMPT_LINE =
+  "you put a meeting on the user's calendar; they did not go to it";
 
 /**
  * What turning down their set piece reads like to the model
@@ -161,8 +191,8 @@ const INVITE_DECLINED_PROMPT_LINE = 'they put a meeting on your calendar; you di
  * can chase you for one.
  */
 const SCENE_DECLINED_PROMPT_LINES = Object.freeze({
-  coffee: 'they asked you along for a coffee; you stayed at your desk and they went anyway',
-  battle: 'they wanted you in on an argument; you walked away and it carried on without you'
+  coffee: 'you asked the user along for a coffee; they stayed at their desk and you went anyway',
+  battle: 'you wanted the user in on an argument; they walked away and it carried on without them'
 });
 
 /**
@@ -192,7 +222,7 @@ const SCENE_DECLINED_PROMPT_LINES = Object.freeze({
  * it back"*). So the beat records that you looked and leaves the sentence where
  * it was said.
  */
-const PEEKED_PROMPT_LINE = 'you walked over and read what was on their screen';
+const PEEKED_PROMPT_LINE = 'the user walked over and read what was on your screen';
 
 /**
  * The two answers to the one question a colleague actually asks you
@@ -228,8 +258,8 @@ const PEEKED_PROMPT_LINE = 'you walked over and read what was on their screen';
  * after lunch — that is two beats, two lines, and a relationship.
  */
 const PITCH_PROMPT_LINES = Object.freeze({
-  taken: 'you took their suggestion earlier',
-  declined: 'they came over with a suggestion; you did not take it'
+  taken: 'the user took your suggestion earlier',
+  declined: 'you came over with a suggestion; the user did not take it'
 });
 
 /** @typedef {{ at: number, theirs?: string, yours?: string, pitchTaken?: boolean, pitchDeclined?: boolean, errandDropped?: boolean, inviteDeclined?: boolean, interrupted?: 'gotIt' | 'gaveUp', interruptedProp?: string, sceneDeclined?: 'coffee' | 'battle', peeked?: boolean, medium?: 'email' }} WorkingMemoryBeat */

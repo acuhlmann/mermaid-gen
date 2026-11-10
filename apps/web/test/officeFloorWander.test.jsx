@@ -1517,8 +1517,8 @@ describe('walking into somebody else s errand, on a real floor', () => {
       { seatId: CHAD, kind: 'whiteboard', interrupted: { reaction: 'gotIt', roll: 0.75 } },
       FLOOR_COPY()
     );
-    expect(lines[0]).toMatch(/^you took the spot/);
-    expect(lines).toContain(`they said: ${drawn.text}`);
+    expect(lines[0]).toMatch(/^the user took the spot/);
+    expect(lines).toContain(`you said: ${drawn.text}`);
   });
 
   it('remembers which errand it was, not only that there was one', () => {

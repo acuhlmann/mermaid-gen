@@ -47,7 +47,7 @@ import { officeSenderInfo } from '../src/utils/officeCast.js';
 import { OFFICE_CHROME_COPY } from '../src/utils/officeCast.js';
 import { formatLocale } from '../src/i18n/formatLocale.js';
 
-const DECLINED_LINE = 'they came over with a suggestion; you did not take it';
+const DECLINED_LINE = 'you came over with a suggestion; the user did not take it';
 
 /*
  * `greybeard` rather than a name picked for flavour: the walk-by cast is
