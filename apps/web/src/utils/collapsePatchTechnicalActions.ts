@@ -1,14 +1,25 @@
 const APPLY_MERMAID_PATCH = 'apply_mermaid_patch';
 
+/** One row in the insights technical-actions ledger (partial shape — callers may add fields). */
+export type TechnicalActionRow = {
+  name?: string;
+  status?: string;
+  count?: number;
+  id?: string;
+  label?: string;
+  durationMs?: number;
+  outcomeDetail?: unknown;
+  patchStats?: unknown;
+};
+
 /**
  * If the last two technical actions are consecutive successful apply_mermaid_patch calls,
  * merges them into one row with an incremented count (shorter insights UX).
- *
- * @param {Array<{ name?: string, status?: string, count?: number, id?: string, label?: string }>} actions
- * @param {(name: string, repeatCount: number) => string} formatLabel
- * @returns {typeof actions}
  */
-export function collapseConsecutiveApplyPatchActions(actions, formatLabel) {
+export function collapseConsecutiveApplyPatchActions<T extends TechnicalActionRow>(
+  actions: T[],
+  formatLabel: (name: string, repeatCount: number) => string
+): T[] {
   if (!Array.isArray(actions) || actions.length < 2) return actions;
   const i = actions.length - 1;
   const cur = actions[i];

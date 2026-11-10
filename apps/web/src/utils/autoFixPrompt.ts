@@ -10,11 +10,16 @@
  * The Anything variant deliberately omits the broken source — the server-side
  * agent already receives the full current document from the synced slot, and
  * duplicating a large HTML document into the prompt only burns tokens.
- *
- * @param {{ contentType: string, errorMessage: string, brokenSource: string }} args
- * @returns {string}
  */
-export function buildAutoFixPrompt({ contentType, errorMessage, brokenSource }) {
+export function buildAutoFixPrompt({
+  contentType,
+  errorMessage,
+  brokenSource
+}: {
+  contentType: string;
+  errorMessage: string;
+  brokenSource: string;
+}): string {
   if (contentType === 'anything') {
     return `The current Anything-mode page fails at runtime in the sandboxed canvas. Fix the page and apply a corrected version with apply_anything_patch.
 
