@@ -12,8 +12,13 @@ import { createPairingCodeStore } from '../src/state/pairingCodeStore.js';
 import { createAgentTokenStore } from '../src/state/agentTokenStore.js';
 import { createMcpRateLimiter } from '../src/mcp/mcpRateLimit.js';
 import { createMcpHandler } from '../src/mcp/mcpServer.js';
+import { registerMcpCollaborationInsightTools } from '../src/mcp/tools/registerMcpCollaborationInsightTools.js';
 import { createCopilotRouter } from '../src/routes/copilot.js';
 import { MCP_APP_URIS } from '../src/mcp/mcpAppUris.js';
+
+test('registerMcpCollaborationInsightTools exports a registrar', () => {
+  assert.equal(typeof registerMcpCollaborationInsightTools, 'function');
+});
 
 function setupServer() {
   const app = express();

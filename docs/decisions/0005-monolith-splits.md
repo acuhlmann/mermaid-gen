@@ -31,7 +31,7 @@ they need access to outer-closure state.
 
 ## Progress
 
-### `mcpServer.js` (~1 542 → ~1 014 LOC)
+### `mcpServer.js` (~1 542 → ~733 LOC)
 
 - ✅ Helpers extracted to `apps/server/src/mcp/mcpHelpers.js`
   (`textResult`, `jsonResult`, `safeError`, `humanOnlyMcpToolBlocked`,
@@ -42,6 +42,7 @@ they need access to outer-closure state.
   `registerOpenSessionPairing`, `registerAgentHandshakeTools` (agent registration,
   handshake polling, session-event subscribe/wait), `registerDiagramSessionTools`
   (`get_session_state`, `open_diagram_canvas`, `propose_diagram_edit`),
+  `registerMcpCollaborationInsightTools` (insights, proposals, focus, react),
   `registerHumanOnlyAppTools`
   (four human-only stubs). Remaining tools still inline; continue the
   `register{ToolName}(server, ctx)` pattern from `tools/README.md`.

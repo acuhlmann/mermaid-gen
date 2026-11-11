@@ -30,9 +30,9 @@
         "reason": "2026-10-24: 392→447 — 331fc711 (deliverable format-pick/cache conversion) added peer-slot conversion and restore paths when switching content types so prior-format results survive instead of forcing regeneration; measured 447 LOC. Prior 2026-09-12 raise (362→392) cleared #547 complexity suppressions."
       },
       "apps/server/src/mcp/mcpServer.js": {
-        "budget": 1014,
+        "budget": 733,
         "initial": 1406,
-        "reason": "2026-11-05: 1022→1014 — upstream shrink on main since 2026-11-04 register pass; measured 1014 LOC."
+        "reason": "2026-11-11: 1014→733 — improve item-7 split: collaboration insight/proposal tools to registerMcpCollaborationInsightTools.js (register* pattern)."
       },
       "apps/server/src/agents/mermaidLangChainAgent.js": {
         "budget": 1156,
