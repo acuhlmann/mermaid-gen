@@ -6,8 +6,9 @@
  * nightly (`benchMetaphor.js`, `benchAnything.js`). The office's number is a
  * **fixed visit**: enter the floor, walk to a named colleague, step into their
  * path, stand beside them for six seconds, use the printer, open the
- * whiteboard, say one sentence in the composer. It prints **one JSON object**,
- * and that object is what goes in the ledger row.
+ * whiteboard, say one sentence in the composer, read somebody's screen, and
+ * wave away an idea somebody brought over. It prints **one JSON object**, and
+ * that object is what goes in the ledger row.
  *
  * ## Run it
  *
@@ -84,8 +85,8 @@
  * made an ambient errand's destination depend on what the player had just
  * done, and no field here named where a wanderer was going.
  *
- * **The step count moved once, from seven to eight, and the rule that
- * forbade it is narrowed rather than dropped.** For eight weeks this header
+ * **The step count has moved twice — seven to eight, then eight to nine — and
+ * the rule that forbade it is narrowed rather than dropped.** For eight weeks this header
  * said a run "may never add, reorder or retime a step", full stop, and that
  * sentence was doing two jobs: keeping a run from editing the visit to move a
  * number, and keeping eight nights of traces comparable. The first job is
@@ -111,6 +112,18 @@
  * thrown away. `roomDelta.cards.after` is the other one-time change: the visit
  * used to end with the talk card open and now ends standing at somebody
  * else's desk, which is where a peek leaves you.
+ *
+ * **The ninth step, 2026-11-11, is the same rule applied a second time and is
+ * the better test of it.** Spec'd in the ledger as `visit-has-no-walkby-step`
+ * three nights before it was built; appended *after* step 8 so no earlier step
+ * moves; taken in a run that wanted nothing from the number. What it buys is
+ * larger than the peek's: the walk-by is the one surface four separate slices
+ * have landed on without the instrument ever seeing one, because
+ * `shouldHoldFire()` turns the ambient director off for the whole length of a
+ * floor visit, so no amount of waiting produces one. The cost is the same cost,
+ * paid the same way — version-6 totals, `speech.throughStep7` unchanged, and
+ * the step placed last because a walk-by writes into the office log and working
+ * memory that every earlier step's prompt reads from.
  *
  * The harness page it writes into `apps/web/.office-visit/` is scratch and is
  * deleted on the way out. It never reaches a commit.
@@ -139,6 +152,35 @@ const PINNED_CLOCK = Date.UTC(2026, 7, 11, 4, 0, 0);
 
 /** The fixture the office looks at. Never a user's diagram (ADR-0010). */
 const FIXTURE_DIAGRAM = 'flowchart LR\n  Intake --> Triage\n  Triage --> Ship';
+
+/**
+ * The walk-by the ninth step receives, fixed the way `COMPOSER_LINE` is.
+ *
+ * Three choices in it are load-bearing, and the first two are the 2026-11-08
+ * slice's own findings re-used rather than re-derived.
+ *
+ * - **`actionPrompt` is the gate**, not decoration. `dismissOfficeWalkByWithMemory`
+ *   writes a refusal only when the bubble was carrying a Do it button: with a
+ *   prompt the bubble is a question and ✕ is an answer, without one it is
+ *   somebody saying a thing and closing it means you read it. A fixture with no
+ *   prompt would make this step report a green ✕ and no beat, for ever, and
+ *   read as a broken writer.
+ * - **`greybeard` can actually walk over.** He is in `OFFICE_WALKBY_LLM_CAST`,
+ *   in the canned bank and in all three ambient casts, so the state this step
+ *   drives is one the room produces on its own. He is also the one seated
+ *   colleague no earlier step touches, which is what keeps the new beat
+ *   unambiguous: steps 3, 4, 7 and 8 leave rows on `intern`, `dinesh` and
+ *   `gilfoyle`, and a fixture sharing any of those would hide a writer that
+ *   wrote onto the wrong person.
+ * - **The body names the fixture diagram and the prompt is a real edit**, so
+ *   the sentence a later exchange quotes back reads like the room rather than
+ *   like a test fixture.
+ */
+const WALKBY_FIXTURE = Object.freeze({
+  colleagueId: 'greybeard',
+  body: 'Saw your funnel on the way past. Intake straight into Ship is going to bite you by Q3.',
+  actionPrompt: 'Add a rejection edge from Triage back to Intake'
+});
 
 const STEP_TIMEOUT_MS = 20_000;
 
@@ -1065,6 +1107,114 @@ async function walkTheVisit(page) {
     );
   });
 
+  /*
+   * **The ninth step, appended 2026-11-11 — read the header's rule before
+   * touching it.** It exists for the reason the eighth step did: four slices
+   * land on the walk-by surface (the ambient speaker draw, the reply bank, the
+   * canned fallbacks, and the refusal beat) and **not one of the eight steps
+   * ever receives a walk-by**, so every one of them was measured by a sweep or
+   * an audition and none by the nightly instrument. It was spec'd in the ledger
+   * as `visit-has-no-walkby-step` three nights before it was built, down to the
+   * two actions below.
+   *
+   * Four things in it are load-bearing.
+   *
+   * 1. **The instrument pushes the walk-by, and that is not the auto-fix hat.**
+   *    `useOfficeAmbience`'s `shouldHoldFire()` returns on `floorActive`, so
+   *    the ambient director is **off for the entire length of a floor visit by
+   *    design** (the ledger's `ambient-director-is-off-during-a-visit`). A
+   *    visit that waited for a walk-by would wait for ever. So the harness
+   *    stands in for the director the same way it stands in for a mouse — a
+   *    *step* drives the room, which is what the other eight do. The rule the
+   *    `afterwards` block states still holds unchanged and is about the other
+   *    half: an **observation** may only read, because a report that mutates
+   *    cannot be trusted about what it reports.
+   * 2. **The ✕ is pressed in the DOM, never through the store.** The whole
+   *    subject is the wire from the bubble's dismiss button to
+   *    `dismissOfficeWalkByWithMemory`, and `dismissOfficeWalkBy` — the bare
+   *    store mutator the 24 s TTL calls — deliberately writes nothing. A step
+   *    that called the store would report the beat as missing on a night the
+   *    product was fine, and as present on a night the button had come
+   *    unwired.
+   * 3. **The arrival line is given a tick to be harvested before the bubble is
+   *    closed.** The walk-by's body is the only `walkby`-channel line any visit
+   *    has ever produced, and the harvest runs on a 200 ms interval plus a
+   *    mutation observer; dismissing in the same tick as the push would remove
+   *    the surface that is the step's own evidence.
+   * 4. **It is last, and it has to be.** A walk-by writes a `walkby` entry into
+   *    the office log and a beat into working memory, both of which feed the
+   *    prompts every earlier step reads from. Put it anywhere but the end and
+   *    it would change the inputs of eight steps whose baselines go back nine
+   *    weeks. `speech.throughStep7` is cut at the eighth step's mark and so is
+   *    unaffected either way — that is the field to read across versions.
+   */
+  await step(steps, 'refuse-a-walk-by', async () => {
+    const pushed = await page.evaluate(
+      (fixture) =>
+        import('/src/state/officeMomentStore.js').then((store) => store.pushOfficeWalkBy(fixture)),
+      WALKBY_FIXTURE
+    );
+    if (!pushed) throw new Error('the store took no walk-by');
+    /* Trap 3: the walker is a zero-size anchor, so `attached` rather than the
+       default `visible` — and the dismiss button is the thing under test, so it
+       is what the wait is on. A bubble that drew without its chrome is a
+       different failure from a bubble that never drew. */
+    const bubble = await page
+      .waitForSelector('[data-testid="office-floor-walker"] .office-floor-bubble-dismiss', {
+        state: 'attached',
+        timeout: STEP_TIMEOUT_MS
+      })
+      .catch(() => null);
+    if (!bubble) throw new Error(`${WALKBY_FIXTURE.colleagueId} never arrived with the bubble`);
+    await page.waitForTimeout(1_200);
+    const offered = await page.evaluate(() =>
+      Boolean(
+        document.querySelector('[data-testid="office-floor-walker"] .office-floor-bubble-action')
+      )
+    );
+    /* Dispatched in page context for step 8's reason: a real click has to
+       hit-test a bubble that is inverse-scaled inside a 0×0 anchor, and a miss
+       there reads exactly like the button not being wired. */
+    const pressed = await page.evaluate(() => {
+      const button = document.querySelector(
+        '[data-testid="office-floor-walker"] .office-floor-bubble-dismiss'
+      );
+      button?.click();
+      return Boolean(button);
+    });
+    if (!pressed) throw new Error('the ✕ went missing between the wait and the press');
+    /*
+     * **Wait for them to actually leave, and the reason is `roomDelta`.** A
+     * dismissed walk-by does not vanish: `useFloorWalker` keeps a departing
+     * copy mounted until the walk home finishes, which is presentation state
+     * the floor owns (ADR-0011) and takes longer than the press. Ending the
+     * visit mid-departure leaves `office-floor-walker` in the end-of-visit room
+     * shot *sometimes*, which is a one-time baseline change that also flaps —
+     * the worst kind, because the next reader cannot tell noise from a slice.
+     * Waiting for the detach makes the room's end state the same room nine
+     * weeks of traces end in, and the flag below is what says so out loud
+     * rather than leaving it to be inferred from an absent surface.
+     */
+    const departed = await page
+      .waitForSelector('[data-testid="office-floor-walker"]', {
+        state: 'detached',
+        timeout: STEP_TIMEOUT_MS
+      })
+      .then(() => true)
+      .catch(() => false);
+    const cleared = await page.evaluate(() =>
+      import('/src/state/officeMomentStore.js').then((store) =>
+        Boolean(store.getOfficeSnapshot().walkBy)
+      )
+    );
+    return (
+      `${WALKBY_FIXTURE.colleagueId} came over with ` +
+      `${offered ? 'a Do it button' : 'no action'}; pressed ✕; ` +
+      `${cleared ? 'still in the store' : 'store cleared'}; ` +
+      `${departed ? 'walked back to their desk' : 'still on the floor at the end'}`
+    );
+  });
+
   return steps;
 }
 
@@ -1253,6 +1403,18 @@ async function main() {
                  * that only had the sentence could not tell which half broke.
                  */
                 peeked: beat.peeked ?? null,
+                /*
+                 * Added 2026-11-11 with the ninth step, for the reason
+                 * `peeked` was added with the eighth: it is a boolean the
+                 * record carries and the projection did not, so a visit that
+                 * refused a walk-by would have shown the fact only as a
+                 * sentence in `promptLines` — the *next* exchange's view of
+                 * it. The ledger's `visit-trace-reads-promptlines-not-the-record`
+                 * is the whole argument: a run that broke the writer but not
+                 * the bank, or the bank but not the writer, looks identical
+                 * from `promptLines` alone.
+                 */
+                pitchDeclined: beat.pitchDeclined ?? null,
                 theirs: beat.theirs ? String(beat.theirs).slice(0, 160) : null,
                 yours: beat.yours ? String(beat.yours).slice(0, 160) : null
               })),
@@ -1317,6 +1479,42 @@ async function main() {
       )
       .catch((err) => ({ error: String(err?.message ?? err).split('\n')[0] }));
 
+    /*
+     * **What the refusal left behind, read as the record rather than as its
+     * rendering.** The ninth step's subject is a wire with three links in it —
+     * the bubble's ✕, `dismissOfficeWalkBy`'s return value, and
+     * `officeWalkByMemory.js`'s writer — and a `walkby` line in `speech` only
+     * proves the first colleague arrived. So this reads the beat, the sentence
+     * the beat will speak as, and the **twin**: `pitchTaken` is what the other
+     * button on the same bubble writes, and a run where ✕ started writing
+     * *that* instead would otherwise read as a working refusal.
+     *
+     * `onScreen` is the state after the press and is expected `false`; it is
+     * reported rather than asserted because a walk-by still on screen with a
+     * beat written is a different defect from one cleared with no beat, and the
+     * step's own note cannot say which happened at the end of the visit.
+     */
+    const walkby = await page
+      .evaluate(
+        (fixture) =>
+          Promise.all([
+            import('/src/state/officeWorkingMemoryStore.js'),
+            import('/src/state/officeMomentStore.js')
+          ]).then(([memory, store]) => {
+            const beats = memory.getWorkingMemoryWith(fixture.colleagueId)?.beats ?? [];
+            return {
+              colleagueId: fixture.colleagueId,
+              offeredAPrompt: Boolean(fixture.actionPrompt),
+              declined: beats.filter((beat) => beat.pitchDeclined === true).length,
+              taken: beats.filter((beat) => beat.pitchTaken === true).length,
+              promptLines: memory.workingMemoryPromptLines(fixture.colleagueId),
+              onScreen: Boolean(store.getOfficeSnapshot().walkBy)
+            };
+          }),
+        WALKBY_FIXTURE
+      )
+      .catch((err) => ({ error: String(err?.message ?? err).split('\n')[0] }));
+
     const collected = await page.evaluate(() => ({
       speech: window.__visit.state.speech,
       eighthStepAtMs: window.__visit.state.eighthStepAtMs ?? null,
@@ -1337,7 +1535,7 @@ async function main() {
       steps,
       before,
       after,
-      collected: { ...collected, imHistoryAtEnd, afterwards, peek }
+      collected: { ...collected, imHistoryAtEnd, afterwards, peek, walkby }
     });
     const json = JSON.stringify(trace, null, 2);
     console.log(json);
@@ -1512,12 +1710,19 @@ function buildTrace({ args, startedAt, t0, steps, before, after, collected }) {
      * why the step was appended and what else moved once (`roomDelta.cards`).
      * The report gained `peek`, `afterwards…beats[].peeked`, and a `peek`
      * channel that can now actually fire.
+     * 6: a **ninth step** receives a walk-by carrying a Do it button and
+     * presses ✕, so `speech` totals sum over a visit one step longer again and
+     * `speech.throughStep7` is still the field to read against every version
+     * from 4 onward. The report gained `walkby` and
+     * `afterwards…beats[].pitchDeclined`, and the `walkby` channel — mapped
+     * since version 1 and never once fired — finally has a step that provokes
+     * it.
      * Version 1 attributed `bySource` by an 8 s clock window, which over-credits any
      * bank line drawn behind a mid-visit model call — so a v1 `bySource.model`
      * from a run whose call was not the last thing to happen has to be re-read
      * against `modelTurns`, and this field is how a reader can tell which.
      */
-    version: 5,
+    version: 6,
     startedAt,
     durationMs: Date.now() - t0,
     mode: {
@@ -1563,6 +1768,20 @@ function buildTrace({ args, startedAt, t0, steps, before, after, collected }) {
         "model's; `delivered` is the raw evidence and `modelTurns` is the count to trust"
     },
     peek,
+    walkby: collected.walkby?.error
+      ? collected.walkby
+      : {
+          ...(collected.walkby ?? {}),
+          /* Derived here rather than in the page, the way `peek` is, so the
+             raw counts ship beside the verdict and a later run can disagree
+             with the reading without re-running the visit. */
+          beatWritten: (collected.walkby?.declined ?? 0) > 0,
+          wroteTheTwinInstead: (collected.walkby?.taken ?? 0) > 0,
+          rule:
+            'observed: ✕ pressed in the DOM on a walk-by carrying an `actionPrompt`; ' +
+            '`beatWritten` is the refusal `officeWalkByMemory.js` writes, and ' +
+            '`wroteTheTwinInstead` catches the Do it path firing from the dismiss button'
+        },
     read: {
       cards: collected.read ?? [],
       rule:

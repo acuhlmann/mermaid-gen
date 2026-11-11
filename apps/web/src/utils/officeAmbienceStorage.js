@@ -570,15 +570,23 @@ export const OFFICE_WORKING_MEMORY_SCENE_DECLINES = Object.freeze(['coffee', 'ba
  * sentence in `workingMemoryPromptLines`, so free text here is a floor writing
  * into a prompt. There is exactly **one** member, and the absent case is the
  * default rather than a third value: every beat the office wrote before this
- * one was a dwell, a talk or an interruption, and phrasing them `you said:`
+ * one was a dwell, a talk or an interruption, and phrasing them with the spoken
+ * pair (`the user said:` over their sentence, `you said:` over the colleague's)
  * stays byte-identical.
  *
  * `email` is the member because email is the one channel the office already
  * refuses to treat as speech — `isSpokenLine` never voices one and
  * `pushOfficeEmail` keeps it out of the talk surfaces entirely. A beat that
- * told a later prompt `you said: <a subject line>` would be handing the model a
- * conversation that did not happen, which is the fabrication failure the
- * situation rule in `docs/agents/domains/office.md` was measured on.
+ * told a later prompt `the user said: <a subject line>` would be handing the
+ * model a conversation that did not happen, which is the fabrication failure
+ * the situation rule in `docs/agents/domains/office.md` was measured on.
+ *
+ * **Both prefixes quoted above are the ones `SPOKEN_PROMPT_LINES` actually
+ * holds, corrected 2026-11-11.** They read `you said:` for the user until
+ * 2026-11-10, when the whole block was rewritten to name the user rather than
+ * imply them — every bullet is in the *speaker's* second person, so `you` is
+ * the colleague and the user is `the user`. The argument this comment carries
+ * is unchanged and still right; only the citation moved.
  */
 export const OFFICE_WORKING_MEMORY_MEDIUMS = Object.freeze(['email']);
 
