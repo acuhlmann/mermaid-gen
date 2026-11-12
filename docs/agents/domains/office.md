@@ -963,6 +963,22 @@ today'` (`officeBoardRecall.js`), `'you said:'` / `'they said:'` for the quotes 
   wait for the detach or `office-floor-walker` lands in the end-of-visit room shot intermittently,
   which is a flapping baseline and worse than a changed one.
 
+- **The working-memory block is conditional, not inert — and the probe shape, not the closing rule,
+  is what decides whether you can see it.** `buildOfficeWorkingMemoryBlock`
+  (`apps/server/src/agents/_lib/officeLogPrompt.js`) closes with _"Keep these beats UNDER the line:
+  do not recite them and never count them"_, which reads like a gag order and is not one. Measured
+  2026-11-12, 16 samples per arm per probe with a **no-block control**: on a relationship-shaped
+  line ("are we good, after earlier?") the shipped block shows in **9/16** against the control's
+  **3/16**; on a work-shaped line ("what do you make of this funnel?") it is **0/16 in every arm,
+  control included** — the `SUBJECT_RULE` and "reference at least one visible label" above it are
+  what the model is answering, and no rewrite of the closing rule reaches past them. A candidate
+  that asked for one beat to be _the angle, never the subject_ bought **+5/16 on the probe that
+  already worked and doubled `recited` (2 → 4 of 16)**, so it was declined. Two rules out of it:
+  **do not spend a night loosening that closing rule**, and **a flat result across arms _including
+  the control_ is a statement about the probe, not about the block** — arms flat with the control
+  equal means the probe cannot see the subject; arms flat with the control lower means the change is
+  inert inside a block that does work.
+
 ## Full findings
 
 - **Office sound is one posture, not four checkboxes.** Menu bar **Admin** carries 🎧 **Headphones**
@@ -2517,3 +2533,57 @@ without it, `surfaces` gained an entry that would have read as a slice.
 3 of 3, the version-4 figure exactly, so every generated baseline from 2026-10-30 onward is still
 readable. `afterwards.logDigest` goes 6 → **7** (the `walkby` entry the push records) and
 `workingMemory` gains a fourth row. `/api/office/moment` stays at **2**: the step asks no model.
+
+### The working-memory block answers a relationship question, never a work question
+
+**Measured 2026-11-12 and it retires an item that had been on the ledger as a defect since
+2026-11-05.** `board-recall-is-inert-in-the-block` recorded that four arms of an audition over
+`buildOfficeWorkingMemoryBlock` were indistinguishable, concluded the block's closing instruction
+(_"Keep these beats UNDER the line: do not recite them and never count them"_) suppressed everything
+inside it, and named that instruction as the lever anybody wanting the beats to surface should pull.
+Both halves were wrong, and the thing that showed it was adding a probe rather than changing the
+prompt.
+
+**The method.** The handler is replicated, not paraphrased — the server's own
+`buildMomentSystemPrompt`, `buildMomentUserPrompt` and `createOfficeChatModel` at the route's own
+0.9 — against one fixed five-node signup funnel, with three real beats held constant
+(`pitchDeclined`, `peeked`, `interrupted: 'gotIt'`, in their post-#916 naming). **Three arms**:
+`shipped`, a `consequence` candidate, and a **control with no block at all**. Each arm asserts its
+own lines landed in the prompt and the control asserts the block is absent, because two identical
+arms are exactly what a silent no-op looks like. **Two probes, two rounds of eight**, judged by a
+second call at 0.1 scoring meaning — never a phrase regex, for the reason § 14 of the playbook
+retracted a claim over.
+
+| probe                                                  | shipped  | candidate | **control** |
+| ------------------------------------------------------ | -------- | --------- | ----------- |
+| work-shaped — "What do you make of this funnel?"       | **0/16** | **0/16**  | **0/16**    |
+| relationship-shaped — "are we good, after earlier?"    | **9/16** | 14/16     | **3/16**    |
+| `recited` (relationship probe)                         | 2/16     | **4/16**  | 0/16        |
+| `counted` / `fabricatedChange` / `reversedAttribution` | 0        | 0         | 0           |
+
+**What the control buys, and why every audition here should print one.** The 9-versus-3 gap is the
+whole retraction: the block is read, it works, and it changes how a colleague answers a question
+about the two of you. The 0/16-everywhere row is the other half — and because the **control** is
+also 0, that row says nothing about the closing rule and everything about the probe. The rest of the
+moment prompt is telling the model to answer about the diagram and to name a visible label; a
+sentence at the bottom of one block does not outrank that, and it should not.
+
+So the general rule, which outlives this item: **a flat result across arms is only interpretable
+beside its control.** Arms flat _and_ control equal → the probe cannot see the subject, and the
+finding belongs to the probe. Arms flat _and_ control lower → the block works and the change inside
+it is inert. The 2026-11-05 run had the second reading available and took the first, because its one
+probe was work-shaped.
+
+**Why the candidate was declined, with the number.** It led with the register in the imperative and
+kept one guard, exactly as this domain's prompt findings require — _"Let one of these change the
+line rather than become it: what it lets you assume, what it lets you skip, what you are still
+slightly short with them about. The beat is the angle you take, never the subject you raise."_ It
+moved the relationship probe 9 → 14 of 16. It also moved `recited` 2 → 4 of 16, which is the one
+failure that block's single guard exists to prevent, and it moved the work-shaped probe not at all.
+**+5 on the probe that already worked, double the cost on the guard, nothing on the gap** is not a
+trade worth a prompt change on the room's main provoked channel. The closing rule stays as written.
+
+One result worth keeping for its own sake: `reversedAttribution` was **0 in all 96 samples**,
+including the arm whose closing rule was rewritten under it. #916's naming convention (`the user`
+rather than `you` for the person on the other side) holds under a hostile edit to the instruction
+that sits directly beneath it.

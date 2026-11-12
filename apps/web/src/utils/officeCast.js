@@ -2224,7 +2224,7 @@ export const OFFICE_CHROME_COPY = {
         calendar: 'A calendar. Solid colour, wall to wall.'
       }
     },
-    // Props you can walk up to and use (slice 9). ADR-0011 rule 2: the coffee
+    // Props you can walk up to and use (slice 9). ADR-0011 rule 3: the coffee
     // machine *duplicates* the desk dock's Get coffee, it does not replace it.
     // The rest produce nothing at all — a printer that jams is a joke, not a
     // feature (ADR-0010). Keyed by prop kind, like `peek.looks` is by look.

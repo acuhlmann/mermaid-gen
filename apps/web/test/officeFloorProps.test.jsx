@@ -35,7 +35,7 @@ import {
 import { renderFloor, unpinOfficeFloorDeterminism } from './helpers/officeFloorTestUtils.jsx';
 
 /**
- * Props you can use (slice 9) — ADR-0011 rule 2's first worked example on the
+ * Props you can use (slice 9) — ADR-0011 rule 3's first worked example on the
  * floor: the coffee machine pours the same break the desk dock's labelled
  * *Get coffee* pours, through the same verb.
  *
@@ -129,7 +129,7 @@ describe('usable props (slice 9)', () => {
   });
 
   it('fires no desk verb at the props that duplicate none', async () => {
-    // ADR-0011 rule 2: only the machine duplicates a labelled control. The
+    // ADR-0011 rule 3: only the machine duplicates a labelled control. The
     // other two leave a mark of their own (below) and still call nothing.
     const onGetCoffee = vi.fn();
     renderFloor({ onGetCoffee });
@@ -494,7 +494,7 @@ describe('the props carry your diagram', () => {
 
   /*
    * The negative case, and it is a boundary rather than an omission: the
-   * coffee machine's use is a verb (ADR-0011 rule 2), so what it has to say
+   * coffee machine's use is a verb (ADR-0011 rule 3), so what it has to say
    * is about the coffee. A machine that poured you your own diagram would be
    * the "different and much stupider game" `FloorPropCard`'s header names.
    */
