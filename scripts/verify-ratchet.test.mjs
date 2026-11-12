@@ -269,3 +269,33 @@ test('the scoped domain files are deliberately NOT counted', () => {
     );
   }
 });
+
+// Scoped to contextBytes only — not measureAll(ROOT) — so verify-ratchet-no-gate allows asserting ok.
+// Catches root-doc growth in npm run check without turning the full ratchet into a CI gate.
+test('always-loaded context files stay within ratchet contextBytes budgets', () => {
+  const keys = Object.keys(baseline.metrics.contextBytes ?? {});
+  const measured = { contextBytes: measureContextBytes(ROOT, keys) };
+  const subset = { metrics: { contextBytes: baseline.metrics.contextBytes } };
+  const result = compareRatchet(subset, measured);
+  assert.equal(result.ok, true, result.violations.join('; '));
+});
+
+test('negative case: contextBytes over budget fails the scoped check', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ratchet-context-bytes-'));
+  try {
+    const ratchet = {
+      metrics: {
+        contextBytes: {
+          'Tiny.md': { budget: 3, initial: 3 }
+        }
+      }
+    };
+    fs.writeFileSync(path.join(dir, 'Tiny.md'), '1234');
+    const measured = { contextBytes: measureContextBytes(dir, ['Tiny.md']) };
+    const result = compareRatchet(ratchet, measured);
+    assert.equal(result.ok, false);
+    assert.match(result.violations.join('\n'), /may only fall/);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
