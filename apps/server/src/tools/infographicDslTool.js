@@ -53,7 +53,7 @@ function summarizeParseErrors(errors, sourceLines, maxShown = 5) {
 function sanitizeInfographicDsl(raw) {
   const applied = [];
   let text = String(raw ?? '')
-    .replace(/^﻿/, '')
+    .replace(/^\uFEFF/, '')
     .replace(/\r\n?/g, '\n');
 
   // Strip enclosing code fences (```infographic / ```text / ``` etc.). Trim outer whitespace lines first.

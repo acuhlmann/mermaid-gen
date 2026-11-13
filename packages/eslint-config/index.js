@@ -204,6 +204,15 @@ export function baseConfig({ env = 'node', tighten = false, workspaceDir = '.' }
       rules: {
         'no-dupe-keys': 'error'
       }
+    },
+    // ADR-0007: promoted 2026-11-13 (improve, lint severity promotion). Quiet-period
+    // evidence: `git log --since="2 weeks ago" -S'no-dupe-class-members' -- '**/*.{js,jsx,ts,tsx}'`
+    // returned empty; eslint JSON across web/shared/server reported zero no-dupe-class-members warnings.
+    {
+      files: ['**/*.{js,jsx,mjs,cjs,ts,tsx}'],
+      rules: {
+        'no-dupe-class-members': 'error'
+      }
     }
   ];
 }

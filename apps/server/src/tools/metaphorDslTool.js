@@ -2,7 +2,7 @@ import { DiagramPatchSchema, sanitizeMetaphorDsl } from '@archislop/shared';
 
 function stripJsonCodeFence(raw) {
   const text = String(raw ?? '')
-    .replace(/^﻿/, '')
+    .replace(/^\uFEFF/, '')
     .replace(/\r\n?/g, '\n')
     .trim();
   const applied = [];
