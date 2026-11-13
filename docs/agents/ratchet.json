@@ -64,7 +64,7 @@
         "initial": 126
       },
       "apps/server": {
-        "budget": 237,
+        "budget": 236,
         "initial": 229,
         "reason": "2026-10-24: 221→237 — upstream merges on main since 2026-10-23 (#858 chart/Flint, #860 office-life whiteboard); not introduced by this doc/ratchet diff."
       },
@@ -92,7 +92,7 @@
         "reason": "2026-11-08: 460→461 — measured suite file growth on main since 2026-11-06."
       },
       "cases": {
-        "budget": 5387,
+        "budget": 5399,
         "initial": 3675
       }
     }

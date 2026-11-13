@@ -29,6 +29,7 @@ allowedPaths:
   - apps/server/src/agents/**
   - apps/server/src/routes/**
   - apps/server/src/mcp/**
+  - apps/server/src/tools/**
 ---
 
 # Routine: `improve`
