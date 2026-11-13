@@ -39,6 +39,18 @@
  * exchange with them goes if you start one. A pitch that chases you is
  * auto-fix-on-idle wearing a lanyard.
  *
+ * **And the other half of queue 13 — *"every ✕ is silent"* — lives here too.**
+ * The beat above answered the memory half in one night and left the room mute
+ * at the moment it had most obviously noticed something: you waved somebody off
+ * while they were standing in front of you, and they turned round and walked
+ * home without a word. `walkByRefusalLine` is the mouth, `useFloorWalker` is
+ * the only caller, and both halves read **one** gate (`isRefusableWalkBy`) so
+ * the sentence and the memory can never disagree about whether there was
+ * anything to refuse. It is canned on purpose and the rule is
+ * `office-parody.md` § 11 read exactly: you pressed a button, you did not type
+ * a sentence, so a bank is honest and a model call here would be spend with
+ * nothing to answer.
+ *
  * **Why a function and not two lines in the handler.** The ✕ is rendered by the
  * desk card and by the floor walker and both route through one handler today,
  * but what a refusal costs is renderer-agnostic (ADR-0011 rule 1) and
@@ -50,6 +62,48 @@
 
 import { dismissOfficeWalkBy } from '../state/officeMomentStore.js';
 import { rememberWorkingMemoryBeat } from '../state/officeWorkingMemoryStore.js';
+
+/**
+ * Whether this walk-by was offering something, and can therefore be refused.
+ *
+ * One predicate for both halves of the refusal — the beat below and the line
+ * `useFloorWalker` says on the way out — because the two are the same fact seen
+ * twice and a gate that drifted would be silent in the worst direction: a
+ * colleague apologising for a suggestion they never made, which is the
+ * fabrication `docs/agents/domains/office.md`'s situation rule was measured on.
+ *
+ * @param {{ colleagueId?: string, actionPrompt?: string } | null | undefined} walkBy
+ * @returns {boolean}
+ */
+export function isRefusableWalkBy(walkBy) {
+  if (!walkBy || !walkBy.colleagueId) return false;
+  return typeof walkBy.actionPrompt === 'string' && walkBy.actionPrompt.trim().length > 0;
+}
+
+/**
+ * What they say on the way back to their desk, or `''` when they say nothing.
+ *
+ * **The bank is picked by a fraction, never by an index.** A locale bundle is
+ * copy and a shorter list in one language must not be indexed past — the same
+ * reasoning `officeFloorInterrupt.js` states for its own `roll`, and the same
+ * reason this returns the finished string rather than a number for somebody
+ * else to look up later.
+ *
+ * Gated on `isRefusableWalkBy` above, so a bubble that was only ever telling
+ * you something closes in silence: pressing ✕ on a remark means you read it,
+ * and a line there would invent a suggestion to have been turned down.
+ *
+ * @param {{ colleagueId?: string, actionPrompt?: string } | null | undefined} walkBy
+ * @param {{ declined?: string[] } | null | undefined} copy the floor's copy bundle
+ * @param {() => number} [random]
+ * @returns {string}
+ */
+export function walkByRefusalLine(walkBy, copy, random = Math.random) {
+  if (!isRefusableWalkBy(walkBy)) return '';
+  const lines = Array.isArray(copy?.declined) ? copy.declined.filter(Boolean) : [];
+  if (lines.length === 0) return '';
+  return lines[Math.min(lines.length - 1, Math.floor(random() * lines.length))];
+}
 
 /**
  * Wave away the walk-by on screen, and leave whoever came over knowing you
@@ -71,10 +125,7 @@ export function dismissOfficeWalkByWithMemory(id) {
    * walk-by is still dismissed — the store did that before we got here — so
    * both bubbles behave identically either way.
    */
-  if (!dismissed.colleagueId) return dismissed;
-  if (typeof dismissed.actionPrompt !== 'string' || !dismissed.actionPrompt.trim()) {
-    return dismissed;
-  }
+  if (!isRefusableWalkBy(dismissed)) return dismissed;
   rememberWorkingMemoryBeat(dismissed.colleagueId, { pitchDeclined: true });
   return dismissed;
 }

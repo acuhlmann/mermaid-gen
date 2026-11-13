@@ -2339,6 +2339,24 @@ export const OFFICE_CHROME_COPY = {
         }
       }
     },
+    /*
+     * What somebody says on the way back to their desk after you waved away
+     * what they came over to offer (`officeWalkByMemory.js`, queue 13).
+     *
+     * Four, like `interrupt` below it, and short for the same reason: it is
+     * read while a figure walks away from you. **No `{prop}` slot and no
+     * `{name}`** — a refusal is aimed at whatever the room does with ideas, not
+     * at the person who turned one down, which is § 14's rule that bite is
+     * capped by target rather than by presence. Never cruel to the user and
+     * never a second ask: a line that re-offers is the pitch chasing you, which
+     * is the one thing this edge may not do.
+     */
+    declined: [
+      'Noted. Into the backlog it goes.',
+      'Fair enough. It will keep.',
+      'I will raise it at the retro, then.',
+      'Fine. It was only the second-worst idea I had today.'
+    ],
     // "Excuse me" — somebody whose errand you walked into (slice 18). Keyed by
     // what the room already knows: `gotIt` is a trip that reached the machine,
     // `gaveUp` is one that did not, which is the same `phase === 'dwell'` fact

@@ -4,7 +4,11 @@
  * Same `walkBy` state the desk-mode card renders — the colleague just arrives
  * on foot instead of sliding in from the screen edge. Footsteps and the spoken
  * line already fire from `OfficeLayer`'s effect on `snapshot.walkBy`, so this
- * component is presentation only: walk over, say the thing, walk back.
+ * component is presentation only: walk over, say the thing, walk back — and,
+ * since queue 13's second half, say one more thing on the way back if you
+ * waved the first one away. `data-refused` is on the figure so that beat is
+ * testable from outside the copy bank, the same reason `FloorWanderer` carries
+ * `data-said`.
  */
 
 import { useRef } from 'react';
@@ -19,8 +23,16 @@ import { formatLocale } from '../../i18n/formatLocale.js';
 /** Above the zone-signage layer (9000) so the speech bubble is never buried. */
 const SPEAKING_Z = 9500;
 
-/** What they came over to say, with the same actions as the desk-mode card. */
-function WalkerBubble({ walkBy, sender, scale, onAdopt, onDismiss, hideBody }) {
+/**
+ * What they came over to say, with the same actions as the desk-mode card.
+ *
+ * `leaving` strips the chrome rather than branching the component: a walker on
+ * the way home is saying the last word about an offer that is already over, so
+ * there is no ✕ to press (pressing it again is the only thing it could do) and
+ * no **Do it** (`useFloorWalker` has already dropped the prompt, and a second
+ * chance to take a suggestion you waved off is the pitch chasing you).
+ */
+function WalkerBubble({ walkBy, sender, scale, onAdopt, onDismiss, hideBody, leaving = false }) {
   const chrome = officeChromeCopy();
   return (
     <FloorBubble
@@ -28,10 +40,12 @@ function WalkerBubble({ walkBy, sender, scale, onAdopt, onDismiss, hideBody }) {
       title={sender.title}
       scale={scale}
       hideBody={hideBody}
-      onDismiss={() => onDismiss?.(walkBy.id)}
-      dismissLabel={formatLocale(chrome.walkby.dismissAria, { name: sender.name })}
+      onDismiss={leaving ? undefined : () => onDismiss?.(walkBy.id)}
+      dismissLabel={
+        leaving ? undefined : formatLocale(chrome.walkby.dismissAria, { name: sender.name })
+      }
       footer={
-        walkBy.actionPrompt ? (
+        !leaving && walkBy.actionPrompt ? (
           <button
             type="button"
             className="office-floor-bubble-action"
@@ -49,7 +63,8 @@ function WalkerBubble({ walkBy, sender, scale, onAdopt, onDismiss, hideBody }) {
 
 /**
  * @param {{
- *   walkBy: { id: string, colleagueId: string, body: string, actionPrompt?: string },
+ *   walkBy: { id: string, colleagueId: string, body: string, actionPrompt?: string,
+ *     refused?: boolean },
  *   departing?: boolean,
  *   scale?: number,
  *   hideBody?: boolean,
@@ -84,13 +99,26 @@ export function FloorWalker({
   });
 
   const sender = officeSenderInfo(walkBy.colleagueId);
-  const talking = arrived && !departing;
+  /*
+   * Two ways to have a balloon: standing at your desk having arrived, or
+   * walking home having been waved off (`useFloorWalker` puts the line on the
+   * departing copy and nothing else sets `refused`). The second is the
+   * wanderer's posture from slice 18 — a figure speaking while it moves — and
+   * it keeps `SPEAKING_Z` for the same reason that one does: a sentence nobody
+   * can read because a filing cabinet is in front of it is the feature failing
+   * silently. It ends when they reach their chair, because `onDeparted` clears
+   * the copy the line is riding on, which is the 1800 ms linger slice 18 had to
+   * schedule, arriving here for free.
+   */
+  const leaving = departing && Boolean(walkBy.refused) && Boolean(walkBy.body);
+  const talking = (arrived && !departing) || leaving;
 
   return (
     <div
       ref={ref}
       className="office-floor-walker"
       data-testid="office-floor-walker"
+      data-refused={leaving ? '' : undefined}
       /*
        * While travelling, depth ordering so they pass behind and in front of
        * furniture correctly. Once they are talking at your desk, the speech
@@ -106,6 +134,7 @@ export function FloorWalker({
             sender={sender}
             scale={scale}
             hideBody={hideBody}
+            leaving={leaving}
             onAdopt={onAdopt}
             onDismiss={onDismiss}
           />
