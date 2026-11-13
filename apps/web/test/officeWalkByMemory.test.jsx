@@ -40,12 +40,18 @@ import {
   hasWorkingMemoryFact,
   workingMemoryPromptLines
 } from '../src/state/officeWorkingMemoryStore.js';
-import { dismissOfficeWalkByWithMemory } from '../src/utils/officeWalkByMemory.js';
+import {
+  dismissOfficeWalkByWithMemory,
+  isRefusableWalkBy,
+  walkByRefusalLine
+} from '../src/utils/officeWalkByMemory.js';
 import { _resetDeskCommsUiForTests } from '../src/state/deskCommsUiStore.js';
 import { _resetOfficeViewModeForTests } from '../src/state/officeViewModeStore.js';
 import { officeSenderInfo } from '../src/utils/officeCast.js';
 import { OFFICE_CHROME_COPY } from '../src/utils/officeCast.js';
 import { formatLocale } from '../src/i18n/formatLocale.js';
+import { OFFICE_ZH_CN } from '../src/i18n/locales/office.zh-CN.js';
+import { OFFICE_ZH_TW } from '../src/i18n/locales/office.zh-TW.js';
 
 const DECLINED_LINE = 'you came over with a suggestion; the user did not take it';
 
@@ -239,5 +245,94 @@ describe('end to end, through OfficeLayer', () => {
 
     expect(getOfficeSnapshot().walkBy).toBeNull();
     expect(hasWorkingMemoryFact('greybeard')).toBe(false);
+  });
+  /*
+   * Queue 13's second half: the same refusal, said out loud.
+   *
+   * The line is derived in this module beside the beat so the two can never
+   * disagree about whether there was anything to refuse — one predicate feeds
+   * both, and these cases assert that identity directly rather than trusting
+   * two copies of the same `if`.
+   */
+  describe('the line on the way home', () => {
+    const BANK = { declined: ['Into the backlog.', 'It will keep.', 'At the retro, then.'] };
+
+    it('gives a bank line to a walk-by that was offering something', () => {
+      expect(walkByRefusalLine(PITCH, BANK, () => 0.5)).toBe('It will keep.');
+    });
+
+    /*
+     * The gate the beat already has, read from the other side. Pressing ✕ on a
+     * remark means you read it, so an apology there invents a suggestion to
+     * have been turned down — the fabrication the situation rule was measured
+     * on, arriving through copy instead of through a prompt.
+     */
+    it('says nothing when the bubble offered nothing', () => {
+      expect(walkByRefusalLine(REMARK, BANK, () => 0.5)).toBe('');
+      expect(isRefusableWalkBy(REMARK)).toBe(false);
+      expect(isRefusableWalkBy(PITCH)).toBe(true);
+    });
+
+    it('says nothing when the walk-by names nobody', () => {
+      expect(walkByRefusalLine({ ...PITCH, colleagueId: '' }, BANK, () => 0.5)).toBe('');
+      expect(walkByRefusalLine(null, BANK, () => 0.5)).toBe('');
+    });
+
+    /*
+     * A fraction, never an index. The bank is copy, copy is per-locale, and a
+     * bundle with a shorter list must not be indexed past — the same reason
+     * `officeFloorInterrupt.js` carries a roll rather than a position.
+     */
+    it('picks by fraction, so no roll can index past a shorter locale bank', () => {
+      expect(walkByRefusalLine(PITCH, { declined: ['only one'] }, () => 0.999)).toBe('only one');
+      expect(walkByRefusalLine(PITCH, BANK, () => 0.999)).toBe('At the retro, then.');
+      expect(walkByRefusalLine(PITCH, BANK, () => 0)).toBe('Into the backlog.');
+    });
+
+    /** A bundle that has not got the key yet is silent, never `undefined`. */
+    it('says nothing when the bundle has no bank', () => {
+      expect(walkByRefusalLine(PITCH, {}, () => 0.5)).toBe('');
+      expect(walkByRefusalLine(PITCH, { declined: [] }, () => 0.5)).toBe('');
+      expect(walkByRefusalLine(PITCH, null, () => 0.5)).toBe('');
+    });
+
+    /*
+     * The two translated bundles carry it **raw**, and that word is the whole
+     * assertion. `getUiLocaleBundle` deep-merges each override onto English, so
+     * `officeLocale.test.js`'s structural sweep reads a bundle in which a key
+     * nobody translated has already been filled in — measured tonight: delete
+     * `floor.declined` from all three locale files and that sweep still passes,
+     * because `deepKeys(merged)` is a superset of `deepKeys(en)` by
+     * construction and the only diff it can ever report is an *extra* key.
+     * `en-AU` is excluded on purpose rather than forgotten: it is an English
+     * variant that re-spells 353 of 529 keys and falls through for the rest,
+     * which is the merge working. For `zh-CN` / `zh-TW` a missing key is a
+     * feature that does not exist in that language, and both are complete at
+     * 529/529 today, so this is a sensor with no debt behind it.
+     */
+    it.each([
+      ['zh-CN', OFFICE_ZH_CN],
+      ['zh-TW', OFFICE_ZH_TW]
+    ])('is translated in the %s bundle, before any merge', (_locale, bundle) => {
+      const localized = bundle.OFFICE_CHROME_COPY?.floor?.declined;
+      expect(Array.isArray(localized)).toBe(true);
+      expect(localized).toHaveLength(OFFICE_CHROME_COPY.floor.declined.length);
+      localized.forEach((line, i) => {
+        expect(line.trim()).not.toBe('');
+        expect(line).not.toBe(OFFICE_CHROME_COPY.floor.declined[i]);
+      });
+    });
+
+    /** Every shipped bundle carries it, in the length the roll is safe for. */
+    it('ships the bank on the default bundle', () => {
+      expect(OFFICE_CHROME_COPY.floor.declined.length).toBeGreaterThan(1);
+      OFFICE_CHROME_COPY.floor.declined.forEach((line) => {
+        expect(typeof line).toBe('string');
+        expect(line.trim()).not.toBe('');
+        // Aimed at what the room does with ideas, never at the person who
+        // turned one down, and never a second ask (§ 14, ADR-0010).
+        expect(line).not.toMatch(/\{(name|prop)\}/);
+      });
+    });
   });
 });
