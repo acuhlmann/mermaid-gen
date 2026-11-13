@@ -35,7 +35,7 @@ describe('officeFloorProps table', () => {
   it('separates what a prop does from what you walk away holding', () => {
     /*
      * The printer is the row that proves these are two columns and not one: it
-     * duplicates no desk verb (ADR-0011 rule 2 — it produces nothing) and still
+     * duplicates no desk verb (ADR-0011 rule 3 — it produces nothing) and still
      * puts something in a hand, because walking back with the printout is how
      * the errand reads from across the room. The whiteboard has neither.
      */

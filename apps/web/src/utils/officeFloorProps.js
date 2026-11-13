@@ -2,7 +2,7 @@
  * The props you can walk up to and use (docs/office-isometric-mode.md § 5
  * slice 9).
  *
- * This is ADR-0011 **rule 2** — "diegesis duplicates, never replaces" — given
+ * This is ADR-0011 **rule 3** — "diegesis duplicates, never replaces" — given
  * its first worked example on the floor. The rule's own illustration is the
  * coffee machine, and that is exactly what the one row with a `verb` does: the
  * machine pours the same coffee break the desk dock's labelled *Get coffee*
@@ -39,7 +39,7 @@
  *   holding — one of `FLOOR_HOLDS` (`officeFloorActivity.js`) or `null`.
  *
  *   `verb` and `hands` are deliberately separate. `verb` is what using the prop
- *   *does to the session* (ADR-0011 rule 2 — it duplicates a desk verb); `hands`
+ *   *does to the session* (ADR-0011 rule 3 — it duplicates a desk verb); `hands`
  *   is only what the errand looks like from across the room. The whiteboard
  *   proves they are not the same field: it has neither, while the printer has a
  *   `hands` and no `verb` at all.

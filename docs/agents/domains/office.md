@@ -932,10 +932,52 @@ today'` (`officeBoardRecall.js`), `'you said:'` / `'they said:'` for the quotes 
   their board."_ The frame's second clause and the board-recall bullet state **one fact with the
   pronouns swapped, three lines apart.** `buildOfficeRelationship` is the same convention but names
   the colleague by id (`'you and gilfoyle have crossed paths 3 times today'`), so there the model has
-  something to disambiguate against; the working-memory bullets name nobody. Recorded, **not fixed**
-  — a flip touches ~12 strings plus the quote prefixes, where "they" would have to become "you" in
-  the one place it currently means the colleague. See `working-memory-bullets-are-user-pov` in the
-  ledger.
+  something to disambiguate against; the working-memory bullets name nobody.
+  **Fixed 2026-11-10 (#916), and the convention it settled is the thing to carry:
+  every line the client writes into an office prompt is in the speaker's second person — `you` is
+  the colleague, the user is always `the user`, never `they`.** The fix is _naming_, not flipping,
+  and that was measured rather than preferred: both reach 0 reversals, but a named party is
+  _referenced_ more often (6/16 vs 2/16 on the stance probe) and cannot be re-broken by a later
+  rewording of the frame, which is what broke it the first time. Before the fix the block got
+  **23 of 24 attributions backwards** with the no-block control at 0 of 24, so the reversal was the
+  block's and not the model's; `the user` never once leaked into a spoken line (0 of 24). The
+  convention is written at length above `INTERRUPTION_PROMPT_LINES` in
+  `officeWorkingMemoryStore.js`, and `officeWorkingMemoryStore.test.js` sweeps **every** line the
+  store can emit for a second- or third-person reach at the other party, so a twelfth bank written
+  in the user's voice fails without anybody having to think of it. The quote prefixes read
+  **inverted against the field names on purpose** — `yours`/`theirs` is about whose words a beat
+  holds, the prefix is about who is being addressed, so `theirs: 'you said:'` is correct.
+- **A surface the ambient director owns cannot be waited for during a visit — a step has to push
+  it.** `useOfficeAmbience`'s `shouldHoldFire()` returns on `floorActive`, so for the whole length
+  of a floor visit the ambient layer (kind, cadence, caps **and** the speaker draw) never fires.
+  Four slices landed on the walk-by surface measured by sweeps and auditions because of it. The
+  ninth step of `apps/web/test/officeVisitTrace.mjs` (2026-11-11) pushes `pushOfficeWalkBy` through
+  the dev server's module graph and then presses **✕ in the DOM**, never the store: the subject is
+  the wire from the bubble to `dismissOfficeWalkByWithMemory`, and `dismissOfficeWalkBy` — what the
+  24 s TTL calls — deliberately writes nothing, so a step that called the store would report the
+  beat missing on a healthy night. Two probes confirm the axis senses the product rather than the
+  button: with the writer removed the step still reports `ok` and `walkby.beatWritten` goes
+  **true → false**; with it writing `pitchTaken` instead, `wroteTheTwinInstead` goes **true** and the
+  room thanks you for the idea you waved away. The rule the step also pays: **a dismissed walk-by
+  does not vanish** — `useFloorWalker` keeps a departing copy mounted until the walk home ends, so
+  wait for the detach or `office-floor-walker` lands in the end-of-visit room shot intermittently,
+  which is a flapping baseline and worse than a changed one.
+
+- **The working-memory block is conditional, not inert — and the probe shape, not the closing rule,
+  is what decides whether you can see it.** `buildOfficeWorkingMemoryBlock`
+  (`apps/server/src/agents/_lib/officeLogPrompt.js`) closes with _"Keep these beats UNDER the line:
+  do not recite them and never count them"_, which reads like a gag order and is not one. Measured
+  2026-11-12, 16 samples per arm per probe with a **no-block control**: on a relationship-shaped
+  line ("are we good, after earlier?") the shipped block shows in **9/16** against the control's
+  **3/16**; on a work-shaped line ("what do you make of this funnel?") it is **0/16 in every arm,
+  control included** — the `SUBJECT_RULE` and "reference at least one visible label" above it are
+  what the model is answering, and no rewrite of the closing rule reaches past them. A candidate
+  that asked for one beat to be _the angle, never the subject_ bought **+5/16 on the probe that
+  already worked and doubled `recited` (2 → 4 of 16)**, so it was declined. Two rules out of it:
+  **do not spend a night loosening that closing rule**, and **a flat result across arms _including
+  the control_ is a statement about the probe, not about the block** — arms flat with the control
+  equal means the probe cannot see the subject; arms flat with the control lower means the change is
+  inert inside a block that does work.
 
 ## Full findings
 
@@ -2396,3 +2438,152 @@ critique as familiarity, once with 24 of 24 lines ignoring a direct question. Th
 _was_ this bug: the harness faithfully replicated a caller that sends no transcript, so no arm ever
 had the question in it. A measurement that cannot move is worth reading as a finding before it is
 rewritten.
+
+### The POV convention: `you` is the colleague, the user is `the user`
+
+**Settled 2026-11-10 (#916); the two doc files it owed were written 2026-11-11.** Every line the
+client writes into an office prompt sits under a system prompt that has just said _"You are writing
+ONE office moment"_, so **second person is the speaker everywhere on an office request**. Until #916
+`buildOfficeWorkingMemoryBlock`'s frame obeyed that and every bullet underneath it did not: the
+frame closed _"you already looked at their board"_ three lines above a bullet reading _"they have
+already looked at your board today"_ — one fact, pronouns swapped.
+
+**The fix is naming, and that was measured rather than preferred.** A pronoun flip and a naming pass
+both reach 0 reversals, so the choice came off two other numbers. Naming is _referenced_ more often
+(6 of 16 against 2 of 16 correct references on the stance probe), and — the reason that matters more
+— it cannot be re-broken by a later rewording of the frame, which is exactly what broke it the first
+time. The one risk naming looked like it carried is not real: `the user` **never once** leaked into a
+spoken line (0 of 24), while the no-block control said "user" in 4 of 8 replies about the funnel's
+own end-users.
+
+**The effect size, so nobody re-litigates it from a cold start.** Asked to recall the day, the
+shipped block got **23 of 24 attributions backwards** — it had read the user's screen, the user had
+pitched and it had declined — against **0 of 24** for both candidate fixes, with the **no-block
+control at 0 of 24 on everything**. So the reversal was the block's, not the model's.
+
+**Three mechanical consequences.**
+
+- **The sweep in `officeWorkingMemoryStore.test.js` is lexical on purpose, and that is not § 14's
+  retracted shape.** § 14 retracted a regex standing in for a _semantic_ property (agreement-shaped
+  words are not agreement). "Does this line reach for the other party without naming them" is
+  literally visible, so sweeping every line the store can emit is trustworthy — and it means a
+  twelfth bank written in the user's voice fails without anybody having to think of it.
+- **The quote prefixes read inverted against the field names, deliberately.** `yours` / `theirs`
+  name _whose words_ a beat holds; the prefix names _who is being addressed_. So
+  `SPOKEN_PROMPT_LINES.theirs` is `'you said:'` and `.yours` is `'the user said:'`. A prefix is the
+  one place where getting this backwards is not a nuance — `you said:` over the user's sentence tells
+  the model it said something it did not, and it carries no third-person pronoun for a sweep to catch
+  it by, so that pair is asserted directly.
+- **The server frame was already correct and stays untouched.** Fixing it would have corrected one
+  direction of the disagreement and left eleven client banks as the wrong half.
+  `officeAmbienceStorage.js`'s two comments on `OFFICE_WORKING_MEMORY_MEDIUMS` quoted the old
+  prefix and were corrected in the same follow-up — the argument they carry (email is not speech) is
+  unchanged and still right; only the citation moved. **A comment that quotes a string is a claim
+  about that string**, and this domain has now paid for that twice.
+
+### The visit grew a ninth step, and the director it stands in for is off by design
+
+**2026-11-11, spec'd in the ledger as `visit-has-no-walkby-step` three nights earlier.** The
+walk-by is the surface four separate slices have landed on — the ambient speaker draw, the reply
+bank, the canned fallbacks, the refusal beat — without the nightly instrument ever seeing one. The
+reason is not a missing axis and not an unlucky visit: `useOfficeAmbience`'s `shouldHoldFire()`
+returns on `floorActive`, so **the ambient director is switched off for the entire length of a floor
+visit**, and a visit that waited for a walk-by would wait for ever.
+
+**So the step pushes one, and that is a step's business rather than an observation's.** The harness
+already stands in for a mouse; here it stands in for the director, through the dev server's own
+module graph (`import('/src/state/officeMomentStore.js')` — the same instance the app holds, which
+is what `afterwards` has relied on since version 3). The rule the `afterwards` block states is
+unchanged and is about the other half: **an observation may only read**, because a report that
+mutates cannot be trusted about what it reports.
+
+**The ✕ is pressed in the DOM, never through the store, and that is the whole subject.**
+`dismissOfficeWalkBy` is the bare mutator the 24 s TTL calls and it deliberately writes nothing — a
+clock running out is not somebody saying no. The beat comes from `dismissOfficeWalkByWithMemory`,
+reached only from the press handler. A step that called the store would report the beat missing on a
+night the product was fine, and present on a night the button had come unwired.
+
+**Two probes, because an axis that cannot go red is decoration.** With
+`rememberWorkingMemoryBeat` removed from the writer, the step still reports `ok` — correctly, the
+button and the bubble are fine — while `walkby.beatWritten` goes **true → false** and `greybeard`
+disappears from `afterwards.workingMemory` entirely. With the writer flipped to `pitchTaken`,
+`wroteTheTwinInstead` goes **true** and the prompt line becomes _"the user took your suggestion
+earlier"_: the room thanking you for the idea you waved away, which is the failure the twin field
+exists to name.
+
+**The fixture's three constraints, two of them inherited from the slice that wrote the beat.**
+`actionPrompt` is the **gate** — with a prompt the bubble is a question and ✕ is an answer, without
+one it is somebody saying a thing and closing it means you read it — so a fixture without one would
+report a green ✕ and no beat for ever. `greybeard` is in `OFFICE_WALKBY_LLM_CAST`, the canned bank
+and all three ambient casts, **and** is the one seated colleague no earlier step touches, which is
+what keeps the new row unambiguous against the `intern` / `dinesh` / `gilfoyle` rows steps 3, 4, 7
+and 8 leave. And the step is **last**, because a walk-by writes a `walkby` office-log entry and a
+beat that every earlier step's prompt reads from.
+
+**A dismissed walk-by does not vanish, and the flapping baseline is worse than the changed one.**
+`useFloorWalker` keeps a departing copy mounted until the walk home finishes — presentation state the
+floor owns (ADR-0011), and slower than the press. Ending the visit mid-departure leaves
+`office-floor-walker` in the end-of-visit room shot _sometimes_, so the step waits for the detach and
+says so in its note. With that wait, `roomDelta` is identical to the eight-step baseline in 3 of 3;
+without it, `surfaces` gained an entry that would have read as a slice.
+
+**What it cost, measured.** `speech.count` 18 → **19** with `byChannel.walkby: 1` — the channel
+`channelOf` has carried since version 1 and that had never once fired — and `bySource` bank 16 → 17.
+`speech.throughStep7` is **12 / narration 9, interrupt 1, dwell 1, talk 1 / model 2, bank 10** in
+3 of 3, the version-4 figure exactly, so every generated baseline from 2026-10-30 onward is still
+readable. `afterwards.logDigest` goes 6 → **7** (the `walkby` entry the push records) and
+`workingMemory` gains a fourth row. `/api/office/moment` stays at **2**: the step asks no model.
+
+### The working-memory block answers a relationship question, never a work question
+
+**Measured 2026-11-12 and it retires an item that had been on the ledger as a defect since
+2026-11-05.** `board-recall-is-inert-in-the-block` recorded that four arms of an audition over
+`buildOfficeWorkingMemoryBlock` were indistinguishable, concluded the block's closing instruction
+(_"Keep these beats UNDER the line: do not recite them and never count them"_) suppressed everything
+inside it, and named that instruction as the lever anybody wanting the beats to surface should pull.
+Both halves were wrong, and the thing that showed it was adding a probe rather than changing the
+prompt.
+
+**The method.** The handler is replicated, not paraphrased — the server's own
+`buildMomentSystemPrompt`, `buildMomentUserPrompt` and `createOfficeChatModel` at the route's own
+0.9 — against one fixed five-node signup funnel, with three real beats held constant
+(`pitchDeclined`, `peeked`, `interrupted: 'gotIt'`, in their post-#916 naming). **Three arms**:
+`shipped`, a `consequence` candidate, and a **control with no block at all**. Each arm asserts its
+own lines landed in the prompt and the control asserts the block is absent, because two identical
+arms are exactly what a silent no-op looks like. **Two probes, two rounds of eight**, judged by a
+second call at 0.1 scoring meaning — never a phrase regex, for the reason § 14 of the playbook
+retracted a claim over.
+
+| probe                                                  | shipped  | candidate | **control** |
+| ------------------------------------------------------ | -------- | --------- | ----------- |
+| work-shaped — "What do you make of this funnel?"       | **0/16** | **0/16**  | **0/16**    |
+| relationship-shaped — "are we good, after earlier?"    | **9/16** | 14/16     | **3/16**    |
+| `recited` (relationship probe)                         | 2/16     | **4/16**  | 0/16        |
+| `counted` / `fabricatedChange` / `reversedAttribution` | 0        | 0         | 0           |
+
+**What the control buys, and why every audition here should print one.** The 9-versus-3 gap is the
+whole retraction: the block is read, it works, and it changes how a colleague answers a question
+about the two of you. The 0/16-everywhere row is the other half — and because the **control** is
+also 0, that row says nothing about the closing rule and everything about the probe. The rest of the
+moment prompt is telling the model to answer about the diagram and to name a visible label; a
+sentence at the bottom of one block does not outrank that, and it should not.
+
+So the general rule, which outlives this item: **a flat result across arms is only interpretable
+beside its control.** Arms flat _and_ control equal → the probe cannot see the subject, and the
+finding belongs to the probe. Arms flat _and_ control lower → the block works and the change inside
+it is inert. The 2026-11-05 run had the second reading available and took the first, because its one
+probe was work-shaped.
+
+**Why the candidate was declined, with the number.** It led with the register in the imperative and
+kept one guard, exactly as this domain's prompt findings require — _"Let one of these change the
+line rather than become it: what it lets you assume, what it lets you skip, what you are still
+slightly short with them about. The beat is the angle you take, never the subject you raise."_ It
+moved the relationship probe 9 → 14 of 16. It also moved `recited` 2 → 4 of 16, which is the one
+failure that block's single guard exists to prevent, and it moved the work-shaped probe not at all.
+**+5 on the probe that already worked, double the cost on the guard, nothing on the gap** is not a
+trade worth a prompt change on the room's main provoked channel. The closing rule stays as written.
+
+One result worth keeping for its own sake: `reversedAttribution` was **0 in all 96 samples**,
+including the arm whose closing rule was rewritten under it. #916's naming convention (`the user`
+rather than `you` for the person on the other side) holds under a hostile edit to the instruction
+that sits directly beneath it.

@@ -4,7 +4,7 @@
  * Sibling of `useFloorTalk`, and the same division of labour: presence gets you
  * there, this owns only what happens on arrival. For three of the four props
  * that is nothing at all — a line is a line — and for the coffee machine it is
- * one call to the desk verb the machine duplicates (ADR-0011 rule 2).
+ * one call to the desk verb the machine duplicates (ADR-0011 rule 3).
  *
  * Two things are worth the file rather than an effect inside `useFloorActivity`:
  *
