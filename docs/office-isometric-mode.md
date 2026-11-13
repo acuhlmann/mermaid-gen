@@ -2259,7 +2259,7 @@ one that matters most: the offer survives when narration hides the bubble.
   keep at your desk, as opposed to the one the machine gave you", so the machine can only hand
   over a `coffee` and the printer only `papers` — no fifth drawing, nothing invented, and the
   whiteboard hands over nothing because you cannot carry a whiteboard. **`verb` and `hands` are
-  two columns**: the printer duplicates no desk verb (ADR-0011 rule 2 — it produces nothing) and
+  two columns**: the printer duplicates no desk verb (ADR-0011 rule 3 — it produces nothing) and
   still fills a hand, because what an errand _does_ and what it _looks like_ are different
   questions. And **the memory is honest about failure**: `goHome` has two callers, and the one
   that fires when you claim a wanderer's tile mid-stride sends them back empty-handed, because

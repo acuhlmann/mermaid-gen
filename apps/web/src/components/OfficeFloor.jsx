@@ -256,7 +256,22 @@ function OfficeFloorView({ bridge, viewPhase }) {
   const viewportRef = useRef(null);
   const fitScale = useStageScale(viewportRef);
   const [selectedId, setSelectedId] = useState(null);
-  const { walker, departing, handleDeparted } = useFloorWalker(walkBy);
+  const { walker, departing, handleRefused, handleDeparted } = useFloorWalker(walkBy);
+
+  /*
+   * The ✕ on the walker's own bubble, and the only place on the floor that
+   * knows a press from the 24 s TTL — `onDismissWalkBy` is the same store call
+   * either way. `handleRefused` runs **first** and only rolls a line; the
+   * dismissal is unchanged, so a floor that never called this would be exactly
+   * as silent as it was before queue 13's second half (`useFloorWalker`).
+   */
+  const handleWalkerDismiss = useCallback(
+    (id) => {
+      handleRefused(id);
+      onDismissWalkBy?.(id);
+    },
+    [handleRefused, onDismissWalkBy]
+  );
   const handleClosePerson = useCallback(() => setSelectedId(null), []);
 
   const physicalMeeting = isPhysicalFloorMeeting(meeting);
@@ -750,7 +765,7 @@ function OfficeFloorView({ bridge, viewPhase }) {
           walkerDeparting={departing}
           walkerHideBody={!showSpokenText}
           onWalkerAdopt={onAdoptPrompt}
-          onWalkerDismiss={onDismissWalkBy}
+          onWalkerDismiss={handleWalkerDismiss}
           onWalkerDeparted={handleDeparted}
           onStep={handleStep}
           // A physical glass-room sync has you in a chair; the floor is not

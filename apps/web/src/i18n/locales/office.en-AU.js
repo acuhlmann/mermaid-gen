@@ -1389,6 +1389,12 @@ export const OFFICE_EN_AU = {
           }
         }
       },
+      declined: [
+        'Noted. Into the backlog it goes.',
+        'Fair enough. It’ll keep.',
+        'I’ll raise it at the retro, then.',
+        'Righto. It was only the second-worst idea I had today.'
+      ],
       interrupt: {
         gotIt: [
           'All yours.',

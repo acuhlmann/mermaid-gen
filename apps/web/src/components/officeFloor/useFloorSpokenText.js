@@ -184,8 +184,18 @@ export function useFloorSpokenText({
       prevWalkByIdRef.current = null;
       return undefined;
     }
-    if (!walkBy?.body || walkById === prevWalkByIdRef.current) return undefined;
-    prevWalkByIdRef.current = walkById;
+    /*
+     * Keyed on the id **and the body**, because one walk-by now says two
+     * things: the line they came over with, and — since queue 13's second
+     * half — the line on the way home when you waved it away. An id-only key
+     * narrated the first and swallowed the second, and swallowing it also
+     * leaves `showSpokenText` set by the *previous* line, which hides the
+     * balloon the fallback depends on. So the silent-refusal bug had two
+     * halves and this is the one that is not about copy.
+     */
+    const walkByKey = `${walkById}:${walkBy?.body ?? ''}`;
+    if (!walkBy?.body || walkByKey === prevWalkByIdRef.current) return undefined;
+    prevWalkByIdRef.current = walkByKey;
     if (isOfficeNarrationBusy()) return undefined;
     void narrateTracked({ speakerId: walkBy.colleagueId, text: walkBy.body });
     return undefined;

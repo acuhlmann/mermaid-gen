@@ -19,13 +19,13 @@ import { overheardPartnerFor, shopTalkExchange } from '../src/utils/officeFloorS
 const copy = officeChromeCopy().floor;
 const lines = copy.narration;
 
-describe('ADR-0011 rule 2 — diegesis duplicates, never replaces', () => {
+describe('ADR-0011 rule 3 — diegesis duplicates, never replaces', () => {
   it('only the coffee machine wires through to a desk verb', () => {
     /*
      * Asserted as "which kinds carry a verb" rather than as whole rows: the
      * contract in the title is about the `verb` column alone, and pinning the
      * entire object shape here made an unrelated column (`hands`) fail a test
-     * about ADR-0011 rule 2, which is a false alarm in the one file that should
+     * about ADR-0011 rule 3, which is a false alarm in the one file that should
      * never cry wolf.
      */
     const withVerb = FLOOR_PROP_USES.filter((row) => row.verb);
@@ -220,12 +220,12 @@ describe('ADR-0010 / ADR-0011 — showing your work in the room', () => {
     expect(boardFrom({ contentType: 'mermaid', diagramSource: '' })).toBeNull();
   });
 
-  it('leaves the whiteboard producing nothing (ADR-0011 rule 2)', () => {
+  it('leaves the whiteboard producing nothing (ADR-0011 rule 3)', () => {
     /*
      * The board is a second *view* of your diagram, never a second editor. If a
      * later slice gives the whiteboard a `verb`, it stops duplicating a desk
      * control and starts being the only way to do something — which is the
-     * exact thing rule 2 forbids, and the reason `usablePropKinds()` treats it
+     * exact thing rule 3 forbids, and the reason `usablePropKinds()` treats it
      * as a prop that produces nothing but a line.
      */
     expect(propUseFor('whiteboard')?.verb ?? null).toBeNull();
