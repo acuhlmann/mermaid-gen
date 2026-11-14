@@ -55,7 +55,7 @@ Prefer extracting helpers into sibling modules instead of growing hub files. See
 
 Most app code is still `.js`/`.jsx` with `strict: false`. `packages/shared` is `strict: true`; app **strict islands** are listed in each workspace's `tsconfig.strict.json` and checked by `npm run typecheck:strict`. Edits inside an island also get **type-aware ESLint** (`no-unsafe-*`, `no-floating-promises`, …) via [`packages/eslint-config/typeCheckedIsland.js`](../../packages/eslint-config/typeCheckedIsland.js). See [ADR-0006](../decisions/0006-typescript-migration.md) and [`docs/recipes/convert-js-leaf-to-ts.md`](../recipes/convert-js-leaf-to-ts.md).
 
-When you touch a high-churn `.js` file, convert it (leaf recipe) or add JSDoc referencing `z.infer<typeof …>` from `@archislop/shared`. Next monolith targets: `diagramStore.js` state machine (wire/session modules are already `.ts`), `mermaidLangChainAgent.js` (gated on `ToolApplyResultSchema`), `mcpServer.js` (per-tool split).
+When you touch a high-churn `.js` file, convert it (leaf recipe) or add JSDoc referencing `z.infer<typeof …>` from `@archislop/shared`. Next monolith targets: `mermaidLangChainAgent.js` (gated on `ToolApplyResultSchema`), remaining `mcpServer.js` registration glue (hub now ~733 LOC after ADR-0005 `register*` extractions), then `ArchiSlop.jsx` / `DiagramCanvas.jsx` as shell slices land — not `diagramStore.js`, whose ADR-0005 slices already shrank it to ~174 LOC with wire helpers in strict islands.
 
 ## Project skills (Mermaid, etc.)
 

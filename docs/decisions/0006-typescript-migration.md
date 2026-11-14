@@ -44,8 +44,10 @@ Priority list (by edit churn × LOC):
 2. `apps/server/src/agents/mermaidLangChainAgent.js` (~1 156 LOC) — once
    `ToolApplyResultSchema` (ADR-0005's sibling work) is wired everywhere,
    the agent boundary is fully typed.
-3. `apps/server/src/mcp/mcpServer.js` (~1 014 LOC) — per-tool split in progress
-   (ADR-0005); convert remaining inline tools as each lands in `mcp/tools/`.
+3. `apps/server/src/mcp/mcpServer.js` (~733 LOC) — per-tool split in progress
+   (ADR-0005); diagram-session, collaboration-insight, and agent-handshake tools
+   already live in sibling `register*.js` modules; convert remaining inline tools as
+   each lands in `mcp/tools/`.
 4. ✅ `apps/web/src/state/diagramStore.js` (~174 LOC) — ADR-0005 slices 1–4 landed;
    remaining REST submitter bundle may move out later (see balanced-coupling §5).
 5. `apps/web/src/ArchiSlop.jsx` (~1 028 LOC, `App.jsx` is a 12-line wrapper) —
@@ -158,6 +160,20 @@ guarded by `apps/web/test/thinkingProseEnrich.test.jsx` (14 tests, green).
   `state/copilotStreamHttpAgent.ts`. `diagramStore.js` re-exports session helpers for
   compatibility; `sessionEventsClient`, hooks, and utils import from `diagramSession.ts`
   directly. Web strict island: **15** files.
+
+### 2026-11-14 — priority-list sync after MCP hub split
+
+- **`mcpServer.js` LOC** in the priority list above now reads **~733** (was ~1 014
+  when item 3 was last synced on 2026-11-07, before ADR-0005 extractions through
+  2026-11-11). Hub still owns registration glue; tools continue landing in sibling
+  `register*.js` modules per ADR-0005.
+- **Strict islands (measured):** `apps/web/tsconfig.strict.json` lists **40** files
+  (mostly `src/utils` leaves converted via the ratchet recipe plus wire/session
+  modules); `apps/server/tsconfig.strict.json` lists **30** (wire routes, God intake,
+  MCP invite/collaboration leaves). Both counts are enforced by `npm run
+typecheck:strict` and `scripts/verify-strict-islands.mjs`.
+- **`docs/guide/coding-agents.md`** next-targets prose updated: `diagramStore.js` is
+  no longer listed as a monolith conversion target after ADR-0005 slices 1–4.
 
 ## Consequences
 
