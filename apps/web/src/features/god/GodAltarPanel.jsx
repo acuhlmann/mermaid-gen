@@ -5,7 +5,7 @@ import {
   GOD_MOOD_META,
   GOD_QUICK_PRAYERS
 } from './godAltarCopy.js';
-import { playGodJudgmentCue, stopGodSpeech } from './godAltarAudio.js';
+import { disposeGodAudioContext, playGodJudgmentCue, stopGodSpeech } from './godAltarAudio.js';
 import { emitGodAltarEvent } from './godAltarStore.js';
 import {
   dispatchGodWorkflow,
@@ -14,6 +14,9 @@ import {
   sendGodPrayer
 } from './godPetitionClient.js';
 import './GodAltar.css';
+
+const MAX_PRAYER_HISTORY_PAYLOAD = 24;
+const MAX_PRAYER_SUMMARY_CHARS = 1000;
 
 function CelestialHaloIcon() {
   return (
@@ -474,23 +477,141 @@ function buildDiagramContextPayload(diagramSource, contentType) {
 function useGodAltarAudioPrefs() {
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [voiceEnabled, setVoiceEnabled] = useState(true);
-  const audioContextRef = useRef(null);
-  useEffect(() => () => stopGodSpeech(), []);
+  const audioContextRef = useRef({ current: null, disposed: false });
+  const prefsRef = useRef({ soundEnabled, voiceEnabled });
+
+  useEffect(() => {
+    prefsRef.current = { soundEnabled, voiceEnabled };
+  }, [soundEnabled, voiceEnabled]);
+
+  useEffect(() => {
+    const ref = audioContextRef.current;
+    ref.disposed = false;
+    return () => {
+      stopGodSpeech();
+      disposeGodAudioContext(ref);
+    };
+  }, []);
+
+  const playCue = ({ kind, mood, hasProposal, text }) => {
+    const ref = audioContextRef.current;
+    if (ref.disposed) return;
+    playGodJudgmentCue({
+      audioContextRef: ref,
+      kind,
+      mood,
+      hasProposal,
+      soundEnabled: prefsRef.current.soundEnabled,
+      voiceEnabled: prefsRef.current.voiceEnabled,
+      text
+    });
+  };
+
   return {
     soundEnabled,
     voiceEnabled,
-    audioContextRef,
+    playCue,
     toggleSound: () =>
       setSoundEnabled((prev) => {
-        if (prev) stopGodSpeech();
-        return !prev;
+        const next = !prev;
+        prefsRef.current.soundEnabled = next;
+        if (!next) stopGodSpeech();
+        return next;
       }),
     toggleVoice: () =>
       setVoiceEnabled((prev) => {
-        if (prev) stopGodSpeech();
-        return !prev;
+        const next = !prev;
+        prefsRef.current.voiceEnabled = next;
+        if (!next) stopGodSpeech();
+        return next;
       })
   };
+}
+
+function usePetitionFiling({
+  proposal,
+  messages,
+  favor,
+  userName,
+  dispatchWorkflow,
+  mountedRef,
+  petitionEpochRef,
+  audio,
+  setError,
+  setThunderSeq
+}) {
+  const [filing, setFiling] = useState(false);
+  const [dispatching, setDispatching] = useState(false);
+  const [prOutcome, setPrOutcome] = useState(null);
+
+  const handleFilePr = async () => {
+    const currentProposal = proposal;
+    if (!currentProposal || filing) return;
+    const petitionEpoch = petitionEpochRef.current;
+    const lastPrayer = (
+      [...messages].reverse().find((m) => m.role === 'user')?.content ?? ''
+    ).slice(0, MAX_PRAYER_SUMMARY_CHARS);
+    const capturedFavor = favor;
+    const capturedDispatch = dispatchWorkflow;
+
+    setFiling(true);
+    setError(null);
+    const res = await fileGodPetitionPr({
+      proposal: currentProposal,
+      prayerSummary: lastPrayer,
+      favor: capturedFavor,
+      userName,
+      dispatchWorkflow: capturedDispatch
+    });
+    if (!mountedRef.current || petitionEpoch !== petitionEpochRef.current) return;
+    setFiling(false);
+    if (!res.ok) {
+      setError(res.error);
+      return;
+    }
+    setThunderSeq((n) => n + 1);
+    setPrOutcome(res.data);
+    emitGodAltarEvent('bless', 'smitten');
+    audio.playCue({
+      kind: 'file-pr',
+      mood: 'smitten',
+      hasProposal: true,
+      text: res.data.divineMessage
+    });
+  };
+
+  const handleManualDispatch = async () => {
+    const currentOutcome = prOutcome;
+    const currentProposal = proposal;
+    if (!currentOutcome || dispatching) return;
+    const petitionEpoch = petitionEpochRef.current;
+    const targetBranch = currentOutcome.branch;
+    const targetFocus = currentOutcome.workflowDispatch?.focus;
+
+    setDispatching(true);
+    const res = await dispatchGodWorkflow({
+      ref: targetBranch,
+      focus: targetFocus,
+      proposal: currentProposal
+    });
+    if (!mountedRef.current || petitionEpoch !== petitionEpochRef.current) return;
+    setDispatching(false);
+    if (!res.ok) {
+      setError(res.error);
+      return;
+    }
+    setPrOutcome((prev) =>
+      prev && prev.branch === targetBranch ? { ...prev, workflowDispatch: res.data } : prev
+    );
+  };
+
+  const resetFiling = () => {
+    setFiling(false);
+    setDispatching(false);
+    setPrOutcome(null);
+  };
+
+  return { filing, dispatching, prOutcome, handleFilePr, handleManualDispatch, resetFiling };
 }
 
 function useGodAltarState({ diagramSource, contentType, userName, modelProfile }) {
@@ -503,19 +624,43 @@ function useGodAltarState({ diagramSource, contentType, userName, modelProfile }
   const [offering, setOffering] = useState('none');
   const [draft, setDraft] = useState('');
   const [busy, setBusy] = useState(false);
-  const [filing, setFiling] = useState(false);
-  const [dispatching, setDispatching] = useState(false);
   const [dispatchWorkflow, setDispatchWorkflow] = useState(true);
   const [error, setError] = useState(null);
   const [proposal, setProposal] = useState(null);
-  const [prOutcome, setPrOutcome] = useState(null);
   const [thunderSeq, setThunderSeq] = useState(0);
   const threadEndRef = useRef(null);
   const nextMsgIdRef = useRef(1);
+  const mountedRef = useRef(true);
+  const prayerEpochRef = useRef(0);
+  const petitionEpochRef = useRef(0);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    const prayerRef = prayerEpochRef;
+    const petitionRef = petitionEpochRef;
+    return () => {
+      mountedRef.current = false;
+      prayerRef.current += 1;
+      petitionRef.current += 1;
+    };
+  }, []);
 
   useEffect(() => {
     threadEndRef.current?.scrollIntoView?.({ block: 'nearest' });
   }, [messages.length, proposal]);
+
+  const petition = usePetitionFiling({
+    proposal,
+    messages,
+    favor,
+    userName,
+    dispatchWorkflow,
+    mountedRef,
+    petitionEpochRef,
+    audio,
+    setError,
+    setThunderSeq
+  });
 
   const nextId = (prefix) => {
     nextMsgIdRef.current += 1;
@@ -523,6 +668,7 @@ function useGodAltarState({ diagramSource, contentType, userName, modelProfile }
   };
 
   const applyPrayerSuccess = (data) => {
+    if (!mountedRef.current) return;
     const nextMood = data.mood ?? mood;
     const eventKind = classifyDivineEventKind(data);
     setFavor(data.favor ?? favor);
@@ -541,13 +687,10 @@ function useGodAltarState({ diagramSource, contentType, userName, modelProfile }
       }
     ]);
     emitGodAltarEvent(eventKind, nextMood);
-    playGodJudgmentCue({
-      audioContextRef: audio.audioContextRef,
+    audio.playCue({
       kind: eventKind,
       mood: nextMood,
       hasProposal: Boolean(data.prProposal),
-      soundEnabled: audio.soundEnabled,
-      voiceEnabled: audio.voiceEnabled,
       text: data.reply
     });
   };
@@ -555,21 +698,26 @@ function useGodAltarState({ diagramSource, contentType, userName, modelProfile }
   const submitPrayer = async (textOverride, offeringOverride) => {
     const text = (textOverride ?? draft).trim();
     if (!text || busy) return;
+    const prayerEpoch = ++prayerEpochRef.current;
+    petitionEpochRef.current += 1;
     const nextMessages = [...messages, { id: nextId('user'), role: 'user', content: text }];
     setMessages(nextMessages);
     if (!textOverride) setDraft('');
     setBusy(true);
     setError(null);
-    setPrOutcome(null);
+    petition.resetFiling();
 
     const res = await sendGodPrayer({
-      messages: nextMessages.map((m) => ({ role: m.role, content: m.content })),
+      messages: nextMessages
+        .slice(-MAX_PRAYER_HISTORY_PAYLOAD)
+        .map((m) => ({ role: m.role, content: m.content })),
       offering: offeringOverride ?? offering,
       currentFavor: favor,
       userName,
       modelProfile,
       diagramContext: buildDiagramContextPayload(diagramSource, contentType)
     });
+    if (!mountedRef.current || prayerEpoch !== prayerEpochRef.current) return;
     setBusy(false);
     if (!res.ok) {
       setError(res.error);
@@ -578,62 +726,18 @@ function useGodAltarState({ diagramSource, contentType, userName, modelProfile }
     applyPrayerSuccess(res.data);
   };
 
-  const handleFilePr = async () => {
-    if (!proposal || filing) return;
-    setFiling(true);
-    setError(null);
-    const lastPrayer = [...messages].reverse().find((m) => m.role === 'user')?.content ?? '';
-    const res = await fileGodPetitionPr({
-      proposal,
-      prayerSummary: lastPrayer,
-      favor,
-      userName,
-      dispatchWorkflow
-    });
-    setFiling(false);
-    if (!res.ok) {
-      setError(res.error);
-      return;
-    }
-    setThunderSeq((n) => n + 1);
-    setPrOutcome(res.data);
-    emitGodAltarEvent('bless', 'smitten');
-    playGodJudgmentCue({
-      audioContextRef: audio.audioContextRef,
-      kind: 'file-pr',
-      mood: 'smitten',
-      hasProposal: true,
-      soundEnabled: audio.soundEnabled,
-      voiceEnabled: audio.voiceEnabled,
-      text: res.data.divineMessage
-    });
-  };
-
-  const handleManualDispatch = async () => {
-    if (!prOutcome || dispatching) return;
-    setDispatching(true);
-    const res = await dispatchGodWorkflow({
-      ref: prOutcome.branch,
-      focus: prOutcome.workflowDispatch?.focus,
-      proposal
-    });
-    setDispatching(false);
-    if (!res.ok) {
-      setError(res.error);
-      return;
-    }
-    setPrOutcome((prev) => (prev ? { ...prev, workflowDispatch: res.data } : prev));
-  };
-
   const handleReset = () => {
+    prayerEpochRef.current += 1;
+    petitionEpochRef.current += 1;
     stopGodSpeech();
+    setBusy(false);
+    petition.resetFiling();
     setMessages(initialHistory());
     setFavor(35);
     setMood('unimpressed');
     setJudgment(COPY.openingJudgment);
     setOffering('none');
     setProposal(null);
-    setPrOutcome(null);
     setError(null);
   };
 
@@ -648,21 +752,21 @@ function useGodAltarState({ diagramSource, contentType, userName, modelProfile }
     draft,
     setDraft,
     busy,
-    filing,
-    dispatching,
+    filing: petition.filing,
+    dispatching: petition.dispatching,
     dispatchWorkflow,
     setDispatchWorkflow,
     error,
     proposal,
     setProposal,
-    prOutcome,
+    prOutcome: petition.prOutcome,
     thunderSeq,
     soundEnabled: audio.soundEnabled,
     voiceEnabled: audio.voiceEnabled,
     threadEndRef,
     submitPrayer,
-    handleFilePr,
-    handleManualDispatch,
+    handleFilePr: petition.handleFilePr,
+    handleManualDispatch: petition.handleManualDispatch,
     handleReset,
     toggleSound: audio.toggleSound,
     toggleVoice: audio.toggleVoice
@@ -686,11 +790,10 @@ export default function GodAltarPanel({
     : DEFAULT_GOD_OFFERINGS;
 
   return (
-    <div
-      key={s.thunderSeq > 0 ? `altar-${s.thunderSeq}` : 'altar-0'}
-      className={`god-altar${s.thunderSeq > 0 ? ' is-thunder' : ''}`}
-      data-testid="god-altar-panel"
-    >
+    <div className="god-altar" data-testid="god-altar-panel">
+      {s.thunderSeq > 0 ? (
+        <div key={s.thunderSeq} className="god-altar-thunder-flash" aria-hidden="true" />
+      ) : null}
       <AltarHeader
         capabilities={s.capabilities}
         soundEnabled={s.soundEnabled}

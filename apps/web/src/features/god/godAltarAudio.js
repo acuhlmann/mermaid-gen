@@ -8,10 +8,17 @@
  */
 
 function resolveContext(audioContextRef) {
+  if (!audioContextRef || audioContextRef.disposed) return null;
   const Ctor = globalThis.AudioContext || globalThis.webkitAudioContext;
   if (!Ctor) return null;
   try {
     const ctx = audioContextRef.current ?? new Ctor();
+    if (audioContextRef.disposed) {
+      if (!audioContextRef.current && typeof ctx.close === 'function') {
+        void Promise.resolve(ctx.close()).catch(() => {});
+      }
+      return null;
+    }
     audioContextRef.current = ctx;
     if (typeof ctx.resume === 'function' && ctx.state === 'suspended') {
       void ctx.resume().catch(() => {});
@@ -19,6 +26,16 @@ function resolveContext(audioContextRef) {
     return ctx;
   } catch {
     return null;
+  }
+}
+
+export function disposeGodAudioContext(audioContextRef) {
+  if (!audioContextRef) return;
+  audioContextRef.disposed = true;
+  const ctx = audioContextRef.current;
+  audioContextRef.current = null;
+  if (ctx && typeof ctx.close === 'function') {
+    void Promise.resolve(ctx.close()).catch(() => {});
   }
 }
 
@@ -203,6 +220,19 @@ function isSmiteCue({ kind, mood }) {
   return kind === 'smite' || mood === 'wrathful' || mood === 'unimpressed';
 }
 
+function playReactionSting(audioContextRef, { kind, mood, hasProposal }) {
+  if (isBlessingCue({ kind, mood, hasProposal })) {
+    playGodOrganSting(audioContextRef, { mood: 'benevolent' });
+    playGodBlessingChime(audioContextRef);
+    return;
+  }
+  if (isSmiteCue({ kind, mood })) {
+    playGodSmiteZap(audioContextRef);
+    return;
+  }
+  playGodOrganSting(audioContextRef, { mood });
+}
+
 /**
  * Play the combined celestial audio + optional spoken voice for a divine event.
  *
@@ -225,16 +255,9 @@ export function playGodJudgmentCue({
   voiceEnabled = true,
   text = ''
 }) {
-  if (!soundEnabled) return;
+  if (!soundEnabled || audioContextRef?.disposed) return;
   playGodThunderclap(audioContextRef);
-  if (isBlessingCue({ kind, mood, hasProposal })) {
-    playGodOrganSting(audioContextRef, { mood: 'benevolent' });
-    playGodBlessingChime(audioContextRef);
-  } else if (isSmiteCue({ kind, mood })) {
-    playGodSmiteZap(audioContextRef);
-  } else {
-    playGodOrganSting(audioContextRef, { mood });
-  }
+  playReactionSting(audioContextRef, { kind, mood, hasProposal });
   if (voiceEnabled && text) {
     speakGodDecree(text, { enabled: true });
   }

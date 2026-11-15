@@ -265,11 +265,16 @@ describe('GodAltarPanel & GodAltarModal', () => {
     }
   });
 
-  it('opens GodAltarModal via store, links to /god?tab=altar, and closes on Escape', async () => {
+  it('opens GodAltarModal via store, traps focus, links to /god?tab=altar, and restores focus on close', async () => {
     vi.stubGlobal(
       'fetch',
       vi.fn(async () => jsonResponse({ v: 1, llmConfigured: false, githubPrConfigured: false }))
     );
+
+    const trigger = document.createElement('button');
+    trigger.textContent = 'Summon';
+    document.body.appendChild(trigger);
+    trigger.focus();
 
     render(
       <GodAltarHost diagramSource="flowchart TD\nA-->B" contentType="mermaid" userName="Gavin" />
@@ -280,8 +285,166 @@ describe('GodAltarPanel & GodAltarModal', () => {
     const modal = await screen.findByTestId('god-altar-modal');
     expect(modal).toBeTruthy();
     expect(screen.getByTestId('god-altar-ascend-link').getAttribute('href')).toBe('/god?tab=altar');
+    expect(document.activeElement).toBe(screen.getByTestId('god-altar-input'));
+
+    const ascendLink = screen.getByTestId('god-altar-ascend-link');
+    ascendLink.focus();
+    fireEvent.keyDown(window, { key: 'Tab', shiftKey: true });
+    expect(modal.contains(document.activeElement)).toBe(true);
+    expect(document.activeElement).not.toBe(ascendLink);
+
+    const focusables = modal.querySelectorAll(
+      'a[href], button:not(:disabled), textarea:not(:disabled)'
+    );
+    const last = focusables[focusables.length - 1];
+    last.focus();
+    fireEvent.keyDown(window, { key: 'Tab' });
+    expect(document.activeElement).toBe(ascendLink);
 
     fireEvent.keyDown(window, { key: 'Escape' });
     await waitFor(() => expect(screen.queryByTestId('god-altar-modal')).toBeNull());
+    expect(document.activeElement).toBe(trigger);
+    trigger.remove();
+  });
+
+  it('closes AudioContext on unmount, honors latest mute state, keeps textarea focus, caps payloads, and ignores stale completions', async () => {
+    const closeCtx = vi.fn(async () => {});
+    const oscStart = vi.fn();
+    globalThis.AudioContext = vi.fn(function MockCtx() {
+      return {
+        currentTime: 0,
+        sampleRate: 44100,
+        destination: {},
+        close: closeCtx,
+        createOscillator: () => ({
+          type: 'sine',
+          frequency: { setValueAtTime: vi.fn(), exponentialRampToValueAtTime: vi.fn() },
+          connect: vi.fn(),
+          start: oscStart,
+          stop: vi.fn()
+        }),
+        createGain: () => ({
+          gain: { setValueAtTime: vi.fn(), exponentialRampToValueAtTime: vi.fn() },
+          connect: vi.fn()
+        })
+      };
+    });
+
+    let resolvePrayer;
+    const petitionPayloads = [];
+    const filePrPayloads = [];
+    const fetchMock = vi.fn((url, init = {}) => {
+      const u = String(url);
+      if (u.includes('/api/god/petition/capabilities')) {
+        return Promise.resolve(
+          jsonResponse({ v: 1, llmConfigured: true, githubPrConfigured: true })
+        );
+      }
+      if (u.includes('/api/god/petition/file-pr')) {
+        filePrPayloads.push(JSON.parse(init.body));
+        return Promise.resolve(
+          jsonResponse({
+            v: 1,
+            filed: true,
+            mode: 'github_pr',
+            branch: 'god-petition/x',
+            prNumber: 12,
+            prUrl: 'https://github.com/acuhlmann/mermaid-gen/pull/12',
+            ghCommand: 'gh pr create',
+            divineMessage: 'PR #12 opened.'
+          })
+        );
+      }
+      if (u.includes('/api/god/petition')) {
+        petitionPayloads.push(JSON.parse(init.body));
+        return new Promise((resolve) => {
+          resolvePrayer = resolve;
+        });
+      }
+      return Promise.resolve(jsonResponse({}));
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    try {
+      const view = render(<GodAltarPanel />);
+      const input = screen.getByTestId('god-altar-input');
+      input.focus();
+
+      const longPrayer = 'P'.repeat(1500);
+      fireEvent.change(input, { target: { value: longPrayer } });
+      fireEvent.click(screen.getByTestId('god-altar-submit'));
+
+      // Mute while prayer is in flight: completion must read ref and stay silent.
+      fireEvent.click(screen.getByTestId('god-altar-sfx-toggle'));
+      resolvePrayer(
+        jsonResponse({
+          v: 1,
+          mode: 'llm',
+          reply: 'GRANTED.',
+          favorDelta: 30,
+          favor: 65,
+          mood: 'benevolent',
+          judgment: 'WORTHY',
+          prProposal: PROPOSAL
+        })
+      );
+
+      await screen.findByTestId('god-pr-decree');
+      expect(oscStart).not.toHaveBeenCalled();
+      expect(screen.getByTestId('god-altar-input')).toBe(input);
+
+      // Re-enable sound and file PR -> prayerSummary is capped at 1000 chars and AudioContext closes on unmount.
+      fireEvent.click(screen.getByTestId('god-altar-sfx-toggle'));
+      fireEvent.click(screen.getByTestId('god-file-pr-button'));
+      await screen.findByTestId('god-pr-outcome');
+      expect(filePrPayloads[0].prayerSummary).toHaveLength(1000);
+      expect(oscStart).toHaveBeenCalled();
+
+      // Send 13 rounds (> 24 total messages) and confirm payload is trimmed to 24 while thread grows.
+      for (let i = 0; i < 13; i += 1) {
+        fireEvent.change(screen.getByTestId('god-altar-input'), {
+          target: { value: `Round ${i}` }
+        });
+        fireEvent.click(screen.getByTestId('god-altar-submit'));
+        resolvePrayer(
+          jsonResponse({
+            v: 1,
+            mode: 'llm',
+            reply: `Answer ${i}`,
+            favorDelta: 1,
+            favor: 70,
+            mood: 'amused',
+            judgment: 'NOTED',
+            prProposal: null
+          })
+        );
+        await screen.findByText(`Answer ${i}`);
+      }
+      expect(petitionPayloads.at(-1).messages.length).toBeLessThanOrEqual(24);
+      expect(screen.getByText('Answer 12')).toBeTruthy();
+
+      // Unmount closes AudioContext and ignores stale completions.
+      fireEvent.change(screen.getByTestId('god-altar-input'), { target: { value: 'Last wish' } });
+      fireEvent.click(screen.getByTestId('god-altar-submit'));
+      view.unmount();
+      expect(closeCtx).toHaveBeenCalledTimes(1);
+
+      resolvePrayer(
+        jsonResponse({
+          v: 1,
+          mode: 'llm',
+          reply: 'TOO LATE.',
+          favorDelta: 10,
+          favor: 80,
+          mood: 'smitten',
+          judgment: 'LATE',
+          prProposal: PROPOSAL
+        })
+      );
+      await Promise.resolve();
+      expect(getGodAltarEvent()?.kind).toBe('pray');
+    } finally {
+      delete globalThis.AudioContext;
+    }
   });
 });

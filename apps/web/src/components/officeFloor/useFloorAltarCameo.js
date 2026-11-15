@@ -66,6 +66,8 @@ export function useFloorAltarCameo({ copy, suspended = false, suppressed = false
       clearTimeout(flashTimer);
       clearTimeout(dineshTimer);
       clearTimeout(clearTimer);
+      setDivineFlash(null);
+      setCameo(null);
     };
   }, [event, suspended]);
 

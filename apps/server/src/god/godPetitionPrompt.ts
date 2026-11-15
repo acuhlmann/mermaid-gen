@@ -273,7 +273,7 @@ function coerceMood(raw: unknown, favor: number): GodMood {
 export function parseGodPetitionReply(raw: string, currentFavor: number): GodPetitionParsedReply {
   const obj = extractJsonObject(raw);
   if (!obj) {
-    const prose = redactSecrets(raw.trim()).slice(0, 2000);
+    const prose = redactSecrets(raw.trim()).slice(0, 2000).trim();
     const favor = clampFavor(currentFavor + 5);
     return {
       reply:
@@ -290,10 +290,11 @@ export function parseGodPetitionReply(raw: string, currentFavor: number): GodPet
   const rawDelta = typeof obj.favorDelta === 'number' ? obj.favorDelta : 8;
   const favorDelta = Math.max(-30, Math.min(40, Math.round(rawDelta)));
   const favor = clampFavor(currentFavor + favorDelta);
-  const replyText =
+  const redactedReply =
     typeof obj.reply === 'string' && obj.reply.trim()
-      ? redactSecrets(obj.reply.trim().slice(0, 2400))
-      : 'THE ALMIGHTY NODDED SILENTLY FROM BEYOND THE EVENT LOOP.';
+      ? redactSecrets(obj.reply.trim()).slice(0, 2000).trim()
+      : '';
+  const replyText = redactedReply || 'THE ALMIGHTY NODDED SILENTLY FROM BEYOND THE EVENT LOOP.';
   const judgment =
     typeof obj.judgment === 'string' && obj.judgment.trim()
       ? redactSecrets(obj.judgment.trim().toUpperCase().slice(0, 64))

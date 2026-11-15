@@ -15,6 +15,7 @@ import {
   resolveLlmModelLabel
 } from '../agents/llmProvider.js';
 import { createApiRateLimitMiddleware } from '../middleware/apiRateLimit.js';
+import { createIpRateLimiter, keyByRequestIp } from '../utils/ipRateLimit.js';
 import { extractTextContent } from '../utils/extractTextContent.js';
 import { redactSecrets } from '../utils/redactSecrets.js';
 import {
@@ -155,14 +156,27 @@ function respondWithOracle(
 export function createGodPetitionRouter(options: GodPetitionRouterOptions = {}) {
   const env = options.env ?? process.env;
   const router = express.Router();
-  router.use(createApiRateLimitMiddleware('llm'));
+  const llmRateLimit = createApiRateLimitMiddleware('llm');
+  const writeLimiter = createIpRateLimiter({
+    windowMs: 60_000,
+    maxHits: 30,
+    keyFn: keyByRequestIp
+  });
+  const writeRateLimit = (req: Request, res: Response, next: express.NextFunction) => {
+    if (writeLimiter.isLimited(req)) {
+      res.status(429).json({ error: 'Too many requests. Try again later.' });
+      return;
+    }
+    writeLimiter.recordHit(req);
+    next();
+  };
 
   router.get('/petition/capabilities', (_req: Request, res: Response) => {
     res.set('Cache-Control', 'no-store');
     res.status(200).json(buildCapabilitiesPayload(env));
   });
 
-  router.post('/petition', async (req: Request, res: Response) => {
+  router.post('/petition', llmRateLimit, async (req: Request, res: Response) => {
     res.set('Cache-Control', 'no-store');
     const parsed = PetitionBodySchema.safeParse(req.body);
     if (!parsed.success) {
@@ -208,7 +222,7 @@ export function createGodPetitionRouter(options: GodPetitionRouterOptions = {}) 
     }
   });
 
-  router.post('/petition/file-pr', async (req: Request, res: Response) => {
+  router.post('/petition/file-pr', writeRateLimit, async (req: Request, res: Response) => {
     res.set('Cache-Control', 'no-store');
     const parsed = FilePrBodySchema.safeParse(req.body);
     if (!parsed.success) {
@@ -233,7 +247,7 @@ export function createGodPetitionRouter(options: GodPetitionRouterOptions = {}) 
     }
   });
 
-  router.post('/petition/dispatch', async (req: Request, res: Response) => {
+  router.post('/petition/dispatch', writeRateLimit, async (req: Request, res: Response) => {
     res.set('Cache-Control', 'no-store');
     const parsed = DispatchWorkflowBodySchema.safeParse(req.body ?? {});
     if (!parsed.success) {

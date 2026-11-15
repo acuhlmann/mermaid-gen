@@ -39,13 +39,16 @@ export function resolvePetitionBaseBranch(env: Env = process.env): string {
 }
 
 const FOCUS_PATTERNS: ReadonlyArray<{ focus: GodWorkflowFocus; re: RegExp }> = [
-  { focus: 'mermaid', re: /\bmermaid|flowchart|sequence|state\s+diagram|er\s*diagram/i },
-  { focus: 'infographic', re: /\binfographic|antv/i },
-  { focus: 'metaphor3d', re: /\bmetaphor|3d|three\.js/i },
-  { focus: 'chart', re: /\bchart|vega|flint|echarts|plotly/i },
-  { focus: 'forms', re: /\bforms|a2ui/i },
-  { focus: 'anything', re: /\banything|html|sandbox/i },
-  { focus: 'ux', re: /\bux|ui|studio|office|button|hotkey|shortcut|theme|dark\s*mode|apps\/web/i }
+  { focus: 'mermaid', re: /\b(?:mermaid|flowchart|sequence|state\s+diagram|er\s*diagram)s?\b/i },
+  { focus: 'infographic', re: /\b(?:infographic|antv)s?\b/i },
+  { focus: 'metaphor3d', re: /\b(?:metaphor|3d|three\.js)s?\b/i },
+  { focus: 'chart', re: /\b(?:chart|vega(?:-lite)?|flint|echarts|plotly)s?\b/i },
+  { focus: 'forms', re: /\b(?:forms?|a2ui)\b/i },
+  { focus: 'anything', re: /\b(?:anything|html|sandbox(?:es)?)\b/i },
+  {
+    focus: 'ux',
+    re: /\b(?:ux|ui|studio|office|buttons?|hotkeys?|shortcuts?|themes?|dark\s*mode|apps\/web)\b/i
+  }
 ];
 
 export function inferGodWorkflowFocus(proposal: Partial<GodPrProposal>): GodWorkflowFocus {
@@ -141,13 +144,17 @@ export function buildManualGhCommand(input: {
   branch: string;
   title: string;
   filePath: string;
+  markdown: string;
 }): string {
   const q = (v: string) => `'${v.replace(/'/g, "'\\''")}'`;
+  const contentB64 = Buffer.from(input.markdown, 'utf8').toString('base64');
   return [
-    `git checkout -b ${input.branch} origin/${input.baseBranch}`,
-    `mkdir -p "$(dirname ${q(input.filePath)})" && git add ${q(input.filePath)}`,
+    `git checkout -b ${q(input.branch)} ${q(`origin/${input.baseBranch}`)}`,
+    `mkdir -p "$(dirname ${q(input.filePath)})"`,
+    `node -e 'require("node:fs").writeFileSync(process.argv[1], Buffer.from(process.argv[2], "base64"))' ${q(input.filePath)} ${q(contentB64)}`,
+    `git add ${q(input.filePath)}`,
     `git commit -m ${q(input.title)}`,
-    `git push -u origin ${input.branch}`,
+    `git push -u origin ${q(input.branch)}`,
     `gh pr create --repo ${q(input.repo)} --base ${q(input.baseBranch)} --head ${q(input.branch)} --title ${q(input.title)}`
   ].join(' && ');
 }
@@ -280,10 +287,24 @@ export async function dispatchPetitionWorkflow(
     });
 
   let activeRef = options.ref;
-  let dispatchRes = await postDispatch(activeRef);
-  if (dispatchRes.ok === false && shouldFallbackRef(dispatchRes.status, options)) {
-    activeRef = options.fallbackRef ?? activeRef;
+  let dispatchRes:
+    { ok: true; data: Record<string, never> } | { ok: false; status: number; detail: string };
+  try {
     dispatchRes = await postDispatch(activeRef);
+    if (dispatchRes.ok === false && shouldFallbackRef(dispatchRes.status, options)) {
+      activeRef = options.fallbackRef ?? activeRef;
+      dispatchRes = await postDispatch(activeRef);
+    }
+  } catch (error) {
+    const detail = redactSecrets(error instanceof Error ? error.message : String(error));
+    return {
+      ...makeWorkflowDispatchBase(repo, activeRef, options.focus),
+      attempted: true,
+      dispatched: false,
+      status: 'failed',
+      reason: 'dispatch_exception',
+      message: `GitHub workflow_dispatch threw (${detail}). Run the gh workflow command below instead.`
+    };
   }
 
   const finalBase = makeWorkflowDispatchBase(repo, activeRef, options.focus);
@@ -467,7 +488,20 @@ async function createPrOnGitHub(
     return prFailure(ctx, 'missing_pr_url', 'GitHub returned no pull request URL.');
   }
 
-  const workflowDispatch = await resolveWorkflowAfterPr(fetchImpl, env, ctx);
+  let workflowDispatch: GodWorkflowDispatchResult;
+  try {
+    workflowDispatch = await resolveWorkflowAfterPr(fetchImpl, env, ctx);
+  } catch (error) {
+    const detail = redactSecrets(error instanceof Error ? error.message : String(error));
+    workflowDispatch = {
+      ...makeWorkflowDispatchBase(ctx.repo, ctx.branch, ctx.focus),
+      attempted: true,
+      dispatched: false,
+      status: 'failed',
+      reason: 'dispatch_exception',
+      message: `Workflow dispatch threw (${detail}). PR was still created; run the gh workflow command below manually.`
+    };
+  }
   const dispatchNote = workflowDispatch.dispatched
     ? ` ${GOD_WORKFLOW_FILE} hath been dispatched (focus: ${workflowDispatch.focus}) to manifest the code.`
     : '';
@@ -511,13 +545,20 @@ export async function filePetitionPr(options: FilePetitionPrOptions): Promise<Go
     userName: options.userName,
     filePath
   });
-  const ghCommand = buildManualGhCommand({ repo, baseBranch, branch, title, filePath });
   const markdown = buildPetitionSpecMarkdown({
     proposal: options.proposal,
     prayerSummary: options.prayerSummary,
     favor: options.favor,
     userName: options.userName,
     createdAt
+  });
+  const ghCommand = buildManualGhCommand({
+    repo,
+    baseBranch,
+    branch,
+    title,
+    filePath,
+    markdown
   });
 
   const token = resolvePetitionGitHubToken(env);

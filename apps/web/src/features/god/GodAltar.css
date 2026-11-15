@@ -28,6 +28,7 @@
   overflow: hidden;
 }
 
+.god-altar-thunder-flash,
 .god-altar.is-thunder::after {
   content: '';
   position: absolute;
@@ -636,8 +637,13 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .god-altar-halo svg,
+  .god-altar-halo svg {
+    animation: none;
+  }
+
+  .god-altar-thunder-flash,
   .god-altar.is-thunder::after {
+    display: none;
     animation: none;
   }
 }

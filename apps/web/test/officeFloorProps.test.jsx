@@ -967,4 +967,35 @@ describe('Altar shrine prop and divine floor cameos', () => {
 
     vi.useRealTimers();
   });
+
+  it('clears divineFlash and cameo when suspended by a meeting and keeps them cleared afterwards', () => {
+    vi.useFakeTimers();
+    const onOpenGodAltar = vi.fn();
+    const view = renderFloor({ onOpenGodAltar }, { pinDeterminism: false });
+
+    act(() => {
+      emitGodAltarEvent('bless', 'benevolent');
+    });
+    expect(screen.getByTestId('office-floor').className).toContain('is-divine-bless');
+    expect(screen.getByTestId('office-floor-altar-cameo')).toBeTruthy();
+
+    const meeting = {
+      state: 'playing',
+      title: 'Architecture Review Board',
+      attendees: ['scrumMaster', 'gilfoyle'],
+      facilitatorId: 'scrumMaster',
+      transcript: [{ speakerId: 'gilfoyle', kind: 'substantive', text: 'Fine.' }],
+      interjectionsLeft: 1
+    };
+    act(() => {
+      view.rerender(<OfficeFloor onOpenGodAltar={onOpenGodAltar} meeting={meeting} />);
+    });
+    expect(screen.getByTestId('office-floor').className).not.toContain('is-divine-bless');
+
+    act(() => {
+      view.rerender(<OfficeFloor onOpenGodAltar={onOpenGodAltar} meeting={null} />);
+    });
+    expect(screen.queryByTestId('office-floor-altar-cameo')).toBeNull();
+    vi.useRealTimers();
+  });
 });

@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import express from 'express';
 import { buildOfflineOracleReply, parseGodPetitionReply } from '../src/god/godPetitionPrompt.js';
 import {
+  buildManualGhCommand,
   dispatchPetitionWorkflow,
   filePetitionPr,
   inferGodWorkflowFocus
@@ -134,11 +135,90 @@ test('filePetitionPr returns a clear unconfigured scroll when no GitHub token is
   assert.match(res.workflowDispatch.ghWorkflowCommand, /gh workflow run god\.yml/);
 });
 
-test('inferGodWorkflowFocus maps proposal area/title to god.yml enum choices', () => {
+test('inferGodWorkflowFocus maps proposal area/title to god.yml enum choices without substring false positives', () => {
   assert.equal(inferGodWorkflowFocus({ targetArea: 'apps/web', title: 'Studio button' }), 'ux');
-  assert.equal(inferGodWorkflowFocus({ title: 'Fix mermaid flowchart quotes' }), 'mermaid');
-  assert.equal(inferGodWorkflowFocus({ summary: 'Improve chart Flint labels' }), 'chart');
+  assert.equal(inferGodWorkflowFocus({ title: 'Add keyboard shortcuts' }), 'ux');
+  assert.equal(inferGodWorkflowFocus({ title: 'Build a CLI exporter' }), 'any');
+  assert.equal(inferGodWorkflowFocus({ title: 'Fix mermaid flowcharts' }), 'mermaid');
+  assert.equal(inferGodWorkflowFocus({ summary: 'Improve bar charts with Flint' }), 'chart');
   assert.equal(inferGodWorkflowFocus({ summary: 'General refactor' }), 'any');
+});
+
+test('buildManualGhCommand safely encodes petition markdown and creates parent directories before git add', () => {
+  const cmd = buildManualGhCommand({
+    repo: 'acuhlmann/mermaid-gen',
+    baseBranch: 'main',
+    branch: 'god-petition/test-1',
+    title: "god-petition: don't break $(whoami)",
+    filePath: 'docs/petitions/test-1.md',
+    markdown: "# Petition\n\nBody with 'single quotes', `backticks`, and $(rm -rf /)\n"
+  });
+  assert.match(cmd, /mkdir -p "\$\(dirname 'docs\/petitions\/test-1\.md'\)"/);
+  assert.match(cmd, /writeFileSync/);
+  assert.match(cmd, /git add 'docs\/petitions\/test-1\.md'/);
+  assert.ok(!cmd.includes('$(rm -rf /)'));
+});
+
+test('parseGodPetitionReply caps redacted obj.reply at 2000 characters', () => {
+  const parsed = parseGodPetitionReply(
+    JSON.stringify({
+      reply: 'A'.repeat(2500),
+      favorDelta: 10,
+      mood: 'amused',
+      judgment: 'LONG WINDED'
+    }),
+    40
+  );
+  assert.equal(parsed.reply.length, 2000);
+});
+
+test('filePetitionPr preserves PR success when workflow dispatch throws', async () => {
+  const fetchImpl = async (url) => {
+    if (String(url).includes('/git/ref/heads/main')) {
+      return {
+        ok: true,
+        status: 200,
+        text: async () => JSON.stringify({ object: { sha: 'abc1234' } })
+      };
+    }
+    if (String(url).endsWith('/git/refs')) {
+      return { ok: true, status: 201, text: async () => JSON.stringify({ ref: 'refs/heads/x' }) };
+    }
+    if (String(url).includes('/contents/docs/petitions/')) {
+      return { ok: true, status: 201, text: async () => JSON.stringify({ content: {} }) };
+    }
+    if (String(url).endsWith('/pulls')) {
+      return {
+        ok: true,
+        status: 201,
+        text: async () =>
+          JSON.stringify({
+            number: 321,
+            html_url: 'https://github.com/acuhlmann/mermaid-gen/pull/321'
+          })
+      };
+    }
+    if (String(url).endsWith('/actions/workflows/god.yml/dispatches')) {
+      throw new Error('Request timed out');
+    }
+    return { ok: false, status: 404, text: async () => 'not found' };
+  };
+
+  const res = await filePetitionPr({
+    proposal: PROPOSAL,
+    favor: 88,
+    userName: 'Jared',
+    env: { GOD_PR_TOKEN: 'ghp_super_secret_token' },
+    fetchImpl,
+    nowMs: () => Date.parse('2026-11-15T10:00:00.000Z')
+  });
+
+  assert.equal(res.filed, true);
+  assert.equal(res.prNumber, 321);
+  assert.equal(res.prUrl, 'https://github.com/acuhlmann/mermaid-gen/pull/321');
+  assert.equal(res.workflowDispatch.status, 'failed');
+  assert.equal(res.workflowDispatch.dispatched, false);
+  assert.equal(res.workflowDispatch.reason, 'dispatch_exception');
 });
 
 test('filePetitionPr creates branch, commits petition spec, opens PR, and dispatches god.yml', async () => {
@@ -338,6 +418,18 @@ test('POST /api/god/petition serves offline-oracle when LLM is unconfigured', as
     assert.equal(body.mode, 'offline-oracle');
     assert.equal(body.llmConfigured, false);
     assert.ok(body.prProposal);
+  } finally {
+    await app.close();
+  }
+});
+
+test('GET /api/god/petition/capabilities is never rate-limited by the LLM bucket', async () => {
+  const app = await bootApp({ petitionOptions: { env: {} } });
+  try {
+    for (let i = 0; i < 65; i += 1) {
+      const res = await fetch(`${app.base}/api/god/petition/capabilities`);
+      assert.equal(res.status, 200);
+    }
   } finally {
     await app.close();
   }
