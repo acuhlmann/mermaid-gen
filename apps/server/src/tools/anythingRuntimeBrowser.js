@@ -80,14 +80,23 @@ export function resolvePlaywrightChromium(browsersPath) {
   } catch {
     return null;
   }
-  const newest = entries
+  const revisionDirs = entries.filter(
+    (name) => /^chromium-\d+$/.test(name) || /^chromium_headless_shell-\d+$/.test(name)
+  );
+  const newestFull = revisionDirs
     .filter((name) => /^chromium-\d+$/.test(name))
     .sort()
     .at(-1);
+  const newestHeadless = revisionDirs
+    .filter((name) => /^chromium_headless_shell-\d+$/.test(name))
+    .sort()
+    .at(-1);
   const pinned = [
-    newest && path.join(browsersPath, newest, 'chrome-linux64', 'chrome'),
-    newest && path.join(browsersPath, newest, 'chrome-linux', 'headless_shell'),
-    newest && path.join(browsersPath, newest, 'chrome-linux', 'chrome'),
+    newestHeadless && path.join(browsersPath, newestHeadless, 'chrome-linux', 'headless_shell'),
+    newestHeadless && path.join(browsersPath, newestHeadless, 'chrome-linux64', 'headless_shell'),
+    newestFull && path.join(browsersPath, newestFull, 'chrome-linux64', 'chrome'),
+    newestFull && path.join(browsersPath, newestFull, 'chrome-linux', 'headless_shell'),
+    newestFull && path.join(browsersPath, newestFull, 'chrome-linux', 'chrome'),
     path.join(browsersPath, 'chromium')
   ].filter(Boolean);
   for (const candidate of pinned) {

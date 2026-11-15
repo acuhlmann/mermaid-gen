@@ -81,9 +81,6 @@ jobs:
 
   test-server:
     runs-on: ubuntu-latest
-    env:
-      # Anything runtime browser resolution (see anythingRuntimeBrowser.js).
-      PLAYWRIGHT_BROWSERS_PATH: ${{ github.workspace }}/.pw-browsers
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
@@ -98,33 +95,25 @@ jobs:
       # 6000 ms budget and flake the ladder tests.
       #
       # Ubuntu noble's `apt-get install chromium` is a snap shim that talks to
-      # api.snapcraft.io — unreachable from GitHub-hosted runners (#922). Use
-      # Playwright's pinned headless shell instead of apt/snap Chromium (#922).
-      # Skip `--with-deps`: ubuntu-24.04 runner images already ship the browser
-      # libraries and `fonts-liberation` (see #625 — keep Dockerfile in lockstep
-      # for production). A first-run `playwright install --with-deps` timed out
-      # during Chromium zip extraction, not apt.
+      # api.snapcraft.io — unreachable from GitHub-hosted runners (#922).
+      # `npx playwright install` also wedges on zip *extraction* for 40+ minutes
+      # on hosted runners even after a fast download (#625, PR #928 CI). Install
+      # Google's .deb instead — `resolveAnythingBrowserBinary` already probes
+      # `/usr/bin/google-chrome` ahead of the Playwright cache paths.
       #
-      # Bounded on purpose (#625): cold extract can take many minutes on a cache
-      # miss; cache hits are seconds. Do NOT tighten aggressively.
-      - name: Resolve Playwright version
-        id: pw-version
-        run: echo "version=$(npx --yes playwright@1.51.1 --version | awk '{print $2}')" >> "$GITHUB_OUTPUT"
-      - name: Cache Playwright Chromium
-        id: pw-cache
-        uses: actions/cache@v4
-        with:
-          path: .pw-browsers
-          key: pw-chromium-${{ runner.os }}-${{ steps.pw-version.outputs.version }}
-          restore-keys: pw-chromium-${{ runner.os }}-
-      - name: Install Chromium (Anything runtime check)
-        if: steps.pw-cache.outputs.cache-hit != 'true'
-        timeout-minutes: 40
+      # fonts-liberation is not cosmetic and must stay in lockstep with the
+      # Dockerfile: the visual probe's low_contrast and collapsed_element checks
+      # both read text metrics, so a different font fallback lets CI and
+      # production disagree about whether a page is broken.
+      - name: Install Google Chrome (Anything runtime check)
+        timeout-minutes: 15
         run: |
           set -euo pipefail
           step_started=$SECONDS
-          npx --yes playwright@1.51.1 install chromium-headless-shell
-          echo "playwright install took $((SECONDS - step_started))s"
+          wget -q -O /tmp/google-chrome.deb https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+          sudo apt-get install -y --no-install-recommends /tmp/google-chrome.deb fonts-liberation
+          echo "Chrome install took $((SECONDS - step_started))s"
+          /usr/bin/google-chrome --version
       - name: Test apps/server
         run: npm run test -w apps/server
 
