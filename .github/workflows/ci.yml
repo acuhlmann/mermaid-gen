@@ -99,12 +99,14 @@ jobs:
       #
       # Ubuntu noble's `apt-get install chromium` is a snap shim that talks to
       # api.snapcraft.io — unreachable from GitHub-hosted runners (#922). Use
-      # Playwright's pinned Chromium instead (`--with-deps` installs the same
-      # system libraries and font set the visual probe needs; keep the
-      # Dockerfile's fonts-liberation in lockstep for production).
+      # Playwright's pinned headless shell instead of apt/snap Chromium (#922).
+      # Skip `--with-deps`: ubuntu-24.04 runner images already ship the browser
+      # libraries and `fonts-liberation` (see #625 — keep Dockerfile in lockstep
+      # for production). A first-run `playwright install --with-deps` timed out
+      # during Chromium zip extraction, not apt.
       #
-      # Bounded on purpose (#625): cold install can take minutes; cache hits are
-      # seconds. Do NOT tighten below ~10 minutes on a cache miss.
+      # Bounded on purpose (#625): cold extract can take many minutes on a cache
+      # miss; cache hits are seconds. Do NOT tighten aggressively.
       - name: Resolve Playwright version
         id: pw-version
         run: echo "version=$(npx --yes playwright@1.51.1 --version | awk '{print $2}')" >> "$GITHUB_OUTPUT"
@@ -114,13 +116,14 @@ jobs:
         with:
           path: .pw-browsers
           key: pw-chromium-${{ runner.os }}-${{ steps.pw-version.outputs.version }}
+          restore-keys: pw-chromium-${{ runner.os }}-
       - name: Install Chromium (Anything runtime check)
         if: steps.pw-cache.outputs.cache-hit != 'true'
-        timeout-minutes: 25
+        timeout-minutes: 40
         run: |
           set -euo pipefail
           step_started=$SECONDS
-          npx --yes playwright@1.51.1 install --with-deps chromium
+          npx --yes playwright@1.51.1 install chromium-headless-shell
           echo "playwright install took $((SECONDS - step_started))s"
       - name: Test apps/server
         run: npm run test -w apps/server
