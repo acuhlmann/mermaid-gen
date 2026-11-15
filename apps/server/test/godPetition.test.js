@@ -423,6 +423,57 @@ test('POST /api/god/petition serves offline-oracle when LLM is unconfigured', as
   }
 });
 
+test('POST /api/god/petition/speak serves cloud audio, degrades to null, and validates', async () => {
+  const app = await bootApp({
+    petitionOptions: {
+      env: {},
+      synthesizeSpeech: async ({ text, mood }) => {
+        assert.equal(mood, 'wrathful');
+        assert.match(text, /BEHOLD/);
+        return {
+          audioBase64: Buffer.from('fake-mp3').toString('base64'),
+          mimeType: 'audio/mpeg',
+          voiceName: 'en-US-Chirp3-HD-Charon',
+          lang: 'en-US'
+        };
+      }
+    }
+  });
+  try {
+    const res = await fetch(`${app.base}/api/god/petition/speak`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ text: 'BEHOLD, MORTAL.', mood: 'wrathful' })
+    });
+    assert.equal(res.status, 200);
+    const body = await res.json();
+    assert.equal(body.audio.voiceName, 'en-US-Chirp3-HD-Charon');
+
+    const bad = await fetch(`${app.base}/api/god/petition/speak`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ text: '', mood: 'bogus' })
+    });
+    assert.equal(bad.status, 400);
+  } finally {
+    await app.close();
+  }
+
+  // No GCP project → disabled, but still 200 { audio: null } for Web Speech fallback.
+  const unconfigured = await bootApp({ petitionOptions: { env: {} } });
+  try {
+    const res = await fetch(`${unconfigured.base}/api/god/petition/speak`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ text: 'BEHOLD.' })
+    });
+    assert.equal(res.status, 200);
+    assert.deepEqual(await res.json(), { audio: null, reason: 'disabled' });
+  } finally {
+    await unconfigured.close();
+  }
+});
+
 test('GET /api/god/petition/capabilities is never rate-limited by the LLM bucket', async () => {
   const app = await bootApp({ petitionOptions: { env: {} } });
   try {

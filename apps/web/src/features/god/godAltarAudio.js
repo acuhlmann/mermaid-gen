@@ -1,9 +1,17 @@
 /**
- * Synthesized Web Audio cues & Web Speech voice for the Altar of ArchiSlop God.
+ * Synthesized Web Audio cues & Cloud TTS voice for the Altar of ArchiSlop God.
  *
- * Zero `.mp3` assets (per docs/audio-assets.md / don't-touch rules): every
+ * Sound effects: zero `.mp3` assets (per docs/audio-assets.md): every
  * thunderclap, cathedral organ chord, celestial blessing, and smite zap is
- * synthesized via Web Audio, and spoken decrees use browser `speechSynthesis`.
+ * synthesized via Web Audio — it must fire with the flash, and ElevenLabs
+ * is build-time-only in this repo, never a runtime route.
+ *
+ * Voice: decrees prefer Google Cloud TTS (Chirp3-HD `Charon`, a resonant
+ * bass — see apps/server/src/agents/godTts.js) fetched via
+ * `fetchGodCloudAudio`, played through a generated cathedral reverb on the
+ * shared AudioContext. The browser `speechSynthesis` voice is only the
+ * final fallback rung when cloud TTS is off / unconfigured / fails,
+ * mirroring the office's Chirp3-HD → Neural2 → WaveNet → Web Speech ladder.
  * All functions no-op gracefully in headless/jsdom environments or when muted.
  */
 
@@ -164,7 +172,45 @@ export function playGodSmiteZap(audioContextRef) {
   }
 }
 
+/** Web Speech prosody per mood — only the fallback rung, but keep it in character. */
+const GOD_WEB_SPEECH_PROSODY = {
+  wrathful: { pitch: 0.5, rate: 0.82 },
+  unimpressed: { pitch: 0.6, rate: 0.88 },
+  amused: { pitch: 0.72, rate: 0.95 },
+  benevolent: { pitch: 0.8, rate: 0.97 },
+  smitten: { pitch: 0.85, rate: 1 }
+};
+
+/** @type {{ stop?: () => void } | null} */
+let activeCloudSource = null;
+/** @type {HTMLAudioElement | null} */
+let activeCloudAudioEl = null;
+/** Bumped on stop/replace so a late cloud fetch cannot speak over a newer decree. */
+let godSpeechGeneration = 0;
+
+function stopActiveCloudPlayback() {
+  if (activeCloudSource) {
+    try {
+      activeCloudSource.stop?.();
+    } catch {
+      // Already ended.
+    }
+    activeCloudSource = null;
+  }
+  if (activeCloudAudioEl) {
+    try {
+      activeCloudAudioEl.pause();
+      activeCloudAudioEl.removeAttribute('src');
+    } catch {
+      // Ignore.
+    }
+    activeCloudAudioEl = null;
+  }
+}
+
 export function stopGodSpeech() {
+  godSpeechGeneration += 1;
+  stopActiveCloudPlayback();
   try {
     globalThis.speechSynthesis?.cancel?.();
   } catch {
@@ -179,31 +225,174 @@ function getSpeechApi() {
   return { synth, Utterance };
 }
 
-/** Speak a divine decree via browser SpeechSynthesis when available. */
-export function speakGodDecree(
-  text,
-  { enabled = true, pitch = 0.72, rate = 0.95, volume = 0.75 } = {}
-) {
-  if (!enabled || typeof text !== 'string') return false;
-  const cleaned = text
+function cleanGodDecreeText(text) {
+  if (typeof text !== 'string') return '';
+  return text
     .replace(/[`*_#>-]+/g, ' ')
     .replace(/\s+/g, ' ')
     .trim()
     .slice(0, 320);
+}
+
+/** Speak a divine decree via browser SpeechSynthesis — the final fallback rung. */
+export function speakGodDecree(
+  text,
+  { enabled = true, mood = 'amused', pitch, rate, volume = 0.85 } = {}
+) {
+  if (!enabled) return false;
+  const cleaned = cleanGodDecreeText(text);
   if (!cleaned) return false;
   const api = getSpeechApi();
   if (!api) return false;
+  const prosody = GOD_WEB_SPEECH_PROSODY[mood] ?? GOD_WEB_SPEECH_PROSODY.amused;
   try {
     api.synth.cancel?.();
     const utterance = new api.Utterance(cleaned);
-    utterance.pitch = pitch;
-    utterance.rate = rate;
+    utterance.pitch = pitch ?? prosody.pitch;
+    utterance.rate = rate ?? prosody.rate;
     utterance.volume = volume;
     api.synth.speak(utterance);
     return true;
   } catch {
     return false;
   }
+}
+
+function decodeBase64Bytes(audioBase64) {
+  const atobFn = globalThis.atob;
+  if (typeof atobFn !== 'function') return null;
+  try {
+    const binary = atobFn(audioBase64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
+    return bytes;
+  } catch {
+    return null;
+  }
+}
+
+/** Generated cathedral impulse — decaying stereo noise, no IR asset needed. */
+function cathedralImpulse(ctx, durationSec = 1.8) {
+  const length = Math.max(1, Math.floor(ctx.sampleRate * durationSec));
+  const buffer = ctx.createBuffer(2, length, ctx.sampleRate);
+  for (let channel = 0; channel < 2; channel += 1) {
+    const data = buffer.getChannelData(channel);
+    for (let i = 0; i < length; i += 1) {
+      data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (ctx.sampleRate * 0.55));
+    }
+  }
+  return buffer;
+}
+
+/**
+ * Play cloud decree audio through the shared AudioContext with a cathedral
+ * reverb send (and a whisper of pitch-down from playing the buffer back
+ * slightly slow). Returns false when Web Audio playback is unavailable so
+ * the caller can try the plain <audio> path.
+ */
+async function playCloudAudioViaContext(audio, audioContextRef, generation) {
+  const ctx = resolveContext(audioContextRef);
+  if (
+    !ctx ||
+    typeof ctx.decodeAudioData !== 'function' ||
+    typeof ctx.createBufferSource !== 'function'
+  )
+    return false;
+  const bytes = decodeBase64Bytes(audio.audioBase64);
+  if (!bytes) return false;
+  let buffer;
+  try {
+    buffer = await ctx.decodeAudioData(
+      bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength)
+    );
+  } catch {
+    return false;
+  }
+  if (generation !== godSpeechGeneration || !buffer) return false;
+  try {
+    stopActiveCloudPlayback();
+    const source = ctx.createBufferSource();
+    source.buffer = buffer;
+    // A touch slow = a touch deeper; the server rate already carries the pace.
+    if ('playbackRate' in source && source.playbackRate) source.playbackRate.value = 0.96;
+    const dry = ctx.createGain();
+    dry.gain.value = 0.9;
+    source.connect(dry);
+    dry.connect(ctx.destination);
+    if (typeof ctx.createConvolver === 'function' && typeof ctx.createBuffer === 'function') {
+      const convolver = ctx.createConvolver();
+      convolver.buffer = cathedralImpulse(ctx);
+      const wet = ctx.createGain();
+      wet.gain.value = 0.38;
+      source.connect(convolver);
+      convolver.connect(wet);
+      wet.connect(ctx.destination);
+    }
+    activeCloudSource = source;
+    source.onended = () => {
+      if (activeCloudSource === source) activeCloudSource = null;
+    };
+    source.start();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function playCloudAudioViaElement(audio, generation) {
+  const AudioCtor = globalThis.Audio;
+  if (typeof AudioCtor !== 'function' || !audio?.audioBase64) return false;
+  if (generation !== godSpeechGeneration) return false;
+  try {
+    stopActiveCloudPlayback();
+    const el = new AudioCtor(`data:${audio.mimeType || 'audio/mpeg'};base64,${audio.audioBase64}`);
+    el.volume = 0.9;
+    activeCloudAudioEl = el;
+    const result = el.play();
+    if (result && typeof result.catch === 'function') result.catch(() => {});
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Speak a decree cloud-first: Google Cloud TTS (Chirp3-HD Charon) when
+ * `fetchCloudAudio` answers, Web Speech when it does not. Never throws.
+ *
+ * @returns {Promise<boolean>} true when any rung actually spoke
+ */
+export async function speakGodDecreeWithCloud(
+  text,
+  { enabled = true, mood = 'amused', fetchCloudAudio, audioContextRef } = {}
+) {
+  if (!enabled) return false;
+  const cleaned = cleanGodDecreeText(text);
+  if (!cleaned) return false;
+  const generation = ++godSpeechGeneration;
+  stopActiveCloudPlayback();
+  try {
+    globalThis.speechSynthesis?.cancel?.();
+  } catch {
+    // Ignore.
+  }
+
+  if (typeof fetchCloudAudio === 'function') {
+    let cloud = null;
+    try {
+      cloud = await fetchCloudAudio({ text: cleaned, mood });
+    } catch {
+      cloud = null;
+    }
+    if (generation !== godSpeechGeneration) return false;
+    if (cloud?.audioBase64) {
+      if (await playCloudAudioViaContext(cloud, audioContextRef, generation)) return true;
+      if (generation !== godSpeechGeneration) return false;
+      if (playCloudAudioViaElement(cloud, generation)) return true;
+    }
+  }
+  if (generation !== godSpeechGeneration) return false;
+  return speakGodDecree(cleaned, { enabled: true, mood });
 }
 
 function isBlessingCue({ kind, mood, hasProposal }) {
@@ -243,8 +432,11 @@ function playReactionSting(audioContextRef, { kind, mood, hasProposal }) {
  *   hasProposal?: boolean,
  *   soundEnabled?: boolean,
  *   voiceEnabled?: boolean,
- *   text?: string
+ *   text?: string,
+ *   fetchCloudAudio?: (args: { text: string, mood?: string }) =>
+ *     Promise<{ audioBase64: string, mimeType?: string } | null>
  * }} opts
+ * @returns {Promise<boolean>} resolves true when the decree was spoken (any rung)
  */
 export function playGodJudgmentCue({
   audioContextRef,
@@ -253,12 +445,14 @@ export function playGodJudgmentCue({
   hasProposal = false,
   soundEnabled = true,
   voiceEnabled = true,
-  text = ''
+  text = '',
+  fetchCloudAudio
 }) {
-  if (!soundEnabled || audioContextRef?.disposed) return;
+  if (!soundEnabled || audioContextRef?.disposed) return Promise.resolve(false);
   playGodThunderclap(audioContextRef);
   playReactionSting(audioContextRef, { kind, mood, hasProposal });
   if (voiceEnabled && text) {
-    speakGodDecree(text, { enabled: true });
+    return speakGodDecreeWithCloud(text, { enabled: true, mood, fetchCloudAudio, audioContextRef });
   }
+  return Promise.resolve(false);
 }

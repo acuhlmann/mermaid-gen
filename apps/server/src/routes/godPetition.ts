@@ -17,10 +17,12 @@ import {
 import { createApiRateLimitMiddleware } from '../middleware/apiRateLimit.js';
 import { createIpRateLimiter, keyByRequestIp } from '../utils/ipRateLimit.js';
 import { extractTextContent } from '../utils/extractTextContent.js';
+import { isGodTtsEnabled, synthesizeGodSpeech } from '../agents/godTts.js';
 import { redactSecrets } from '../utils/redactSecrets.js';
 import {
   GOD_OFFERINGS,
   GodOfferingIdSchema,
+  GodMoodSchema,
   GodPrProposalSchema,
   buildGodPetitionSystemPrompt,
   buildGodPetitionUserPrompt,
@@ -72,6 +74,11 @@ const FilePrBodySchema = z.object({
   dispatchWorkflow: z.boolean().default(true)
 });
 
+const SpeakBodySchema = z.object({
+  text: z.string().min(1).max(800),
+  mood: GodMoodSchema.optional().default('amused')
+});
+
 const DispatchWorkflowBodySchema = z.object({
   ref: z.string().trim().min(1).max(120).optional(),
   focus: z.enum(GOD_WORKFLOW_FOCUSES).optional(),
@@ -82,6 +89,10 @@ export const GOD_PETITION_ROUTE_BASE = '/petition';
 
 export type GodPetitionRouterOptions = {
   env?: Env;
+  synthesizeSpeech?: (input: {
+    text: string;
+    mood: string;
+  }) => Promise<{ audioBase64: string; mimeType: string; voiceName: string; lang: string } | null>;
   invokeModel?: (input: {
     system: string;
     user: string;
@@ -118,6 +129,7 @@ function buildCapabilitiesPayload(env: Env) {
     v: 1,
     llmConfigured: isLlmConfigured(env),
     githubPrConfigured: Boolean(resolvePetitionGitHubToken(env)),
+    godTtsConfigured: isGodTtsEnabled(env),
     repo: resolvePetitionRepo(env),
     offerings: GOD_OFFERINGS
   };
@@ -174,6 +186,31 @@ export function createGodPetitionRouter(options: GodPetitionRouterOptions = {}) 
   router.get('/petition/capabilities', (_req: Request, res: Response) => {
     res.set('Cache-Control', 'no-store');
     res.status(200).json(buildCapabilitiesPayload(env));
+  });
+
+  // Cloud TTS for spoken decrees (Chirp3-HD Charon → Neural2 → WaveNet in
+  // godTts.js) or { audio: null } so the client degrades to Web Speech.
+  // No LLM — decorative audio only, so it shares the office TTS contract.
+  router.post('/petition/speak', async (req: Request, res: Response) => {
+    res.set('Cache-Control', 'no-store');
+    const parsed = SpeakBodySchema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: 'Invalid speak payload', details: parsed.error.flatten() });
+      return;
+    }
+    if (!options.synthesizeSpeech && !isGodTtsEnabled(env)) {
+      res.status(200).json({ audio: null, reason: 'disabled' });
+      return;
+    }
+    try {
+      const audio = options.synthesizeSpeech
+        ? await options.synthesizeSpeech(parsed.data)
+        : await synthesizeGodSpeech(parsed.data, env);
+      res.status(200).json({ audio });
+    } catch (error) {
+      console.warn('god speak failed:', safeError(error));
+      res.status(200).json({ audio: null, reason: 'unavailable' });
+    }
   });
 
   router.post('/petition', llmRateLimit, async (req: Request, res: Response) => {

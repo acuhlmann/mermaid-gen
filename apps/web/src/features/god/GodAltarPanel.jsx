@@ -6,6 +6,7 @@ import {
   GOD_QUICK_PRAYERS
 } from './godAltarCopy.js';
 import { disposeGodAudioContext, playGodJudgmentCue, stopGodSpeech } from './godAltarAudio.js';
+import { fetchGodCloudAudio } from './godSpeechClient.js';
 import { emitGodAltarEvent } from './godAltarStore.js';
 import {
   dispatchGodWorkflow,
@@ -496,14 +497,17 @@ function useGodAltarAudioPrefs() {
   const playCue = ({ kind, mood, hasProposal, text }) => {
     const ref = audioContextRef.current;
     if (ref.disposed) return;
-    playGodJudgmentCue({
+    // Cloud-first voice (Chirp3-HD Charon via /api/god/petition/speak);
+    // godAltarAudio falls back to Web Speech when the cloud stays silent.
+    void playGodJudgmentCue({
       audioContextRef: ref,
       kind,
       mood,
       hasProposal,
       soundEnabled: prefsRef.current.soundEnabled,
       voiceEnabled: prefsRef.current.voiceEnabled,
-      text
+      text,
+      fetchCloudAudio: fetchGodCloudAudio
     });
   };
 

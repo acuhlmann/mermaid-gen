@@ -11,6 +11,7 @@ import {
 import {
   playGodJudgmentCue,
   speakGodDecree,
+  speakGodDecreeWithCloud,
   stopGodSpeech
 } from '../src/features/god/godAltarAudio.js';
 import { _resetUxSignalsForTests, installUxSignals } from '../src/state/uxSignalsClient.js';
@@ -75,6 +76,9 @@ describe('GodAltarPanel & GodAltarModal', () => {
             message: 'Dispatched god.yml (focus: ux).'
           }
         });
+      }
+      if (u.includes('/api/god/petition/speak')) {
+        return jsonResponse({ audio: null, reason: 'disabled' });
       }
       if (u.includes('/api/god/petition')) {
         const payload = JSON.parse(init.body);
@@ -265,6 +269,88 @@ describe('GodAltarPanel & GodAltarModal', () => {
     }
   });
 
+  it('prefers Chirp3-HD cloud audio through cathedral reverb, and falls back to Web Speech when silent', async () => {
+    const sourceStart = vi.fn();
+    const source = {
+      buffer: null,
+      playbackRate: { value: 1 },
+      connect: vi.fn(),
+      start: sourceStart,
+      stop: vi.fn(),
+      onended: null
+    };
+    const ctx = {
+      currentTime: 0,
+      sampleRate: 44100,
+      destination: {},
+      createOscillator: vi.fn(() => ({
+        type: 'sine',
+        frequency: { setValueAtTime: vi.fn(), exponentialRampToValueAtTime: vi.fn() },
+        connect: vi.fn(),
+        start: vi.fn(),
+        stop: vi.fn()
+      })),
+      createGain: vi.fn(() => ({
+        gain: { setValueAtTime: vi.fn(), exponentialRampToValueAtTime: vi.fn(), value: 0 },
+        connect: vi.fn()
+      })),
+      createBuffer: vi.fn(() => ({ getChannelData: () => new Float32Array(8) })),
+      createConvolver: vi.fn(() => ({ buffer: null, connect: vi.fn() })),
+      createBufferSource: vi.fn(() => source),
+      decodeAudioData: vi.fn(async () => ({ duration: 1 }))
+    };
+    globalThis.AudioContext = vi.fn(function MockCtx() {
+      return ctx;
+    });
+    const speak = vi.fn();
+    globalThis.speechSynthesis = { speak, cancel: vi.fn() };
+    globalThis.SpeechSynthesisUtterance = vi.fn(function MockUtterance(text) {
+      this.text = text;
+    });
+
+    try {
+      const ref = { current: ctx };
+      const cloudAudio = {
+        audioBase64: btoa('fake-mp3'),
+        mimeType: 'audio/mpeg',
+        voiceName: 'en-US-Chirp3-HD-Charon'
+      };
+      const fetchCloudAudio = vi.fn(async () => cloudAudio);
+      await expect(
+        speakGodDecreeWithCloud('BEHOLD, MORTAL.', {
+          mood: 'wrathful',
+          fetchCloudAudio,
+          audioContextRef: ref
+        })
+      ).resolves.toBe(true);
+      expect(fetchCloudAudio).toHaveBeenCalledWith({ text: 'BEHOLD, MORTAL.', mood: 'wrathful' });
+      expect(ctx.decodeAudioData).toHaveBeenCalled();
+      expect(sourceStart).toHaveBeenCalled();
+      expect(source.playbackRate.value).toBe(0.96);
+      expect(speak).not.toHaveBeenCalled();
+
+      // Cloud silent → Web Speech fallback keeps the wrathful prosody.
+      await expect(
+        speakGodDecreeWithCloud('BEGONE.', {
+          mood: 'wrathful',
+          fetchCloudAudio: async () => null,
+          audioContextRef: ref
+        })
+      ).resolves.toBe(true);
+      expect(speak).toHaveBeenCalledTimes(1);
+      const utterance = speak.mock.calls[0][0];
+      expect(utterance.pitch).toBe(0.5);
+      expect(utterance.rate).toBe(0.82);
+
+      stopGodSpeech();
+      expect(source.stop).toHaveBeenCalled();
+    } finally {
+      delete globalThis.AudioContext;
+      delete globalThis.speechSynthesis;
+      delete globalThis.SpeechSynthesisUtterance;
+    }
+  });
+
   it('opens GodAltarModal via store, traps focus, links to /god?tab=altar, and restores focus on close', async () => {
     vi.stubGlobal(
       'fetch',
@@ -354,6 +440,9 @@ describe('GodAltarPanel & GodAltarModal', () => {
             divineMessage: 'PR #12 opened.'
           })
         );
+      }
+      if (u.includes('/api/god/petition/speak')) {
+        return Promise.resolve(jsonResponse({ audio: null, reason: 'disabled' }));
       }
       if (u.includes('/api/god/petition')) {
         petitionPayloads.push(JSON.parse(init.body));
