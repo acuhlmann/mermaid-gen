@@ -12,6 +12,7 @@ import {
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import App from '../src/App.jsx';
 import { setDeskSlotElement } from '../src/state/deskSlotStore.js';
+import { resetGodAltarForTests } from '../src/features/god/godAltarStore.js';
 
 const {
   fetchSessionDiagramStateMock,
@@ -240,6 +241,7 @@ describe('App simplified controls', { timeout: 20_000 }, () => {
 
   afterEach(() => {
     cleanup();
+    resetGodAltarForTests();
     vi.clearAllMocks();
     delete globalThis.AudioContext;
   });
@@ -1385,5 +1387,20 @@ describe('App simplified controls', { timeout: 20_000 }, () => {
     fireEvent.click(screen.getByTestId('view-mode-office'));
     expect(await screen.findByTestId('desk-os-menubar')).toBeTruthy();
     expect(screen.queryByTestId('simple-studio')).toBeNull();
+  });
+
+  it('opens the ArchiSlop God Altar from both Studio and Office Desk OS menubar', async () => {
+    window.localStorage.removeItem('archislop:view-mode');
+    render(<App />);
+
+    fireEvent.click(await screen.findByTestId('studio-god-trigger'));
+    expect(await screen.findByTestId('god-altar-modal')).toBeTruthy();
+    expect(screen.getByTestId('god-altar-ascend-link').getAttribute('href')).toBe('/god?tab=altar');
+    fireEvent.click(screen.getByTestId('god-altar-close'));
+    expect(screen.queryByTestId('god-altar-modal')).toBeNull();
+
+    fireEvent.click(screen.getByTestId('view-mode-office'));
+    fireEvent.click(await screen.findByTestId('menubar-god-trigger'));
+    expect(await screen.findByTestId('god-altar-modal')).toBeTruthy();
   });
 });

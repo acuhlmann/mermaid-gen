@@ -229,4 +229,35 @@ describe('GodWindow', () => {
     expect(alert.textContent).toMatch(/Could not reach the server/);
     expect(screen.getByRole('button', { name: 'Refresh' })).toBeTruthy();
   });
+
+  it('opens the interactive Altar tab when unlocked and from the mortal shortcut on 401', async () => {
+    stubFetch((url) => {
+      if (url.includes('/api/god/petition/capabilities')) {
+        return jsonResponse({ v: 1, llmConfigured: false, githubPrConfigured: false });
+      }
+      return jsonResponse(VIEW);
+    });
+    render(<GodWindow />);
+    await screen.findByText('$0.018813');
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Altar' }));
+    expect(await screen.findByTestId('god-altar-panel')).toBeTruthy();
+    expect(screen.getByTestId('god-return-home').getAttribute('href')).toBe('/');
+
+    cleanup();
+    resetGodWindow();
+
+    stubFetch((url) => {
+      if (url.includes('/api/god/petition/capabilities')) {
+        return jsonResponse({ v: 1, llmConfigured: false, githubPrConfigured: false });
+      }
+      return jsonResponse({}, 401);
+    });
+    render(<GodWindow />);
+    const shortcut = await screen.findByTestId('god-enter-mortal-altar');
+    fireEvent.click(shortcut);
+    expect(await screen.findByTestId('god-altar-panel')).toBeTruthy();
+    fireEvent.click(screen.getByTestId('god-switch-owner-gate'));
+    expect(await screen.findByLabelText('Owner token')).toBeTruthy();
+  });
 });

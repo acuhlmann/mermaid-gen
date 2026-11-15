@@ -1,5 +1,5 @@
 /**
- * The one route decision the God window needs.
+ * Route helpers for the ArchiSlop God sanctuary (`/god`).
  *
  * The app has no router: `App.jsx` renders the ArchiSlop tree, and inside it
  * `ensureUrlBackedSession()` rewrites the address bar to `/sessions/{id}`. A God pane mounted anywhere
@@ -18,13 +18,45 @@ function normalizeBasePath(baseUrl) {
   return `/${raw.replace(/^\/+|\/+$/g, '')}`;
 }
 
+function defaultBaseUrl() {
+  return (typeof import.meta !== 'undefined' ? import.meta.env?.BASE_URL : '') ?? '';
+}
+
 /** The pane answers on the route itself and nothing below it; `/god/anything` is not a second view. */
 export function isGodWindowPath(
   locationLike = typeof window !== 'undefined' ? window.location : null,
-  baseUrl = (typeof import.meta !== 'undefined' ? import.meta.env?.BASE_URL : '') ?? ''
+  baseUrl = defaultBaseUrl()
 ) {
   if (!locationLike) return false;
   const relative = (locationLike.pathname || '/').slice(normalizeBasePath(baseUrl).length);
   const segments = relative.split('/').filter(Boolean);
   return segments.length === 1 && segments[0] === GOD_ROUTE_SEGMENT;
+}
+
+/** Build the `/god` URL (with optional `?tab=altar`), honoring `VITE_BASE_PATH`. */
+export function buildGodWindowUrl({ tab } = {}, baseUrl = defaultBaseUrl()) {
+  const prefix = normalizeBasePath(baseUrl);
+  const path = `${prefix}/${GOD_ROUTE_SEGMENT}`;
+  if (tab === 'altar') return `${path}?tab=altar`;
+  return path;
+}
+
+/** Build the Studio/Office home URL, honoring `VITE_BASE_PATH`. */
+export function buildAppHomeUrl(baseUrl = defaultBaseUrl()) {
+  const prefix = normalizeBasePath(baseUrl);
+  return prefix ? `${prefix}/` : '/';
+}
+
+/** Read `?tab=...` from the current location if it targets the Altar. */
+export function readGodWindowInitialTab(
+  locationLike = typeof window !== 'undefined' ? window.location : null
+) {
+  const search = typeof locationLike?.search === 'string' ? locationLike.search : '';
+  if (!search) return null;
+  try {
+    const params = new URLSearchParams(search);
+    return params.get('tab') === 'altar' ? 'altar' : null;
+  } catch {
+    return null;
+  }
 }

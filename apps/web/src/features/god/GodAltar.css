@@ -1,0 +1,599 @@
+.god-altar {
+  --altar-bg: #0c101a;
+  --altar-surface: #141b2d;
+  --altar-card: rgba(20, 27, 45, 0.88);
+  --altar-gold: #e5c158;
+  --altar-gold-soft: rgba(229, 193, 88, 0.16);
+  --altar-violet: #a78bfa;
+  --altar-ink: #eef2ff;
+  --altar-muted: #98a6c4;
+  --altar-line: rgba(229, 193, 88, 0.24);
+  --altar-ok: #7ee787;
+  --altar-bad: #ff7b72;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1.25rem;
+  border: 1px solid var(--altar-line);
+  border-radius: 1rem;
+  color: var(--altar-ink);
+  background:
+    radial-gradient(ellipse 90% 55% at 50% 0%, rgba(167, 139, 250, 0.16), transparent 60%),
+    radial-gradient(circle at 80% 18%, rgba(229, 193, 88, 0.14), transparent 45%),
+    linear-gradient(175deg, #0b0f19 0%, #12192b 100%);
+  box-shadow:
+    0 24px 70px rgba(0, 0, 0, 0.55),
+    inset 0 1px 0 rgba(229, 193, 88, 0.22);
+  overflow: hidden;
+}
+
+.god-altar.is-thunder::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(circle at 50% 12%, rgba(229, 193, 88, 0.35), transparent 65%);
+  animation: god-altar-flash 0.7s ease-out forwards;
+}
+
+@keyframes god-altar-flash {
+  0% {
+    opacity: 0.95;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+.god-altar-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.god-altar-identity {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+}
+
+.god-altar-halo {
+  flex: 0 0 auto;
+  width: 3.35rem;
+  height: 3.35rem;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(229, 193, 88, 0.25), transparent 72%);
+  border: 1px solid rgba(229, 193, 88, 0.48);
+  box-shadow: 0 0 24px rgba(229, 193, 88, 0.22);
+}
+
+.god-altar-halo svg {
+  width: 2.25rem;
+  height: 2.25rem;
+  animation: god-altar-float 4.5s ease-in-out infinite;
+}
+
+@keyframes god-altar-float {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(-2px) scale(1.04);
+  }
+}
+
+.god-altar-eyebrow {
+  margin: 0;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--altar-gold);
+}
+
+.god-altar-title {
+  margin: 0.15rem 0 0;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: clamp(1.25rem, 2.5vw, 1.6rem);
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  color: #fff8df;
+}
+
+.god-altar-subtitle {
+  margin: 0.2rem 0 0;
+  font-size: 0.85rem;
+  color: var(--altar-muted);
+}
+
+.god-altar-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  align-items: center;
+}
+
+.god-altar-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.6rem;
+  border-radius: 999px;
+  border: 1px solid rgba(152, 166, 196, 0.3);
+  background: rgba(12, 16, 26, 0.65);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--altar-muted);
+}
+
+.god-altar-pill.is-live {
+  border-color: rgba(126, 231, 135, 0.45);
+  color: var(--altar-ok);
+}
+
+.god-altar-pill.is-gold {
+  border-color: rgba(229, 193, 88, 0.55);
+  background: rgba(229, 193, 88, 0.12);
+  color: var(--altar-gold);
+}
+
+.god-altar-meter-card {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.5rem 1rem;
+  align-items: center;
+  padding: 0.8rem 0.95rem;
+  border-radius: 0.75rem;
+  border: 1px solid rgba(229, 193, 88, 0.22);
+  background: rgba(10, 14, 24, 0.68);
+}
+
+.god-altar-meter-top {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.god-altar-meter-label {
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--altar-gold);
+}
+
+.god-altar-mood {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.16rem 0.5rem;
+  border-radius: 999px;
+  background: rgba(167, 139, 250, 0.16);
+  border: 1px solid rgba(167, 139, 250, 0.4);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  color: #ddd6fe;
+}
+
+.god-altar-mood.is-wrathful {
+  background: rgba(255, 123, 114, 0.16);
+  border-color: rgba(255, 123, 114, 0.5);
+  color: #ffb4ad;
+}
+
+.god-altar-mood.is-benevolent,
+.god-altar-mood.is-smitten {
+  background: rgba(229, 193, 88, 0.18);
+  border-color: rgba(229, 193, 88, 0.55);
+  color: #fde68a;
+}
+
+.god-altar-judgment {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--altar-ink);
+  opacity: 0.9;
+}
+
+.god-altar-meter-bar {
+  grid-column: 1 / -1;
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(152, 166, 196, 0.18);
+  overflow: hidden;
+}
+
+.god-altar-meter-fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #ff7b72 0%, #e5c158 55%, #7ee787 100%);
+  transition: width 0.35s ease;
+}
+
+.god-altar-meter-hint {
+  grid-column: 1 / -1;
+  margin: 0;
+  font-size: 0.76rem;
+  color: var(--altar-muted);
+}
+
+.god-altar-thread {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  max-height: 20rem;
+  overflow-y: auto;
+  padding: 0.25rem 0.25rem 0.25rem 0;
+}
+
+.god-altar-msg {
+  padding: 0.85rem 1rem;
+  border-radius: 0.75rem;
+  border: 1px solid rgba(152, 166, 196, 0.2);
+  background: rgba(17, 24, 39, 0.72);
+}
+
+.god-altar-msg.is-god {
+  border-color: rgba(229, 193, 88, 0.35);
+  background: linear-gradient(155deg, rgba(30, 34, 58, 0.9), rgba(16, 21, 36, 0.92));
+}
+
+.god-altar-msg.is-user {
+  align-self: flex-end;
+  max-width: 90%;
+  border-color: rgba(167, 139, 250, 0.35);
+  background: rgba(34, 41, 66, 0.75);
+}
+
+.god-altar-msg-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.35rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--altar-muted);
+}
+
+.god-altar-msg.is-god .god-altar-msg-head {
+  color: var(--altar-gold);
+}
+
+.god-altar-delta {
+  padding: 0.1rem 0.4rem;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  background: rgba(126, 231, 135, 0.14);
+  color: var(--altar-ok);
+}
+
+.god-altar-delta.is-neg {
+  background: rgba(255, 123, 114, 0.15);
+  color: var(--altar-bad);
+}
+
+.god-altar-msg-body {
+  margin: 0;
+  white-space: pre-wrap;
+  font-size: 0.92rem;
+  line-height: 1.5;
+}
+
+.god-altar-msg.is-god .god-altar-msg-body {
+  font-family: Georgia, 'Times New Roman', serif;
+  color: #fff9e8;
+}
+
+.god-altar-pr-card {
+  padding: 1rem;
+  border-radius: 0.85rem;
+  border: 1px solid rgba(229, 193, 88, 0.55);
+  background:
+    radial-gradient(circle at 90% 10%, rgba(229, 193, 88, 0.14), transparent 55%),
+    rgba(13, 19, 33, 0.92);
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.god-altar-pr-title-input {
+  width: 100%;
+  padding: 0.5rem 0.65rem;
+  border-radius: 0.45rem;
+  border: 1px solid rgba(229, 193, 88, 0.35);
+  background: #0a0e18;
+  color: #fff9e8;
+  font: inherit;
+  font-weight: 650;
+  font-size: 0.95rem;
+}
+
+.god-altar-pr-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  font-size: 0.78rem;
+  color: var(--altar-muted);
+}
+
+.god-altar-pr-meta code {
+  color: #fde68a;
+}
+
+.god-altar-pr-plan {
+  margin: 0;
+  padding-left: 1.2rem;
+  font-size: 0.85rem;
+  color: var(--altar-ink);
+  display: grid;
+  gap: 0.25rem;
+}
+
+.god-altar-pr-blessing {
+  margin: 0;
+  font-style: italic;
+  font-size: 0.83rem;
+  color: var(--altar-gold);
+}
+
+.god-altar-pr-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  align-items: center;
+}
+
+.god-altar-strike-btn {
+  padding: 0.6rem 1.05rem;
+  border-radius: 999px;
+  border: 1px solid var(--altar-gold);
+  background: linear-gradient(135deg, #e5c158, #c4932b);
+  color: #111521;
+  font: inherit;
+  font-size: 0.86rem;
+  font-weight: 750;
+  letter-spacing: 0.03em;
+  cursor: pointer;
+}
+
+.god-altar-strike-btn:hover:not(:disabled) {
+  filter: brightness(1.07);
+}
+
+.god-altar-strike-btn:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.god-altar-pr-outcome {
+  padding: 0.75rem 0.9rem;
+  border-radius: 0.6rem;
+  border: 1px solid rgba(126, 231, 135, 0.45);
+  background: rgba(16, 40, 28, 0.55);
+  font-size: 0.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.god-altar-pr-outcome.is-unconfigured {
+  border-color: rgba(229, 193, 88, 0.45);
+  background: rgba(42, 34, 16, 0.48);
+}
+
+.god-altar-pr-outcome a {
+  color: var(--altar-gold);
+  font-weight: 700;
+}
+
+.god-altar-gh-scroll {
+  margin: 0;
+  padding: 0.55rem 0.7rem;
+  border-radius: 0.45rem;
+  background: #080b12;
+  border: 1px solid rgba(152, 166, 196, 0.25);
+  font-family: ui-monospace, 'Cascadia Code', monospace;
+  font-size: 0.74rem;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.god-altar-offerings {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.god-altar-section-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--altar-muted);
+}
+
+.god-altar-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.god-altar-chip {
+  padding: 0.35rem 0.68rem;
+  border-radius: 999px;
+  border: 1px solid rgba(152, 166, 196, 0.28);
+  background: rgba(15, 22, 36, 0.85);
+  color: var(--altar-ink);
+  font: inherit;
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+
+.god-altar-chip:hover:not(:disabled) {
+  border-color: var(--altar-gold);
+}
+
+.god-altar-chip.is-selected {
+  border-color: var(--altar-gold);
+  background: var(--altar-gold-soft);
+  color: #fde68a;
+  font-weight: 650;
+}
+
+.god-altar-composer {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.god-altar-textarea {
+  width: 100%;
+  min-height: 4.5rem;
+  padding: 0.75rem 0.9rem;
+  border-radius: 0.65rem;
+  border: 1px solid rgba(152, 166, 196, 0.3);
+  background: #0a0e18;
+  color: var(--altar-ink);
+  font: inherit;
+  font-size: 0.92rem;
+  resize: vertical;
+}
+
+.god-altar-textarea:focus-visible,
+.god-altar-strike-btn:focus-visible,
+.god-altar-chip:focus-visible,
+.god-altar-secondary-btn:focus-visible {
+  outline: 2px solid var(--altar-gold);
+  outline-offset: 2px;
+}
+
+.god-altar-composer-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.god-altar-secondary-btn {
+  padding: 0.45rem 0.8rem;
+  border-radius: 999px;
+  border: 1px solid rgba(152, 166, 196, 0.35);
+  background: transparent;
+  color: var(--altar-ink);
+  font: inherit;
+  font-size: 0.8rem;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.god-altar-secondary-btn:hover:not(:disabled) {
+  border-color: var(--altar-gold);
+  color: var(--altar-gold);
+}
+
+.god-altar-error {
+  margin: 0;
+  padding: 0.55rem 0.75rem;
+  border-radius: 0.5rem;
+  background: rgba(255, 123, 114, 0.14);
+  border: 1px solid rgba(255, 123, 114, 0.45);
+  color: #ffb4ad;
+  font-size: 0.84rem;
+}
+
+.god-altar-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 950;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(5, 8, 15, 0.76);
+  backdrop-filter: blur(8px);
+}
+
+.god-altar-modal-frame {
+  width: min(52rem, 100%);
+  max-height: calc(100vh - 2rem);
+  overflow-y: auto;
+  border-radius: 1rem;
+}
+
+.god-altar-modal-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.65rem;
+}
+
+.god-altar-modal-topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Studio & Office entry triggers */
+.studio-god-trigger,
+.desk-os-god-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.24rem 0.62rem;
+  border-radius: 999px;
+  border: 1px solid rgba(196, 147, 43, 0.55);
+  background: linear-gradient(135deg, rgba(229, 193, 88, 0.16), rgba(167, 139, 250, 0.14));
+  color: inherit;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.studio-god-trigger:hover,
+.desk-os-god-trigger:hover {
+  border-color: #c4932b;
+  background: linear-gradient(135deg, rgba(229, 193, 88, 0.28), rgba(167, 139, 250, 0.22));
+}
+
+.entry-desk-god-trigger {
+  margin-top: 0.45rem;
+  padding: 0.26rem 0.68rem;
+  border-radius: 999px;
+  border: 1px solid rgba(196, 147, 43, 0.5);
+  background: rgba(229, 193, 88, 0.12);
+  color: inherit;
+  font: inherit;
+  font-size: 0.76rem;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.entry-desk-god-trigger:hover {
+  background: rgba(229, 193, 88, 0.24);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .god-altar-halo svg,
+  .god-altar.is-thunder::after {
+    animation: none;
+  }
+}

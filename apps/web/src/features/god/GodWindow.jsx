@@ -14,11 +14,13 @@ import {
   unlockGodWindow
 } from './godWindowClient.js';
 import { GOD_WINDOW_COPY as COPY } from './godWindowCopy.js';
+import GodAltarPanel from './GodAltarPanel.jsx';
+import { buildAppHomeUrl, readGodWindowInitialTab } from './godRoute.js';
 import { markAppReady } from '../../utils/appReadySignal.js';
 import './GodWindow.css';
 
 const ACT_VERDICTS = new Set(GOD_ACT_VERDICTS);
-const TABS = ['now', 'history', 'signals', 'settings'];
+const TABS = ['now', 'altar', 'history', 'signals', 'settings'];
 
 /** UTC, fixed-width, no locale surprises — this is a measurement readout, not a greeting. */
 function formatUtc(iso) {
@@ -506,6 +508,9 @@ function ReadyHeader({ view, onRefresh }) {
         <button type="button" className="god-button" onClick={onRefresh}>
           {COPY.refresh}
         </button>
+        <a href={buildAppHomeUrl()} className="god-link-button" data-testid="god-return-home">
+          {COPY.returnToApp}
+        </a>
       </div>
     </div>
   );
@@ -531,6 +536,7 @@ function ReadyTabs({ tab, setTab }) {
 }
 
 function ReadyTab({ tab, view }) {
+  if (tab === 'altar') return <GodAltarPanel />;
   if (tab === 'history') return <HistoryTab view={view} />;
   if (tab === 'signals') return <SignalsTab view={view} />;
   if (tab === 'settings') return <SettingsTab />;
@@ -579,7 +585,10 @@ export default function GodWindow() {
     getGodWindowSnapshot,
     getGodWindowSnapshot
   );
-  const [tab, setTab] = useState('now');
+  const [tab, setTab] = useState(() => readGodWindowInitialTab() ?? 'now');
+  const [mortalAltarOpen, setMortalAltarOpen] = useState(
+    () => readGodWindowInitialTab() === 'altar'
+  );
 
   const refresh = useCallback(() => {
     loadGodStatus();
@@ -594,7 +603,7 @@ export default function GodWindow() {
 
   // Only the in-flight state shows the stamp. The error states carry no view either, so folding them in
   // here would leave the owner staring at "Reading the branch…" on a 401 that will never resolve.
-  if (access === GOD_ACCESS.LOADING) {
+  if (access === GOD_ACCESS.LOADING && !mortalAltarOpen) {
     return (
       <Shell>
         <p className="god-stamp" role="status" aria-live="polite">
@@ -605,9 +614,43 @@ export default function GodWindow() {
   }
 
   if (access !== GOD_ACCESS.OK || !view) {
+    if (mortalAltarOpen) {
+      return (
+        <Shell>
+          <div className="god-sanctuary-bar god-sanctuary-bar--top">
+            <a href={buildAppHomeUrl()} className="god-link-button" data-testid="god-return-home">
+              {COPY.returnToApp}
+            </a>
+            <button
+              type="button"
+              className="god-link-button"
+              data-testid="god-switch-owner-gate"
+              onClick={() => setMortalAltarOpen(false)}
+            >
+              {COPY.ownerGateShortcut}
+            </button>
+          </div>
+          <GodAltarPanel />
+        </Shell>
+      );
+    }
+
     return (
       <Shell>
         <AccessPanel access={access} view={view} onRetry={refresh} />
+        <div className="god-sanctuary-bar">
+          <a href={buildAppHomeUrl()} className="god-link-button" data-testid="god-return-home">
+            {COPY.returnToApp}
+          </a>
+          <button
+            type="button"
+            className="god-link-button is-altar"
+            data-testid="god-enter-mortal-altar"
+            onClick={() => setMortalAltarOpen(true)}
+          >
+            ⚡ {COPY.altarShortcut}
+          </button>
+        </div>
       </Shell>
     );
   }

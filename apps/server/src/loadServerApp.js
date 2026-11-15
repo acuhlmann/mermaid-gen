@@ -27,6 +27,7 @@ import { createOfficeRouter } from './routes/office.js';
 import { createDiagramRepairRouter } from './routes/diagramRepair.js';
 import { createSignalsRouter } from './routes/signals.js';
 import { createGodLiveIngestHandler, createGodLiveReadRouter } from './routes/godLive.js';
+import { createGodPetitionRouter } from './routes/godPetition.js';
 import { createGodStatusRouter } from './routes/godStatus.js';
 import {
   createSessionServicesRegistry,
@@ -101,6 +102,9 @@ export async function attachRoutes(app) {
     express.raw({ type: 'application/json', limit: '256kb' }),
     createGodLiveIngestHandler()
   );
+  // Mortal prayer & Wish-to-PR petition routes: open to authenticated Studio/Office visitors
+  // (behind createVisitorBadgeGate when configured) while status/live remain behind GOD_WINDOW_TOKEN.
+  app.use('/api/god', createGodPetitionRouter());
   app.use('/api/god', createGodWindowGate(), createGodStatusRouter(), createGodLiveReadRouter());
   app.use(
     '/api/diagram',

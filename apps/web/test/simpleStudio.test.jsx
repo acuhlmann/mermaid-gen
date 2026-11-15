@@ -70,6 +70,7 @@ const localeCopy = {
 function renderStudio(overrides = {}) {
   const onSubmit = vi.fn();
   const onEnterOffice = vi.fn();
+  const onOpenGod = vi.fn();
   const onStartOver = vi.fn();
   const onSelectContentMode = vi.fn();
   const onSelectModelProfile = vi.fn();
@@ -87,6 +88,7 @@ function renderStudio(overrides = {}) {
       onStop={vi.fn()}
       onSubmit={onSubmit}
       onEnterOffice={onEnterOffice}
+      onOpenGod={onOpenGod}
       onStartOver={onStartOver}
       showCanvas={false}
       showStartOver={false}
@@ -116,6 +118,7 @@ function renderStudio(overrides = {}) {
   return {
     onSubmit,
     onEnterOffice,
+    onOpenGod,
     onStartOver,
     onSelectContentMode,
     onSelectModelProfile,
@@ -167,6 +170,15 @@ describe('SimpleStudioSlot', () => {
     expect(screen.getByTestId('view-mode-simple').getAttribute('aria-pressed')).toBe('true');
     fireEvent.click(officeSwitch);
     expect(onEnterOffice).toHaveBeenCalledTimes(1);
+
+    fireEvent.click(screen.getByTestId('studio-god-trigger'));
+    expect(screen.getByTestId('studio-god-trigger').textContent).toContain('Altar');
+  });
+
+  it('calls onOpenGod when clicking the Studio Altar trigger', () => {
+    const { onOpenGod } = renderStudio();
+    fireEvent.click(screen.getByTestId('studio-god-trigger'));
+    expect(onOpenGod).toHaveBeenCalledTimes(1);
   });
 
   it('only promises "Auto picks for you" while Auto is actually selected', () => {

@@ -81,7 +81,9 @@ export const CONTROLS_ZH_TW = {
       exitFullscreen: '退出全螢幕',
       examplesLabel: '還沒想好？試試這些：',
       examplesAria: '示例提示',
-      elapsed: '{seconds}秒'
+      elapsed: '{seconds}秒',
+      godAltarLabel: '神壇',
+      godAltarTitle: '召喚 ArchiSlop 之神 — 懺悔架構或祈求提 PR'
     },
     topicPlaceholder: '輸入任何主題 — 圖表、資料圖、表單…',
     starterHint: '或從同事那裡接個任務：',
@@ -89,7 +91,8 @@ export const CONTROLS_ZH_TW = {
     entryIntro: {
       greeting: '工位魔法時間，{name}',
       role: '架構師',
-      body: '你熬過了新人引導。這是最後一次來自公司的擁抱。在下面的工單裡拋個主題——每份交付物都是這麼開始的，你也是這麼從「擺設」變成「同事」的。'
+      body: '你熬過了新人引導。這是最後一次來自公司的擁抱。在下面的工單裡拋個主題——每份交付物都是這麼開始的，你也是這麼從「擺設」變成「同事」的。',
+      prayToGod: '前往 ArchiSlop 神壇懺悔'
     },
     entryPointers: [
       {
@@ -186,6 +189,9 @@ export const CONTROLS_ZH_TW = {
     adminTitle: '行政 · 外包、人事、耳機、語言、快速鍵',
     adminAria: '行政 — 外包、人事、耳機、語言、快速鍵',
     hotkeys: '鍵盤快速鍵',
+    godAltarShort: '神壇',
+    prayToGod: '向 ArchiSlop 之神祈禱',
+    prayToGodTitle: '前往 /god 懺悔爛圖或祈求提交 PR',
     usageSignalsLabel: '分享匿名使用資料',
     usageSignalsTitle:
       '只傳送計數（例如「一次執行失敗」「你復原了一次 AI 修改」），協助 ArchiSlop 自我改進——絕不傳送你的提示、圖表或任何可識別你的資訊。'

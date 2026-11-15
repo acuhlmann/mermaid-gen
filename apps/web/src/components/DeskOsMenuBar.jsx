@@ -6,6 +6,7 @@ import DeskOsMenu, { DeskOsMenuItem, DeskOsMenuSection } from './DeskOsMenu.jsx'
 import IntroLocaleToggle from './IntroLocaleToggle.jsx';
 import OutboxDock from './OutboxDock.jsx';
 import { SettingsGearIcon } from './AppIcons.jsx';
+import { openGodAltar } from '../features/god/godAltarStore.js';
 import { useCoarsePointer } from '../hooks/useAppLayoutMedia.js';
 import { useUiCopy } from '../i18n/useUiLocale.js';
 import { officeChromeCopy } from '../utils/officeCast.js';
@@ -181,6 +182,23 @@ function SpaghettiToggle({ desk, editorOpen, canToggleEditor, onToggleEditor }) 
   );
 }
 
+function GodAltarButton({ copy, onOpenGod }) {
+  return (
+    <button
+      type="button"
+      className="desk-os-menu-trigger desk-os-god-trigger"
+      title={copy.prayToGodTitle ?? 'Confess thy slop or petition a Pull Request at /god'}
+      data-testid="menubar-god-trigger"
+      onClick={() => (typeof onOpenGod === 'function' ? onOpenGod() : openGodAltar())}
+    >
+      <span className="desk-os-menu-trigger-emoji" aria-hidden="true">
+        ⚡
+      </span>
+      <span className="desk-os-menu-trigger-label">{copy.godAltarShort ?? 'Altar'}</span>
+    </button>
+  );
+}
+
 /**
  * Workstation prefs: once-a-session admin verbs, the two office sound postures
  * (Headphones / Focus), and the Approved vendors attribution strip. "Onboard a
@@ -270,6 +288,17 @@ function AdminMenu({
             onSelect={() => {
               close();
               options.onOpenHrProgression?.();
+            }}
+          />
+          <DeskOsMenuItem
+            emoji="⚡"
+            label={copy.prayToGod ?? 'Pray to ArchiSlop God'}
+            title={copy.prayToGodTitle ?? 'Confess thy slop or petition a Pull Request at /god'}
+            testId="menubar-god"
+            onSelect={() => {
+              close();
+              if (typeof options.onOpenGod === 'function') options.onOpenGod();
+              else openGodAltar();
             }}
           />
           {touchUi ? null : (
@@ -387,6 +416,7 @@ export default function DeskOsMenuBar({
   onOpenContractor,
   onOpenHrProgression,
   onOpenHotkeys,
+  onOpenGod = null,
   headphones = false,
   focusTime = false,
   onToggleHeadphones = null,
@@ -463,6 +493,7 @@ export default function DeskOsMenuBar({
         canToggleEditor={canToggleEditor}
         onToggleEditor={onToggleEditor}
       />
+      <GodAltarButton copy={copy} onOpenGod={onOpenGod} />
       <AdminMenu
         menu={menuFor('admin')}
         copy={copy}
@@ -475,6 +506,7 @@ export default function DeskOsMenuBar({
           onOpenContractor,
           onOpenHrProgression,
           onOpenHotkeys,
+          onOpenGod,
           headphones,
           focusTime,
           onToggleHeadphones,

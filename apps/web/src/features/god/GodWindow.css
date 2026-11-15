@@ -394,6 +394,51 @@
   color: var(--god-warn);
 }
 
+.god-sanctuary-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem;
+  margin-top: 1.1rem;
+  padding-top: 0.9rem;
+  border-top: 1px solid var(--god-line);
+}
+
+.god-sanctuary-bar--top {
+  margin-top: 0;
+  margin-bottom: 1rem;
+  padding-top: 0;
+  padding-bottom: 0.75rem;
+  border-top: 0;
+  border-bottom: 1px solid var(--god-line);
+}
+
+.god-link-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.45rem 0.85rem;
+  border: 1px solid var(--god-line);
+  background: rgba(12, 17, 24, 0.55);
+  color: var(--god-ink);
+  font: inherit;
+  font-size: 0.82rem;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.god-link-button:hover {
+  border-color: var(--god-accent);
+  color: var(--god-accent);
+}
+
+.god-link-button.is-altar {
+  border-color: rgba(229, 193, 88, 0.55);
+  background: rgba(229, 193, 88, 0.12);
+  color: #fde68a;
+}
+
 @media (max-width: 38rem) {
   .god-lines li {
     flex-direction: column;

@@ -17,7 +17,8 @@ export function EmptyCanvasSlot({
   entryRole = 'Architect',
   entryTourCopy = null,
   onAdvanceEntryTour,
-  onDismissEntryTour
+  onDismissEntryTour,
+  onOpenGod = null
 }) {
   if (!active || !copy) return null;
 
@@ -30,7 +31,12 @@ export function EmptyCanvasSlot({
     >
       {showEntryDeskIntro && introCopy ? (
         <div className="entry-desk-welcome" data-testid="entry-desk-welcome">
-          <EntryDeskIntro copy={introCopy} userName={userName} role={entryRole} />
+          <EntryDeskIntro
+            copy={introCopy}
+            userName={userName}
+            role={entryRole}
+            onOpenGod={onOpenGod}
+          />
           <div className="entry-desk-welcome-actions">
             <button
               type="button"

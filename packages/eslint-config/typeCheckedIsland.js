@@ -68,5 +68,8 @@ export const SERVER_STRICT_ISLAND_FILES = [
   'src/god/godLiveStore.ts',
   'src/god/godIngestAuth.ts',
   'src/routes/godStatus.ts',
-  'src/routes/godLive.ts'
+  'src/routes/godLive.ts',
+  'src/god/godPetitionPrompt.ts',
+  'src/god/godPetitionPr.ts',
+  'src/routes/godPetition.ts'
 ];
