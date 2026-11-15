@@ -1,6 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { parseViewBoxPixelSize, sanitizeSvgMarkup } from '../src/sanitizeSvg.js';
+import {
+  parseViewBoxPixelSize,
+  patchMermaidClassDefContainerCollisions,
+  sanitizeSvgMarkup
+} from '../src/sanitizeSvg.js';
 
 test('sanitizeSvgMarkup strips script and on* handlers', () => {
   const dirty = '<svg><script>alert(1)</script><rect onload="alert(2)" width="1"/></svg>';
@@ -22,6 +26,17 @@ test('sanitizeSvgMarkup pins root width/height from viewBox (fixes 100% collapse
   assert.match(clean, /width="200"/);
   assert.match(clean, /height="100"/);
   assert.doesNotMatch(clean, /width="100%"/);
+});
+
+test('patchMermaidClassDefContainerCollisions scopes classDef root away from g.root', () => {
+  const style =
+    '#diagram-1 .root path{fill:lime!important;}' +
+    '#diagram-1 .root .anchor path{fill:#000!important;}' +
+    '#diagram-1 .hub rect{fill:blue;}';
+  const patched = patchMermaidClassDefContainerCollisions(`<svg><style>${style}</style></svg>`);
+  assert.match(patched, /#diagram-1 g\.node\.root path\{fill:lime/);
+  assert.match(patched, /#diagram-1 \.root \.anchor path\{fill:#000/);
+  assert.match(patched, /#diagram-1 \.hub rect\{fill:blue/);
 });
 
 test('sanitizeSvgMarkup preserves foreignObject (neo / HTML labels)', () => {
