@@ -40,6 +40,9 @@
     "src/routes/godStatus.ts",
     "src/god/godLiveStore.ts",
     "src/routes/godLive.ts",
-    "src/god/godIngestAuth.ts"
+    "src/god/godIngestAuth.ts",
+    "src/god/godPetitionPrompt.ts",
+    "src/god/godPetitionPr.ts",
+    "src/routes/godPetition.ts"
   ]
 }

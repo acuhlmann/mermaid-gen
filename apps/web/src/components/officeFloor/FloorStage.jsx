@@ -92,6 +92,8 @@ function seatActivity(seatId, { onCallIds, headphones, youHolding, dayPhase }) {
  *   roamOrigin?: { x: number, y: number } | null,
  *   youTile?: { x: number, y: number } | null,
  *   onUseProp?: ((kind: string) => void) | null,
+ *   onOpenGodAltar?: (() => void) | null,
+ *   altarActive?: boolean,
  *   activePropKind?: string | null,
  *   board?: import('../../utils/officeFloorBoard.js').BoardState | null,
  *   children?: import('react').ReactNode
@@ -127,6 +129,8 @@ export function FloorStage({
   roamOrigin = null,
   youTile,
   onUseProp = null,
+  onOpenGodAltar = null,
+  altarActive = false,
   activePropKind = null,
   // No default, same reason as `headphones` above: it is read for truthiness by
   // three surfaces that each already handle its absence.
@@ -162,6 +166,8 @@ export function FloorStage({
           copy={copy}
           interactive={interactive}
           onUseProp={onUseProp}
+          onOpenGodAltar={onOpenGodAltar}
+          altarActive={altarActive}
           activeKind={activePropKind}
           board={board}
         />

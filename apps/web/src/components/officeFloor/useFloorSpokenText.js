@@ -50,6 +50,41 @@ function useNarratedAside(said, narrate) {
   }, [text, speakerId, narrate]);
 }
 
+function useNarratedAltarCameo(altarCameo, narrateLine) {
+  const spokenRef = useRef('');
+  const [altarVoice, setAltarVoice] = useState({ key: '', active: false });
+  const text = altarCameo?.text ?? '';
+  const speakerId = altarCameo?.speakerId ?? '';
+  const key = text ? `${speakerId}:${text}` : '';
+
+  useEffect(() => {
+    if (!key) {
+      spokenRef.current = '';
+      return undefined;
+    }
+    if (key === spokenRef.current) return undefined;
+    spokenRef.current = key;
+    if (typeof narrateLine !== 'function' || isOfficeNarrationBusy()) {
+      return undefined;
+    }
+    let cancelled = false;
+    void Promise.resolve(narrateLine({ speakerId, text }))
+      .then((result) => {
+        if (cancelled) return;
+        setAltarVoice({ key, active: Boolean(result?.spoken) });
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setAltarVoice({ key, active: false });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [key, speakerId, text, narrateLine]);
+
+  return Boolean(key) && altarVoice.key === key && altarVoice.active;
+}
+
 /**
  * @param {{
  *   captions?: boolean,
@@ -60,6 +95,7 @@ function useNarratedAside(said, narrate) {
  *   walkBy?: { id?: string, colleagueId?: string, body?: string } | null,
  *   wandererSaid?: { speakerId: string, text: string } | null,
  *   dwellSaid?: { speakerId: string, text: string } | null,
+ *   altarCameo?: { speakerId: string, text: string } | null,
  *   hasActiveSpeech?: boolean,
  *   liftedSceneSpeech?: boolean
  * }} options
@@ -79,6 +115,7 @@ export function useFloorSpokenText({
      that slice 18's extraction was a shape rather than a one-off. Same rules:
      said once, and never over the top of a scripted scene. */
   dwellSaid,
+  altarCameo,
   /**
    * Slice 22, and the third posture in this file rather than a third caller of
    * `useNarratedAside`: shop talk is **paced**, so its narration is driven by
@@ -203,15 +240,18 @@ export function useFloorSpokenText({
 
   useNarratedAside(wandererSaid, narrateTracked);
   useNarratedAside(dwellSaid, narrateTracked);
+  const altarVoiceActive = useNarratedAltarCameo(altarCameo, sceneHandlers?.narrateLine);
 
   // Paced coffee/battle lines are narrated in `OfficeLayer`. Prefer the
   // per-line spoken flag from pacing so a failed TTS falls back to bubbles;
   // busy polling covers the in-flight window between optimistic hide and
-  // the result.
+  // the result. When an Altar cameo is active, its balloon fallback depends
+  // strictly on whether *this* cameo line was narrated (never an earlier one).
   const showSpokenText = shouldShowSpokenText({
     captions,
-    voiceActive:
-      voiceActive || liftedNarrationBusy || (liftedSceneSpeech && liftedLineSpoken) || pacedSpeech
+    voiceActive: altarCameo
+      ? altarVoiceActive
+      : voiceActive || liftedNarrationBusy || (liftedSceneSpeech && liftedLineSpoken) || pacedSpeech
   });
 
   return { showSpokenText, sceneHandlersWithVoice };

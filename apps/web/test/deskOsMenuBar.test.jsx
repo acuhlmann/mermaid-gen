@@ -34,6 +34,7 @@ function setup(overrides = {}) {
     onOpenContractor: vi.fn(),
     onOpenHrProgression: vi.fn(),
     onOpenHotkeys: vi.fn(),
+    onOpenGod: vi.fn(),
     headphones: false,
     focusTime: false,
     onToggleHeadphones: vi.fn(),
@@ -196,12 +197,15 @@ describe('DeskOsMenuBar', () => {
     for (const [testId, key] of [
       ['menubar-contractor', 'onOpenContractor'],
       ['menubar-hr', 'onOpenHrProgression'],
-      ['menubar-hotkeys', 'onOpenHotkeys']
+      ['menubar-hotkeys', 'onOpenHotkeys'],
+      ['menubar-god', 'onOpenGod']
     ]) {
       openMenu('admin');
       fireEvent.click(screen.getByTestId(testId));
       expect(handlers[key]).toHaveBeenCalledTimes(1);
     }
+    fireEvent.click(screen.getByTestId('menubar-god-trigger'));
+    expect(handlers.onOpenGod).toHaveBeenCalledTimes(2);
     openMenu('admin');
     expect(screen.queryByTestId('menubar-external-agents')).toBeNull();
   });

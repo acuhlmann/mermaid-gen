@@ -1,5 +1,7 @@
 import FloorArrival from '../../components/officeFloor/FloorArrival.jsx';
 import OfficeDirectory from '../../components/OfficeDirectory.jsx';
+import GodAltarHost from '../god/GodAltarModal.jsx';
+import { openGodAltar } from '../god/godAltarStore.js';
 import { buildContentModeOptions } from '../../utils/renderModeAction.js';
 import { SimpleStudioSlot } from './SimpleStudioSlot.jsx';
 import { studioThinkingPeekLines } from './studioThinkingPeek.js';
@@ -92,6 +94,7 @@ function StudioBoot({
       onStop={onStop}
       onSubmit={handleStudioSubmit}
       onEnterOffice={shell.enterOfficeLife}
+      onOpenGod={openGodAltar}
       onStartOver={handleStartOver}
       showCanvas={view.showCanvas}
       showStartOver={view.showStartOver}
@@ -182,6 +185,12 @@ export function BootSurfaces(props) {
     <>
       <div className="office-view-desk-veil" aria-hidden="true" />
       {props.shell.studioActive ? <StudioBoot {...props} /> : <OfficeCeremony {...props} />}
+      <GodAltarHost
+        diagramSource={props.state?.diagramSource}
+        contentType={props.runtime?.contentMode}
+        userName={props.shell?.userName}
+        modelProfile={props.modelProfile}
+      />
     </>
   );
 }

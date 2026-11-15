@@ -4,6 +4,7 @@ import IntroLocaleToggle from '../../components/IntroLocaleToggle.jsx';
 import ErrorToast from '../../components/ErrorToast.jsx';
 import DiagramFullscreenButton from '../../components/DiagramFullscreenButton.jsx';
 import ViewModeSwitch from '../../components/ViewModeSwitch.jsx';
+import { openGodAltar } from '../god/godAltarStore.js';
 import { DiagramCanvasSlot } from '../canvas/DiagramCanvasSlot.jsx';
 import { StudioCanvasEditing } from './StudioCanvasEditing.jsx';
 import { studioCanvasEditProps } from './studioCanvasEditProps.js';
@@ -51,6 +52,20 @@ function StudioTopBar(props) {
           onSelectLocale={props.onSelectLocale}
           variant="menu"
         />
+        <button
+          type="button"
+          className="studio-god-trigger"
+          data-testid="studio-god-trigger"
+          title={
+            copy.godAltarTitle ?? 'Summon ArchiSlop God — confess thy diagrams or petition a PR'
+          }
+          onClick={() =>
+            typeof props.onOpenGod === 'function' ? props.onOpenGod() : openGodAltar()
+          }
+        >
+          <span aria-hidden="true">⚡</span>
+          <span>{copy.godAltarLabel ?? 'Altar'}</span>
+        </button>
         {showCanvas && props.fullscreenSupported ? (
           <DiagramFullscreenButton
             isFullscreen={Boolean(props.isFullscreen)}

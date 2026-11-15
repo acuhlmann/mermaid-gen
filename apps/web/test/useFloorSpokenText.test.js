@@ -1,7 +1,12 @@
 // @vitest-environment jsdom
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
 import { useFloorSpokenText } from '../src/components/officeFloor/useFloorSpokenText.js';
+import * as officeNarration from '../src/utils/officeNarration.js';
+
+afterEach(() => {
+  vi.restoreAllMocks();
+});
 
 describe('useFloorSpokenText', () => {
   it('hides bubbles while narration speaks and CC is off', async () => {
@@ -68,5 +73,30 @@ describe('useFloorSpokenText', () => {
       })
     );
     await waitFor(() => expect(result.current.showSpokenText).toBe(true));
+  });
+
+  it('keeps the current altarCameo balloon visible when narration is skipped due to busy TTS', async () => {
+    const busySpy = vi.spyOn(officeNarration, 'isOfficeNarrationBusy').mockReturnValue(false);
+    const narrateLine = vi.fn(() => Promise.resolve({ spoken: true }));
+
+    const { result, rerender } = renderHook(
+      ({ altarCameo }) =>
+        useFloorSpokenText({
+          captions: false,
+          sceneHandlers: { narrateLine },
+          altarCameo,
+          hasActiveSpeech: false
+        }),
+      { initialProps: { altarCameo: { speakerId: 'gilfoyle', text: 'First cameo' } } }
+    );
+
+    await waitFor(() => expect(narrateLine).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(result.current.showSpokenText).toBe(false));
+
+    busySpy.mockReturnValue(true);
+    rerender({ altarCameo: { speakerId: 'dinesh', text: 'Second cameo while busy' } });
+
+    await waitFor(() => expect(result.current.showSpokenText).toBe(true));
+    expect(narrateLine).toHaveBeenCalledTimes(1);
   });
 });

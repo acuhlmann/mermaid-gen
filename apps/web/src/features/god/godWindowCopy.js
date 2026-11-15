@@ -14,10 +14,14 @@ export const GOD_WINDOW_COPY = {
   subtitle: 'What the automation is doing, what it costs, and why it stopped.',
   tabs: {
     now: 'Now',
+    altar: 'Altar',
     history: 'History',
     signals: 'Signals',
     settings: 'Settings'
   },
+  returnToApp: '← Return to ArchiSlop',
+  altarShortcut: 'Approach the Mortal Altar (Talk to God)',
+  ownerGateShortcut: 'Owner Telemetry Gate',
   refresh: 'Refresh',
   refreshing: 'Reading the branch…',
   access: {

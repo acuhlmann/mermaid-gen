@@ -63,7 +63,8 @@ export const CONTROLS_EN_AU = {
     entryIntro: {
       greeting: 'Desk wizard time, {name}',
       role: 'Architect',
-      body: 'You survived orientation. This is the last corporate hug. Pitch something in the work order below — that is how every deliverable starts, and how you stop looking like furniture.'
+      body: 'You survived orientation. This is the last corporate hug. Pitch something in the work order below — that is how every deliverable starts, and how you stop looking like furniture.',
+      prayToGod: 'Have a yarn with ArchiSlop God'
     },
     entryPointers: [
       {
@@ -165,7 +166,10 @@ export const CONTROLS_EN_AU = {
     admin: 'Admin',
     adminTitle: 'Admin · contractors, HR, headphones, language, hotkeys',
     adminAria: 'Admin — contractors, HR, headphones, language, hotkeys',
-    hotkeys: 'Keyboard shortcuts'
+    hotkeys: 'Keyboard shortcuts',
+    godAltarShort: 'Altar',
+    prayToGod: 'Pray to ArchiSlop God',
+    prayToGodTitle: 'Confess thy slop or petition a Pull Request at /god'
   },
   languagePack: {
     label: 'Language pack',

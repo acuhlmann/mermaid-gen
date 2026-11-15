@@ -17,6 +17,7 @@ import {
   subscribeUsageSignals
 } from '../../state/uxSignalsClient.js';
 import { DiagramCanvasSlot } from '../canvas/DiagramCanvasSlot.jsx';
+import { openGodAltar } from '../god/godAltarStore.js';
 import { EmptyCanvasSlot } from '../desk/EmptyCanvasSlot.jsx';
 import { ModeRevealSlot } from '../desk/ModeRevealSlot.jsx';
 import { RadialMenuSlot } from '../prompt/RadialMenuSlot.jsx';
@@ -241,6 +242,7 @@ export function AppWorkspaceSlot({
     onOpenContractor: () => setInviteDialogOpen(true),
     onOpenHrProgression: onToggleXpInfoPanel,
     onOpenHotkeys: onOpenHotkeyOverlay,
+    onOpenGod: openGodAltar,
     headphones: officeHeadphones,
     focusTime: officeFocusTime,
     onToggleHeadphones: setOfficeHeadphones,
@@ -328,6 +330,7 @@ export function AppWorkspaceSlot({
         entryTourCopy={entryTourCopy}
         onAdvanceEntryTour={onAdvanceEntryTour}
         onDismissEntryTour={onDismissEntryTour}
+        onOpenGod={openGodAltar}
       />
 
       <DiagramFullscreenToolbarSlot

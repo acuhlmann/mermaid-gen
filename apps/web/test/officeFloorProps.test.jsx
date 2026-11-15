@@ -1,7 +1,9 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import OfficeFloor from '../src/components/OfficeFloor.jsx';
+import { ALTAR_BEAT_MS } from '../src/components/officeFloor/useFloorAltarCameo.js';
+import { emitGodAltarEvent, resetGodAltarForTests } from '../src/features/god/godAltarStore.js';
 import { FloorPropCard } from '../src/components/officeFloor/FloorProps.jsx';
 import {
   isOfficeColleagueId,
@@ -51,6 +53,7 @@ afterEach(() => {
   unpinOfficeFloorDeterminism();
   _resetOfficeViewModeForTests();
   _resetOfficeLogForTests();
+  resetGodAltarForTests();
   // The prompt-face suite at the foot of this file switches the chrome bundle
   // to prove the board's prompt lines do *not* follow it.
   setActiveOfficeBundle(null);
@@ -909,5 +912,90 @@ describe('what a colleague can quote off the board (§ 15)', () => {
         line.includes('from memory')
       )
     ).toBe(false);
+  });
+});
+
+describe('Altar shrine prop and divine floor cameos', () => {
+  it('renders a clickable Altar shrine on the floor that opens the God Altar modal and hides during meetings', () => {
+    const onOpenGodAltar = vi.fn();
+    const view = renderFloor({ onOpenGodAltar });
+
+    const shrine = screen.getByTestId('office-floor-altar');
+    expect(shrine.dataset.prop).toBe('altar');
+    fireEvent.click(shrine);
+    expect(onOpenGodAltar).toHaveBeenCalledTimes(1);
+
+    const meeting = {
+      state: 'playing',
+      title: 'Architecture Review Board',
+      attendees: ['scrumMaster', 'gilfoyle'],
+      facilitatorId: 'scrumMaster',
+      transcript: [{ speakerId: 'gilfoyle', kind: 'substantive', text: 'Fine.' }],
+      interjectionsLeft: 1
+    };
+    view.rerender(<OfficeFloor onOpenGodAltar={onOpenGodAltar} meeting={meeting} />);
+    expect(screen.queryByTestId('office-floor-altar')).toBeNull();
+  });
+
+  it('flashes divine glow and runs Gilfoyle then Dinesh sarcastic cameos on Altar judgment events', () => {
+    vi.useFakeTimers();
+    const onOpenGodAltar = vi.fn();
+    renderFloor({ onOpenGodAltar }, { pinDeterminism: false });
+
+    act(() => {
+      emitGodAltarEvent('bless', 'benevolent');
+    });
+
+    expect(screen.getByTestId('office-floor').className).toContain('is-divine-bless');
+    expect(screen.getByTestId('office-floor-altar').className).toContain('is-divine');
+    const first = screen.getByTestId('office-floor-altar-cameo');
+    expect(first.textContent).toContain('Gilfoyle');
+    expect(first.textContent).toMatch(/omniscient deity/i);
+
+    act(() => {
+      vi.advanceTimersByTime(ALTAR_BEAT_MS);
+    });
+    const second = screen.getByTestId('office-floor-altar-cameo');
+    expect(second.textContent).toContain('Dinesh');
+    expect(second.textContent).toMatch(/sprint velocity/i);
+
+    act(() => {
+      emitGodAltarEvent('smite', 'wrathful');
+    });
+    expect(screen.getByTestId('office-floor').className).toContain('is-divine-smite');
+    expect(screen.getByTestId('office-floor-altar-cameo').textContent).toMatch(/lightning/i);
+
+    vi.useRealTimers();
+  });
+
+  it('clears divineFlash and cameo when suspended by a meeting and keeps them cleared afterwards', () => {
+    vi.useFakeTimers();
+    const onOpenGodAltar = vi.fn();
+    const view = renderFloor({ onOpenGodAltar }, { pinDeterminism: false });
+
+    act(() => {
+      emitGodAltarEvent('bless', 'benevolent');
+    });
+    expect(screen.getByTestId('office-floor').className).toContain('is-divine-bless');
+    expect(screen.getByTestId('office-floor-altar-cameo')).toBeTruthy();
+
+    const meeting = {
+      state: 'playing',
+      title: 'Architecture Review Board',
+      attendees: ['scrumMaster', 'gilfoyle'],
+      facilitatorId: 'scrumMaster',
+      transcript: [{ speakerId: 'gilfoyle', kind: 'substantive', text: 'Fine.' }],
+      interjectionsLeft: 1
+    };
+    act(() => {
+      view.rerender(<OfficeFloor onOpenGodAltar={onOpenGodAltar} meeting={meeting} />);
+    });
+    expect(screen.getByTestId('office-floor').className).not.toContain('is-divine-bless');
+
+    act(() => {
+      view.rerender(<OfficeFloor onOpenGodAltar={onOpenGodAltar} meeting={null} />);
+    });
+    expect(screen.queryByTestId('office-floor-altar-cameo')).toBeNull();
+    vi.useRealTimers();
   });
 });

@@ -56,6 +56,7 @@
  *   reports idle / away / you-tile; renderer #1 reads it when a run lands.
  * @property {(() => Promise<boolean> | boolean) | undefined} onGetCoffee
  * @property {((propKind: string) => void) | undefined} onPropCue
+ * @property {(() => void) | undefined} onOpenGodAltar
  * @property {((cue: 'step' | 'jam' | 'door', options?: { near?: boolean, pan?: number, surface?: 'carpet' | 'hard' }) => void) | undefined} onFloorCue
  *   Floor events that are not a prop. Sibling of `onPropCue` and deliberately
  *   the same shape of contract: the floor names *what happened*, never which

@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { isGodWindowPath } from '../src/features/god/godRoute.js';
+import {
+  buildAppHomeUrl,
+  buildGodWindowUrl,
+  isGodWindowPath,
+  readGodWindowInitialTab
+} from '../src/features/god/godRoute.js';
 
 describe('isGodWindowPath', () => {
   it('matches the owner route itself, with or without a trailing slash', () => {
@@ -23,5 +28,15 @@ describe('isGodWindowPath', () => {
 
   it('is false without a location, so a server render never takes this branch', () => {
     expect(isGodWindowPath(null, '/')).toBe(false);
+  });
+
+  it('builds /god and home URLs respecting BASE_URL and ?tab=altar', () => {
+    expect(buildGodWindowUrl({}, '/')).toBe('/god');
+    expect(buildGodWindowUrl({ tab: 'altar' }, '/')).toBe('/god?tab=altar');
+    expect(buildGodWindowUrl({ tab: 'altar' }, '/hackathon/')).toBe('/hackathon/god?tab=altar');
+    expect(buildAppHomeUrl('/')).toBe('/');
+    expect(buildAppHomeUrl('/hackathon/')).toBe('/hackathon/');
+    expect(readGodWindowInitialTab({ search: '?tab=altar' })).toBe('altar');
+    expect(readGodWindowInitialTab({ search: '?tab=now' })).toBeNull();
   });
 });

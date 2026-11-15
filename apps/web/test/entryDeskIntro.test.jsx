@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen } from '@testing-library/react';
-import { afterEach, describe, expect, it } from 'vitest';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import EntryDeskIntro from '../src/components/EntryDeskIntro.jsx';
 
 const COPY = {
@@ -18,6 +18,13 @@ describe('EntryDeskIntro', () => {
     expect(screen.getByText(/Welcome, Gavin/)).toBeTruthy();
     expect(screen.getByText(/Architect/)).toBeTruthy();
     expect(screen.getByText(COPY.body)).toBeTruthy();
+  });
+
+  it('triggers onOpenGod from the Altar link on the empty desk intro', () => {
+    const onOpenGod = vi.fn();
+    render(<EntryDeskIntro copy={COPY} userName="Gavin" role="Architect" onOpenGod={onOpenGod} />);
+    fireEvent.click(screen.getByTestId('entry-desk-god-trigger'));
+    expect(onOpenGod).toHaveBeenCalledTimes(1);
   });
 
   it('renders nothing when copy is missing', () => {

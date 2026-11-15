@@ -1684,6 +1684,25 @@ export const OFFICE_ZH_TW = {
         actionTitle: '走過去 — 不過遲到通常就是聊天結束的時候',
         line: '……總之就這樣。喔 — 你來啦。'
       },
+      altar: {
+        name: 'ArchiSlop 之神神壇',
+        useLabel: 'ArchiSlop 之神神壇 — 召喚神明',
+        useTitle: '向神壇懺悔架構或祈求提 PR',
+        cameos: {
+          pray: {
+            gilfoyle: '又在向 CI 之神祈禱了。你試過先寫單元測試嗎？',
+            dinesh: '等等——神剛才是不是吐槽了我的提交？我就坐在這兒呢。'
+          },
+          bless: {
+            gilfoyle: '太棒了，連全知全能的神明審 PR 都比我們團隊快。',
+            dinesh: '如果神開了一個分支，那算進我的衝刺速率嗎？'
+          },
+          smite: {
+            gilfoyle: '早告訴過你單體架構是原罪。好好享受天雷吧。',
+            dinesh: '為什麼雷劈的是我的螢幕？我的程式碼明明編譯過了！'
+          }
+        }
+      },
       meeting: {
         eyebrow: '玻璃會議室',
         eyebrowRemote: '耳機同步會',

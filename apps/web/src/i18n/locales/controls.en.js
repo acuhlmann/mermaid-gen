@@ -85,7 +85,9 @@ export const CONTROLS_EN = {
       exitFullscreen: 'Exit fullscreen',
       examplesLabel: 'No topic yet? Try one:',
       examplesAria: 'Example prompts',
-      elapsed: '{seconds}s'
+      elapsed: '{seconds}s',
+      godAltarLabel: 'Altar',
+      godAltarTitle: 'Summon ArchiSlop God — confess thy diagrams or petition a PR'
     },
     topicPlaceholder: 'Prompt anything into reality…',
     starterHint: 'Or pick up an assignment from the floor:',
@@ -93,7 +95,8 @@ export const CONTROLS_EN = {
     entryIntro: {
       greeting: 'Desk wizard time, {name}',
       role: 'Architect',
-      body: 'You survived orientation. This is the last corporate hug. Pitch something in the work order below — that is how every deliverable starts, and how you stop looking like furniture.'
+      body: 'You survived orientation. This is the last corporate hug. Pitch something in the work order below — that is how every deliverable starts, and how you stop looking like furniture.',
+      prayToGod: 'Confess at the Altar of ArchiSlop'
     },
     entryPointers: [
       {
@@ -224,6 +227,9 @@ export const CONTROLS_EN = {
     settingsTitle: 'Settings · rush job, deep work, contractors, HR, headphones',
     settingsAria: 'Settings — workstation preferences',
     hotkeys: 'Keyboard shortcuts',
+    godAltarShort: 'Altar',
+    prayToGod: 'Pray to ArchiSlop God',
+    prayToGodTitle: 'Confess thy slop or petition a Pull Request at /god',
     usageSignalsLabel: 'Share anonymous usage',
     usageSignalsTitle:
       'Sends counts such as "a run failed" or "you undid an AI edit" so ArchiSlop can improve itself — never your prompts, diagrams or anything that identifies you.'

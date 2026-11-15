@@ -17,6 +17,7 @@ import MeetingOverlay from './MeetingOverlay.jsx';
 import OfficeBattleOverlay from './OfficeBattleOverlay.jsx';
 import OfficeFloor from './OfficeFloor.jsx';
 import { createOfficeFloorBridge } from './officeFloor/officeFloorBridge.js';
+import { openGodAltar } from '../features/god/godAltarStore.js';
 import OfficeDeskArrival from './OfficeDeskArrival.jsx';
 import OfficeDeskSpeech from './OfficeDeskSpeech.jsx';
 import OfficeInboxDock from './OfficeInboxDock.jsx';
@@ -1633,6 +1634,7 @@ export default function OfficeLayer({
         onRunContextChange: handleRunContextChange,
         onGetCoffee: desk.getCoffee,
         onPropCue: handlePropCue,
+        onOpenGodAltar: openGodAltar,
         onFloorCue: handleFloorCue,
         onAdoptPrompt: handleAdopt,
         onDismissWalkBy: handleDismissWalkBy,
