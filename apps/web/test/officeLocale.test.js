@@ -11,10 +11,31 @@ import {
   OFFICE_CHROME_COPY,
   OFFICE_EMAIL_TEMPLATES
 } from '../src/utils/officeCast.js';
+import { OFFICE_EN_AU } from '../src/i18n/locales/office.en-AU.js';
+import { OFFICE_ZH_CN } from '../src/i18n/locales/office.zh-CN.js';
+import { OFFICE_ZH_TW } from '../src/i18n/locales/office.zh-TW.js';
 import { propUseFor } from '../src/utils/officeFloorProps.js';
 import { usablePropKinds } from '../src/utils/officeFloorMovement.js';
 
 const LOCALES = ['en-AU', 'zh-CN', 'zh-TW'];
+
+/*
+ * The **raw** overrides, imported beside the merged bundles on purpose — every
+ * other case in this file reads `getUiLocaleBundle(locale)`, and that is the
+ * merged object. See `omission is a fall-through, a value is a feature` below
+ * for why both views are needed and which question each one can answer.
+ */
+const RAW_OFFICE_BUNDLES = { 'en-AU': OFFICE_EN_AU, 'zh-CN': OFFICE_ZH_CN, 'zh-TW': OFFICE_ZH_TW };
+
+/*
+ * Locales whose whole point is that the user cannot read English, so an
+ * omitted key renders a sentence they cannot read. `en-AU` is excluded by
+ * measurement rather than by taste: it deliberately writes 362 of the 538
+ * chrome-copy keys and falls through for the rest, which is correct for an
+ * English variant and would arrive as 176 keys of fake debt if swept here.
+ */
+const TRANSLATED_LOCALES = ['zh-CN', 'zh-TW'];
+const ENGLISH_VARIANT_LOCALES = ['en-AU'];
 const TEMPLATE_BANKS = [
   'OFFICE_EMAIL_TEMPLATES',
   'SENIOR_EMAIL_TEMPLATES',
@@ -199,15 +220,99 @@ describe('office locale bundles', () => {
     }
   });
 
+  /*
+   * ## omission is a fall-through, a value is a feature
+   *
+   * The two questions this suite asks are answered by two different objects,
+   * and reading the wrong one makes a case that cannot fail.
+   *
+   * `UiLocaleProvider` hands `setActiveOfficeBundle` the output of
+   * `getUiLocaleBundle(locale)`, which is `deepMergeLocale(english, override)`.
+   * So the bundle `officeChromeCopy()` returns is a **superset of English by
+   * construction**, and `deepKeys(merged)` ⊇ `deepKeys(en)` is a fact about the
+   * merge rather than about the locale file. The case below is therefore only
+   * able to report an **extra** key; its `missing (n)` branch is unreachable.
+   * Measured by deleting `floor.props.look`, `floor.props.lookTitle`,
+   * `floor.declined` and the whole `floor.interrupt` bank from the raw zh-CN
+   * override and reading them back through that exact path: all four came back
+   * **in English**, while `doIt` stayed Chinese.
+   *
+   * Which retires the claim this file and `docs/agents/domains/office.md` both
+   * carried — that a key missing from a locale is a *silently dead feature* —
+   * and replaces it with a sharper one:
+   *
+   * - **An omitted key is an English fall-through.** Visible, in the wrong
+   *   language, never absent. That is a translation defect, so it is swept over
+   *   the **raw** override and only for the locales whose reader cannot read
+   *   English (`every chrome-copy key …` below).
+   * - **A key whose *value* is wrong is the dead feature**, because an override
+   *   wins wherever it exists. Arrays are the dangerous shape — they replace
+   *   wholesale, so `details: []` really does hide **Look closer**, and a bank
+   *   one line short really does bias every roll. Those are the per-feature
+   *   cases further down, and they keep earning their keep.
+   *
+   * The `join` case already knew the first half ("a locale that never wrote
+   * this key at all deep-merges to English and comes back *identical*"); the
+   * cases around it did not, which is how eight of them came to be written one
+   * feature at a time against a failure mode the merge had already removed.
+   *
+   * The gap that leaves is measured, not assumed. A per-feature case notices an
+   * omission only where it happens to assert `not.toEqual(en)`, and only for
+   * the keys it names: deleting `floor.interrupt` from zh-TW turns **two** cases
+   * red (its own and the raw sweep), while deleting the whole `floor.errand`
+   * block from zh-CN turns **one** red — the raw sweep — and
+   * `carries the errand copy onto both renderers (zh-CN)` passes with the
+   * Chinese card gone.
+   */
   it.each(LOCALES)('keeps chrome copy structurally complete (%s)', (locale) => {
     const localized = getUiLocaleBundle(locale).office;
     const expectedKeys = deepKeys(OFFICE_CHROME_COPY).sort();
     const actualKeys = deepKeys(localized.OFFICE_CHROME_COPY).sort();
     expect(
       actualKeys,
-      `${locale} OFFICE_CHROME_COPY keys must match officeCast.js — ${formatKeyDiff(expectedKeys, actualKeys)}. When editing OFFICE_CHROME_COPY.directory, sync apps/web/src/i18n/locales/office.*.js`
+      `${locale} OFFICE_CHROME_COPY keys must match officeCast.js — ${formatKeyDiff(expectedKeys, actualKeys)}. This reads the MERGED bundle, so only an extra key can fail here; a missing one is caught by the raw-bundle case below. When editing OFFICE_CHROME_COPY.directory, sync apps/web/src/i18n/locales/office.*.js`
     ).toEqual(expectedKeys);
     expect(localized.OFFICE_IM_QUICK_REPLIES).toHaveLength(8);
+  });
+
+  /*
+   * The general sensor for the half the merged view cannot see, and the reason
+   * this file should not grow a ninth hand-written key-presence case: it covers
+   * every chrome-copy key that exists today and every one added after tonight,
+   * which is what the standing instruction in `docs/agents/domains/office.md`
+   * ("add a parity assertion there for any new chrome-copy branch a feature
+   * depends on") was asking each slice to do by hand.
+   *
+   * Scoped to `TRANSLATED_LOCALES` for the measured reason above. Key **shape**
+   * only — whether the Chinese is any good is a reader's judgment, and whether
+   * it was merely copied from English is the `not.toEqual(en)` half of the
+   * per-feature cases.
+   */
+  it.each(TRANSLATED_LOCALES)('writes every chrome-copy key in its own bundle (%s)', (locale) => {
+    const expectedKeys = deepKeys(OFFICE_CHROME_COPY).sort();
+    const rawKeys = deepKeys(RAW_OFFICE_BUNDLES[locale].OFFICE_CHROME_COPY ?? {}).sort();
+    const rawKeySet = new Set(rawKeys);
+    const missing = expectedKeys.filter((key) => !rawKeySet.has(key));
+    expect(
+      missing,
+      `${locale} has not written ${missing.length} of ${expectedKeys.length} OFFICE_CHROME_COPY keys, so each one renders in English for a reader who cannot read English — ${formatKeyDiff(expectedKeys, rawKeys)}. Add them to apps/web/src/i18n/locales/office.${locale}.js`
+    ).toEqual([]);
+  });
+
+  /*
+   * The companion assertion the sweep above needs: it runs over a hand-split
+   * subset of `LOCALES`, so a fourth locale added to this file would be swept
+   * by nothing and the omission would look exactly like a pass. Classifying it
+   * is the whole cost of adding it.
+   */
+  it('classifies every locale as translated or an English variant', () => {
+    expect([...TRANSLATED_LOCALES, ...ENGLISH_VARIANT_LOCALES].sort()).toEqual([...LOCALES].sort());
+    expect(Object.keys(RAW_OFFICE_BUNDLES).sort()).toEqual([...LOCALES].sort());
+    // And the exclusion is a fall-through decision, not an empty bundle: en-AU
+    // writes most of this copy itself and leans on English for the rest.
+    const enAuKeys = deepKeys(RAW_OFFICE_BUNDLES['en-AU'].OFFICE_CHROME_COPY).length;
+    expect(enAuKeys).toBeGreaterThan(300);
+    expect(enAuKeys).toBeLessThan(deepKeys(OFFICE_CHROME_COPY).length);
   });
 
   it.each(LOCALES)('localizes floor chrome (%s)', (locale) => {
@@ -220,15 +325,17 @@ describe('office locale bundles', () => {
   });
 
   /*
-   * The floor's prop copy is the one chrome branch where a *missing* key is a
-   * silently dead feature rather than an English fallback: `officeChromeCopy()`
-   * swaps whole bundles (`office()?.OFFICE_CHROME_COPY ?? OFFICE_CHROME_COPY`),
-   * it does not merge, and `FloorPropCard` hides the **Look closer** button
-   * entirely when `details` is empty. Nothing rendered, nothing to notice — the
-   * same failure mode the set-piece marker test above exists to catch.
+   * `FloorPropCard` hides the **Look closer** button entirely when `details` is
+   * empty, so this is the branch where a *value* costs you the whole feature
+   * with nothing rendered to notice. The lengths are what matter: `details` is
+   * an array, and an array in an override replaces the English one wholesale,
+   * so a locale that ships three of four details silently shortens the card
+   * while a locale that ships none at all falls through and reads correctly in
+   * English. Omission is the raw-bundle sweep's business, not this case's.
    *
-   * Found for real: en-AU shipped without `look`, `lookTitle` or any `details`
-   * at all, so slice 9's follow-up had never worked in that locale.
+   * (The original note here said a missing key hid the button, citing en-AU
+   * shipping without `look` / `lookTitle` / `details`. Retracted above: the
+   * active bundle is merged. en-AU writes all three today either way.)
    */
   it.each(LOCALES)('keeps every usable prop lookable (%s)', (locale) => {
     const props = getUiLocaleBundle(locale).office.OFFICE_CHROME_COPY.floor.props;
@@ -244,13 +351,13 @@ describe('office locale bundles', () => {
   });
 
   /*
-   * Slice 26. Third instance of the dead-feature class, and the one with the
-   * longest fuse: `FloorErrandCard` withholds itself when `floor.errand` is
-   * missing, so an untranslated locale hands you an errand from the inbox and
-   * then offers no way to run it on the floor — the card slot silently falls
-   * back to the hint and nothing anywhere says why. `{from}` and `{name}` carry
-   * the two people, so a translation that drops them loses which of them sent
-   * you and which you are looking for.
+   * Slice 26. `FloorErrandCard` withholds itself when `floor.errand` is blank,
+   * so an errand arrives from the inbox with no way to run it on the floor —
+   * the card slot falls back to the hint and nothing anywhere says why. What
+   * this case can actually catch is a **written** blank, not an omission (see
+   * the block above): `{from}` and `{name}` carry the two people, so a
+   * translation that drops them loses which of them sent you and which you are
+   * looking for, and `formatLocale` substitutes a lost slot with nothing.
    */
   it.each(LOCALES)('carries the errand copy onto both renderers (%s)', (locale) => {
     const office = getUiLocaleBundle(locale).office.OFFICE_CHROME_COPY;
@@ -274,9 +381,10 @@ describe('office locale bundles', () => {
 
   /*
    * Slice 16, re-scoped by § 6a: the *filled* state of every prop whose whole
-   * use is looking at it. A locale missing one quietly keeps showing the empty
-   * state — the architecture from two re-orgs ago, or the 2023 print queue —
-   * forever, in that language only.
+   * use is looking at it. A locale that writes an empty or short `detailsYours`
+   * keeps showing the empty state — the architecture from two re-orgs ago, or
+   * the 2023 print queue — forever, in that language only; one that writes
+   * nothing falls through and reads correctly in English.
    *
    * There are two filled states now, and the sweep asserts a prop has exactly
    * one of them rather than naming which prop is which. The printer **reflects
@@ -331,11 +439,11 @@ describe('office locale bundles', () => {
 
   /*
    * Slice 18. Same failure mode as the two above and worth its own case for the
-   * reason `interruptSpeech` is built the way it is: an absent bank is not an
-   * English fallback, it is a colleague who walks away from an errand you ruined
-   * without a word, in that locale only, forever. The module degrades to silence
-   * rather than throwing, which is right at runtime and is exactly why nothing
-   * would ever surface it.
+   * reason `interruptSpeech` is built the way it is: it degrades to silence
+   * rather than throwing, so a bank written **empty** is a colleague who walks
+   * away from an errand you ruined without a word, in that locale only,
+   * forever, with nothing rendered to notice. (A bank not written at all is the
+   * English bank — see the block above.)
    *
    * Lengths are pinned rather than merely non-empty because the roll that picks
    * a line is stored on the trip: a locale with a shorter bank still renders
@@ -370,9 +478,9 @@ describe('office locale bundles', () => {
    *
    * Prop keys are pinned as a set rather than counted because they are not
    * decorative: `shopTalkPartnerFor` derives *who replies* from the layout, and
-   * the key is what decides which voice the reply is written in. A locale
-   * missing `printer` is not a shorter bank, it is Ticket Bot Dave gone silent
-   * at his own desk.
+   * the key is what decides which voice the reply is written in. A locale that
+   * writes `printer` as an empty bank is not a shorter bank, it is Ticket Bot
+   * Dave gone silent at his own desk.
    */
   it.each(LOCALES)('carries both halves of every overheard exchange (%s)', (locale) => {
     const shopTalk = getUiLocaleBundle(locale).office.OFFICE_CHROME_COPY.floor.shopTalk;
@@ -392,11 +500,11 @@ describe('office locale bundles', () => {
   });
 
   /*
-   * Slice 23. `officeChromeCopy()` swaps bundles rather than merging, so a
-   * locale with no `join` block is a floor that overhears conversations and
+   * Slice 23. `FloorJoinCard` degrades to no card rather than an untitled one,
+   * so a `join` block written blank is a floor that overhears conversations and
    * never offers a way into one — in that language only, with nothing rendered
-   * to notice. `FloorJoinCard` degrades to no card rather than an untitled one,
-   * which is right at runtime and is exactly why this has to be pinned here.
+   * to notice. This case is also the one that always had the merge right: see
+   * its `not.toEqual(en)` note below, and the block above for the rest.
    *
    * `{name}` / `{partner}` / `{prop}` are checked by name because
    * `formatLocale` leaves a dropped placeholder unsubstituted in silence: a
@@ -436,11 +544,10 @@ describe('office locale bundles', () => {
    * Slice 28, and the same failure mode as `join` above with one extra way to
    * hurt: `line` is not chrome, it is a **spoken beat**. A locale missing this
    * block has no card — that much matches the join rung — but `handleJoinCoffee`
-   * also reads `line` from it, and refuses the verb when it is blank. So an
-   * untranslated bundle does not ship a broken button; it ships a coffee break
-   * that cannot be joined at all, in that language only, with nothing rendered
-   * to notice. That is precisely the class `officeChromeCopy()`'s swap-don't-
-   * merge behaviour keeps producing, so it gets pinned the same way.
+   * also reads `line` from it, and refuses the verb when it is blank. So a
+   * bundle that writes this block blank does not ship a broken button; it ships
+   * a coffee break that cannot be joined at all, in that language only, with
+   * nothing rendered to notice.
    *
    * `{name}` by name for `formatLocale`'s reason: a dropped placeholder is
    * substituted with nothing and in silence, and this body names the one person

@@ -697,6 +697,11 @@ diagramSource})` returns counts, labels, a `shape` (`graph` | `list` | `page`), 
     or `details` at all**, so slice 9's follow-up had never worked in that locale — backfilled,
     with a locale test that now pins it, since `officeChromeCopy()` swaps whole bundles rather
     than merging and a missing key there is a silently dead feature, not an English fallback.
+    **The mechanism in that last clause is wrong as of 2026-11-15** (the finding itself stands,
+    and the copy is backfilled either way): the bundle the accessor is handed is already
+    `deepMergeLocale(english, override)`, so a missing key renders **in English**, not as nothing.
+    See `docs/agents/domains/office.md` § _Omission is an English fall-through_ for the split this
+    replaces it with and for the general raw-bundle sensor that now covers the whole class.
 
 17. **Getting there and getting back** — ✅ **shipped**: the scripted moments stopped teleporting
     their cast. A coffee break used to begin with two people materializing at the machine and end
