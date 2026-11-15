@@ -70,6 +70,52 @@ export function normalizeRootSvgElement(svgEl: SVGSVGElement | null | undefined)
  * @param {string} svg
  * @returns {string}
  */
+/**
+ * Flowchart SVG uses structural `<g>` classes (`root`, `edges`, …). Mermaid emits
+ * classDef styles as `#<id> .<classDefName> path { … }`, so a classDef named `root`
+ * also paints every path under the diagram's `g.root` wrapper (edges, markers).
+ */
+const MERMAID_CLASSDEF_CONTAINER_COLLISIONS = new Set([
+  'root',
+  'clusters',
+  'edges',
+  'edgePaths',
+  'edgeLabels',
+  'nodes'
+]);
+
+const MERMAID_CLASSDEF_SCOPE: Record<string, string> = {
+  root: 'g.node',
+  clusters: 'g.cluster',
+  edges: 'g.node',
+  edgePaths: 'g.node',
+  edgeLabels: 'g.node',
+  nodes: 'g.node'
+};
+
+const MERMAID_CLASSDEF_SHAPE_RE = '(?:rect|circle|ellipse|polygon|path|tspan|polyline)';
+
+export function patchMermaidClassDefContainerCollisions(svg: string) {
+  if (typeof svg !== 'string' || !svg.includes('<style')) return svg;
+
+  return svg.replace(/<style[^>]*>([\s\S]*?)<\/style>/gi, (styleBlock, css) => {
+    const patched = css.replace(
+      new RegExp(
+        `(#[\\w-]+)\\s+\\.([\\w-]+)\\s+(?!\\.anchor\\s)(${MERMAID_CLASSDEF_SHAPE_RE})\\s*\\{`,
+        'gi'
+      ),
+      (match: string, id: string, className: string, shape: string) => {
+        const key = className.toLowerCase();
+        if (!MERMAID_CLASSDEF_CONTAINER_COLLISIONS.has(key)) return match;
+        const scope = MERMAID_CLASSDEF_SCOPE[key] ?? 'g.node';
+        if (match.includes(`${scope}.${className}`)) return match;
+        return `${id} ${scope}.${className} ${shape}{`;
+      }
+    );
+    return styleBlock.replace(css, patched);
+  });
+}
+
 export function normalizeMermaidRootSvgSize(svg: string) {
   const openMatch = svg.match(/<svg\b([^>]*)>/i);
   if (!openMatch) return svg;
@@ -104,5 +150,6 @@ export function sanitizeSvgMarkup(svg: string) {
   out = out.replace(/\s+on\w+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, '');
   out = out.replace(/\s+(href|xlink:href)\s*=\s*(?:"javascript:[^"]*"|'javascript:[^']*')/gi, '');
   out = normalizeMermaidRootSvgSize(out);
+  out = patchMermaidClassDefContainerCollisions(out);
   return out;
 }

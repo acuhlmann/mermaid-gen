@@ -4,7 +4,11 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 
-import { extractHostVerdict, interpretVerdict } from '../src/tools/anythingRuntimeBrowser.js';
+import {
+  extractHostVerdict,
+  interpretVerdict,
+  resolvePlaywrightChromium
+} from '../src/tools/anythingRuntimeBrowser.js';
 import {
   DEFAULT_ANYTHING_RUNTIME_TIMEOUT_MS,
   isAnythingVisualRejectionEnabled,
@@ -304,4 +308,17 @@ test('a genuinely hanging page is still rejected when the browser times out', as
   );
   assert.equal(result.ok, false, JSON.stringify(result));
   assert.equal(result.code, 'runtime_timeout');
+});
+
+test('resolvePlaywrightChromium probes chrome-linux64 before chrome-linux', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'pw-browsers-'));
+  const revDir = path.join(root, 'chromium-9999', 'chrome-linux64');
+  fs.mkdirSync(revDir, { recursive: true });
+  const chrome = path.join(revDir, 'chrome');
+  fs.writeFileSync(chrome, '#!/bin/sh\nexit 0\n', { mode: 0o755 });
+  try {
+    assert.equal(resolvePlaywrightChromium(root), chrome);
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
 });
