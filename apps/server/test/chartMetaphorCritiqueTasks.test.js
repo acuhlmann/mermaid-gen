@@ -16,12 +16,14 @@ test('chart analysis system prompt does not allow mutation', () => {
 });
 
 test('chart critique task requires actionable improvements section', () => {
-  for (const heading of [
+  const headings = [
     '## Weaknesses and limits',
     '## Mark and encoding fit',
     '## Visual and accessibility review',
     '## Actionable improvements'
-  ]) {
+  ];
+  assert.equal(headings.length, 4);
+  for (const heading of headings) {
     assert.ok(CHART_CRITIQUE_TASK.includes(heading), `expected ${heading}`);
   }
   assert.match(CHART_CRITIQUE_TASK, /Audit voice/i);
@@ -29,12 +31,9 @@ test('chart critique task requires actionable improvements section', () => {
 });
 
 test('chart explain task requires the canonical section headers', () => {
-  for (const heading of [
-    '## Explanation',
-    '## Data story',
-    '## Encodings and marks',
-    '## Takeaways'
-  ]) {
+  const headings = ['## Explanation', '## Data story', '## Encodings and marks', '## Takeaways'];
+  assert.equal(headings.length, 4);
+  for (const heading of headings) {
     assert.ok(CHART_EXPLAIN_TASK.includes(heading), `expected ${heading}`);
   }
 });
@@ -44,12 +43,14 @@ test('metaphor analysis system prompt does not allow mutation', () => {
 });
 
 test('metaphor critique task requires actionable improvements section', () => {
-  for (const heading of [
+  const headings = [
     '## Weaknesses and limits',
     '## Metaphor fit',
     '## Spatial and visual review',
     '## Actionable improvements'
-  ]) {
+  ];
+  assert.equal(headings.length, 4);
+  for (const heading of headings) {
     assert.ok(METAPHOR_CRITIQUE_TASK.includes(heading), `expected ${heading}`);
   }
   assert.match(METAPHOR_CRITIQUE_TASK, /Audit voice/i);
@@ -57,7 +58,9 @@ test('metaphor critique task requires actionable improvements section', () => {
 });
 
 test('metaphor explain task requires the canonical section headers', () => {
-  for (const heading of ['## Explanation', '## Spatial story', '## Key items', '## Takeaways']) {
+  const headings = ['## Explanation', '## Spatial story', '## Key items', '## Takeaways'];
+  assert.equal(headings.length, 4);
+  for (const heading of headings) {
     assert.ok(METAPHOR_EXPLAIN_TASK.includes(heading), `expected ${heading}`);
   }
 });
