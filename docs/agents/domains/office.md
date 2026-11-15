@@ -279,6 +279,25 @@ it names. Merging the two into a single pass is worth doing and is not urgent �
   what grow the CTA on an email. The slot-fill parity test only inspects strings, so a missing
   marker makes the whole set piece unreachable in that locale with nothing rendered to notice;
   `officeLocale.test.js` now pins the markers explicitly.
+- **Omission is an English fall-through; a written value is the dead feature.** The active office
+  bundle is `deepMergeLocale(english, override)` (`UiLocaleProvider` → `setActiveOfficeBundle`), so a
+  key a translator never wrote renders **in English**, and every assertion that reads
+  `getUiLocaleBundle(locale)` is blind to it by construction — `keeps chrome copy structurally
+complete` can only report an _extra_ key. What kills a feature is a **written** value, because an
+  override wins where it exists and arrays replace wholesale (`details: []` really does hide **Look
+  closer**). So: omission is swept on the **raw** override, for the translated locales only
+  (`writes every chrome-copy key in its own bundle`, 538/538 for `zh-CN` and `zh-TW`; `en-AU` writes
+  362 and falls through on purpose), and values stay with the per-feature cases. Do **not** add a
+  ninth hand-written key-presence case.
+- **A surface-exclusive spoken line is legal when it rides presentation state that already exists.**
+  The ✕ on a walk-by now says one bank line on the way home: it rides the **departing copy**
+  `useFloorWalker` already keeps (`apps/web/src/components/officeFloor/useFloorWalker.js`), so there
+  is no floor-only event type or moment kind for ADR-0011 rule 1 to refuse, and `onDeparted` clears
+  it for free. `useFloorWalker` is also the **only** place on the floor that can tell a press from
+  the 24 s TTL — `dismissOfficeWalkBy` is the same mutation either way — which is why both the line
+  and the `pitchDeclined` beat hang off the press handler and share one gate (`isRefusableWalkBy`).
+  And if a bubble does not appear, check what the text hook dedupes on: `useFloorSpokenText` keyed
+  the narration on `walkBy.id` alone and swallowed a changed body on the same id.
 - **The office's LLM appetite is one table in `apps/web/src/utils/officeCadence.js`.**
   `useDeskActions.js` and `useOfficeRunReactions.js` re-export from it rather than declaring their
   own caps, and `officeCadence.test.js` pins that identity — tune there, not at the use site. The
@@ -657,8 +676,9 @@ https://api.deepseek.com/` — 401 is reachable, 000 is blocked); never route ar
   has to say is about the coffee. Both sensors used to name the **whiteboard** instead, and the
   card case went further and asserted the printer keeps its empty state with a board up — a
   missing opt-in pinned as a feature, green for five slices. Add a prop's copy in **all four**
-  bundles or it is a dead feature in that language; the sweeps are in `officeLocale.test.js` and
-  `officeFloorProps.test.jsx`.
+  bundles — omitted it falls through to English (not a dead feature; see § _Omission is an English
+  fall-through_), written short or empty it hides the card's **Look closer** entirely. The sweeps
+  are in `officeLocale.test.js` and `officeFloorProps.test.jsx`.
 - **The office log's duplicate collapse keys on `detail`, not just kind + colleague.** It has to:
   two `prop` entries carry no `colleagueId` at all, so printer-then-whiteboard six seconds apart
   read as a repeat and the digest reported only the second. The burst the collapse exists for
@@ -1474,8 +1494,9 @@ https://api.deepseek.com/` — 401 is reachable, 000 is blocked); never route ar
   visibly holding; and an interrupted trip **lingers** at the desk (`LINGER_MS`) before it
   clears, because the walk home is as short as 420 ms and a line nobody can read is a flash.
   Do not "simplify" `handleArrive` back to clearing on arrival. Copy is `floor.interrupt` in
-  `officeCast.js` — all three locale bundles or it is a silently dead feature in that language
-  (`officeLocale.test.js` pins the bank lengths and the `{prop}` count).
+  `officeCast.js` — all three locale bundles, or the apology arrives in English (an omission falls
+  through; a bank written **empty** is the silent one). `officeLocale.test.js` pins the bank lengths
+  and the `{prop}` count, and the raw-bundle sweep pins the keys.
 - **Standing next to somebody is the floor's one mechanic with a trigger of its own, and
   `channel: 'talk'` is what makes it safe.** Slice 19 fires a remark after five seconds within
   `NAME_CHIP_RANGE_TILES` — **reuse that constant**, never a second radius, or the person who
@@ -1624,11 +1645,13 @@ y)`, so the obvious sweep silently iterates an empty list; and pacing the exchan
   goes in **all four** bundles with a parity assertion, since `officeChromeCopy()` swaps bundles
   rather than merging: measured 4 of 12 prop cards across the four bundles changing when a board
   is up, 8 of 12 after.
-- **`officeChromeCopy()` swaps whole bundles, it does not merge** (`office()?.OFFICE_CHROME_COPY
-?? OFFICE_CHROME_COPY`), so a key missing from a locale is a **silently dead feature**, not an
-  English fallback. en-AU had shipped with no `floor.props.*.details` at all, which hid the
-  **Look closer** button entirely in that locale for months. `officeLocale.test.js` now pins the
-  prop copy; add a parity assertion there for any new chrome-copy branch a feature depends on.
+- **`officeChromeCopy()` swaps whole bundles — but the bundle it is handed is already merged, so an
+  omitted key is an English fall-through and not a dead feature.** Retracted 2026-11-15 and proved
+  through the real path; the full reasoning, the split it replaces it with (omission = untranslated,
+  a written value = the dead feature, arrays being the dangerous shape) and the general raw-bundle
+  sensor are in § _Omission is an English fall-through_ below. The standing instruction is no longer
+  "add a parity assertion for any new chrome-copy branch": `writes every chrome-copy key in its own
+bundle` in `officeLocale.test.js` covers every key, present and future, for `zh-CN` / `zh-TW`.
   `UiLocaleProvider` must call `setActiveOfficeBundle` **during render** (not only in an
   effect) — otherwise a language switch re-renders with fresh `controls` while
   `officeChromeCopy()` still returns the previous language (NameTag "HELLO" stuck in English).
@@ -2587,3 +2610,93 @@ One result worth keeping for its own sake: `reversedAttribution` was **0 in all 
 including the arm whose closing rule was rewritten under it. #916's naming convention (`the user`
 rather than `you` for the person on the other side) holds under a hostile edit to the instruction
 that sits directly beneath it.
+
+### A waved-off walk-by answers out loud, and the departing copy is where the sentence lives
+
+Landed 2026-11-13. The ✕ on a walk-by bubble had written a `pitchDeclined` beat since 2026-11-08 and
+the colleague still turned round and walked home **without a word** — the one refusal where the
+person is standing in front of you while you make it. Four things decide how a floor-only spoken
+line is legal at all, and they generalise past this one sentence.
+
+**`useFloorWalker` is the only place on the floor that can tell a press from the clock.**
+`dismissOfficeWalkBy` is the same mutation whether you pressed ✕ or the 24 s TTL fired, which is
+exactly why `officeWalkByMemory.js` writes its beat from the **press handler** rather than from the
+store. The spoken line has the same constraint for the same reason, so `handleRefused` is called
+synchronously beside `onDismissWalkBy` and the effect spends what the press left behind. A clock
+running out says nothing, precisely as it writes nothing — and the TTL case is the control that
+carries the whole claim: without it the feature looks identical on a night the ✕ has come unwired.
+
+**No new state, and that is what makes a floor-only line legal under ADR-0011 rule 1.** The sentence
+rides the **departing copy** `useFloorWalker` has held since it was written — presentation state the
+floor owns, "the same way a CSS exit transition is", in that hook's own words. So there is no
+floor-only event type and no floor-only moment kind for rule 1 to refuse, and the desk card closes
+exactly as before. The 1800 ms linger an earlier slice had to schedule arrives free, because
+`onDeparted` clears the copy the line was riding on when they reach their chair. **The general
+rule: a surface-exclusive line is legal when it rides presentation state that already exists, and
+illegal the moment it needs a store field of its own.**
+
+**One gate, two halves.** `isRefusableWalkBy` now feeds both the beat and the line. A drifted gate
+fails silently in the worst direction — a colleague apologising for a suggestion they never made,
+which is the fabrication the situation rule was measured on at 8 of 12, arriving through **copy**
+instead of through a prompt. `actionPrompt` is also **dropped** from the departing copy, so the
+bubble cannot render **Do it** underneath the sentence that just answered it.
+
+**And the silence had a second half that was not about copy at all.** `useFloorSpokenText` keyed the
+walk-by's narration on `walkBy.id`, so a changed **body** on the same id was swallowed — and
+swallowing it leaves `showSpokenText` set by the _previous_ line, which hides the balloon the
+fallback depends on. Keyed on id **and** body now. A bubble that does not appear is not always a
+missing line; check the key the text hook dedupes on.
+
+### Omission is an English fall-through; a written value is the dead feature
+
+Measured 2026-11-15, and it retracts a rule this file carried in three places (and
+`docs/office-isometric-mode.md` § 8 in a fourth): _"`officeChromeCopy()` swaps whole bundles, it does
+not merge, so a key missing from a locale is a silently dead feature, not an English fallback."_ The
+accessor does swap — `office()?.OFFICE_CHROME_COPY ?? OFFICE_CHROME_COPY` — but **the bundle it is
+handed is already merged.** `UiLocaleProvider` passes `setActiveOfficeBundle` the output of
+`getUiLocaleBundle(locale)`, which is `deepMergeLocale(english, override)`. Proved through that exact
+path by deleting `floor.props.look`, `floor.props.lookTitle`, `floor.declined` and the whole
+`floor.interrupt` bank from the raw zh-CN override: all four came back **in English**, while `doIt`
+stayed Chinese.
+
+So the class splits in two, and the halves need different sensors:
+
+- **An omitted key is an English fall-through** — visible, in the wrong language, never absent. It
+  is a translation defect, and it is invisible to every assertion that reads
+  `getUiLocaleBundle(locale)`, because `deepKeys(merged)` ⊇ `deepKeys(en)` is a fact about the merge.
+  `keeps chrome copy structurally complete` can therefore only ever report an **extra** key; its own
+  `missing (n)` branch is unreachable.
+- **A key whose _value_ is wrong is the dead feature**, because an override wins wherever it exists.
+  **Arrays are the dangerous shape** — they replace wholesale, so `details: []` really does hide
+  **Look closer** and a bank one line short really does bias every roll toward its last entry. That
+  is what the eight per-feature cases in `officeLocale.test.js` are actually good for, and they keep
+  earning their keep.
+
+**The gap that left is measured, not assumed.** A per-feature case notices an omission only where it
+happens to assert `not.toEqual(en)`, and only for the keys it names. Deleting `floor.interrupt` from
+zh-TW turns **two** cases red; deleting the whole `floor.errand` block from zh-CN turns **one** red,
+and `carries the errand copy onto both renderers (zh-CN)` passes with the Chinese card gone.
+
+**So the standing instruction changed.** It used to be _"add a parity assertion for any new
+chrome-copy branch a feature depends on"_ — a per-feature chore, performed eight times, each time
+against a failure mode the merge had already removed. The sensor is now general:
+`writes every chrome-copy key in its own bundle` in `apps/web/test/officeLocale.test.js` sweeps the
+**raw** override for every one of the 538 chrome-copy keys and every key added after tonight. Two
+scoping facts it needs:
+
+- **Only the translated locales.** `zh-CN` and `zh-TW` write **538 of 538** today; `en-AU` writes
+  **362** and falls through for the rest, which is correct for an English variant and would arrive
+  as 176 keys of fake debt. The rule the numbers support: a missing key is a sentence the reader
+  cannot read in a **translated** bundle, and a correct fall-through in an English one.
+- **A companion exhaustiveness case**, because the sweep runs over a hand-split subset of `LOCALES`
+  — a fourth locale would otherwise be swept by nothing and the omission would look like a pass.
+
+Still true and unchanged: `getUiLocaleBundle` **merges too well for values**, so an untranslated
+string is invisible to any key-shape check and only a value comparison finds it. Measured while
+proving the above, so nobody re-measures it: of the 607 chrome-copy string leaves, **30** are
+byte-identical to English in each zh bundle and **all 30 are legitimately untranslatable** — the six
+`desk.attribution.links` id/label/href triples, `welcomeVoiceSpeakerId`, the three prop glyphs,
+`Shift+O`, `vs`, `ArchiSlop OS`, `💬 Slop Chat™`, `+{count}`, `{name}…` and `…`. A generic
+"every leaf differs from English" sweep is therefore buildable, needs a 30-path exemption list, and
+is a later slice: the exemptions are not derivable from the value, so it would be a sensor naming
+members rather than the class.
