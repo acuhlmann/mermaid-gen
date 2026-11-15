@@ -18,7 +18,9 @@ test('template whitelist is populated from @antv/infographic at load time', () =
 });
 
 test('system prompt advertises one concrete template from each major family', () => {
-  for (const family of ['list-', 'sequence-', 'compare-', 'chart-', 'hierarchy-', 'relation-']) {
+  const families = ['list-', 'sequence-', 'compare-', 'chart-', 'hierarchy-', 'relation-'];
+  assert.equal(families.length, 6);
+  for (const family of families) {
     assert.match(
       INFOGRAPHIC_SYSTEM_PROMPT,
       new RegExp(family),
@@ -45,12 +47,14 @@ test('analysis system prompt does not allow mutation', () => {
 
 test('critique task requires the canonical section headers (Strengths is optional / last)', () => {
   // Weaknesses, Template fit, Visual, Actionable are mandatory; Strengths is optional / last.
-  for (const heading of [
+  const headings = [
     '## Weaknesses and limits',
     '## Template fit',
     '## Visual and information density',
     '## Actionable improvements'
-  ]) {
+  ];
+  assert.equal(headings.length, 4);
+  for (const heading of headings) {
     assert.ok(INFOGRAPHIC_CRITIQUE_TASK.includes(heading), `expected ${heading}`);
   }
   // Auditor voice: skews negative, no forced affirmation.
@@ -59,12 +63,9 @@ test('critique task requires the canonical section headers (Strengths is optiona
 });
 
 test('explain task requires the canonical section headers', () => {
-  for (const heading of [
-    '## Explanation',
-    '## Main message',
-    '## Key data points',
-    '## Takeaways'
-  ]) {
+  const headings = ['## Explanation', '## Main message', '## Key data points', '## Takeaways'];
+  assert.equal(headings.length, 4);
+  for (const heading of headings) {
     assert.ok(INFOGRAPHIC_EXPLAIN_TASK.includes(heading), `expected ${heading}`);
   }
 });

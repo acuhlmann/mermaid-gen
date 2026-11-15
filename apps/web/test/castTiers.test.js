@@ -65,6 +65,9 @@ describe('cast tiers', () => {
 
   it('covers every advisor persona, colleague, and invented exec', () => {
     // `fix` is a button, not a roundtable persona — it has no tier.
+    expect(Object.keys(VARIANT_PERSONAS).length).toBeGreaterThan(0);
+    expect(Object.keys(OFFICE_COLLEAGUES).length).toBeGreaterThan(0);
+    expect(Object.keys(SENIOR_STAKEHOLDERS).length).toBeGreaterThan(0);
     for (const variant of Object.keys(VARIANT_PERSONAS)) {
       if (variant === 'fix') continue;
       expect(tierOf(variant), `persona ${variant}`).toBeTruthy();
@@ -78,6 +81,7 @@ describe('cast tiers', () => {
   });
 
   it('resolves display info for every tier, including the invented execs', () => {
+    expect(ALL_IDS.length).toBeGreaterThan(0);
     for (const id of ALL_IDS) {
       const info = officeSenderInfo(id);
       expect(info.name, `${id} name`).toBeTruthy();

@@ -157,6 +157,7 @@ test('MCP: end-to-end handshake → presence → propose → accept → state ad
 
   const resources = await client.listResources();
   const resourceUris = new Set(resources.resources.map((r) => r.uri));
+  assert.ok(MCP_APP_URIS.length > 0, 'MCP_APP_URIS must be non-empty for this sweep');
   for (const uri of MCP_APP_URIS) {
     assert.ok(resourceUris.has(uri), `expected MCP App resource ${uri}`);
   }

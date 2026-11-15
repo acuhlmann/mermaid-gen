@@ -30,8 +30,10 @@ async function postSuggest(port, body) {
 
 test('advisor suggest accepts chart and anything content types', async () => {
   const { port, closeServer } = await bootServer();
+  const contentTypes = ['chart', 'anything'];
+  assert.equal(contentTypes.length, 2);
   try {
-    for (const contentType of ['chart', 'anything']) {
+    for (const contentType of contentTypes) {
       const res = await postSuggest(port, {
         persona: 'gilfoyle',
         contentType,
