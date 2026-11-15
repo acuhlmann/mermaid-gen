@@ -1,3 +1,4 @@
+.pw-browsers/
 node_modules/
 **/node_modules/
 pnpm-lock.yaml
