@@ -63,6 +63,64 @@ const BROWSER_CANDIDATES = [
   '/opt/pw-browsers/chromium-1194/chrome-linux/chrome'
 ].filter(Boolean);
 
+/** Playwright-managed browsers: CI sets `PLAYWRIGHT_BROWSERS_PATH`; Cloud VMs use `/opt/pw-browsers`. */
+function playwrightBrowsersRoot(env = process.env) {
+  return env.PLAYWRIGHT_BROWSERS_PATH?.trim() || '/opt/pw-browsers';
+}
+
+/**
+ * Probe a Playwright browser cache without constructing stale revision paths.
+ * Tries `chrome-linux64` before `chrome-linux` (Ubuntu noble images vary) and
+ * falls back to the `chromium` symlink Playwright creates under the cache root.
+ */
+export function resolvePlaywrightChromium(browsersPath) {
+  let entries;
+  try {
+    entries = fs.readdirSync(browsersPath);
+  } catch {
+    return null;
+  }
+  const revisionDirs = entries.filter(
+    (name) => /^chromium-\d+$/.test(name) || /^chromium_headless_shell-\d+$/.test(name)
+  );
+  const newestFull = revisionDirs
+    .filter((name) => /^chromium-\d+$/.test(name))
+    .sort()
+    .at(-1);
+  const newestHeadless = revisionDirs
+    .filter((name) => /^chromium_headless_shell-\d+$/.test(name))
+    .sort()
+    .at(-1);
+  const pinned = [
+    newestHeadless && path.join(browsersPath, newestHeadless, 'chrome-linux', 'headless_shell'),
+    newestHeadless && path.join(browsersPath, newestHeadless, 'chrome-linux64', 'headless_shell'),
+    newestFull && path.join(browsersPath, newestFull, 'chrome-linux64', 'chrome'),
+    newestFull && path.join(browsersPath, newestFull, 'chrome-linux', 'headless_shell'),
+    newestFull && path.join(browsersPath, newestFull, 'chrome-linux', 'chrome'),
+    path.join(browsersPath, 'chromium')
+  ].filter(Boolean);
+  for (const candidate of pinned) {
+    try {
+      if (fs.existsSync(candidate)) return candidate;
+    } catch {
+      // unreadable — try the next spelling
+    }
+  }
+  const leafOrder = ['chrome-linux64/chrome', 'chrome-linux/headless_shell', 'chrome-linux/chrome'];
+  try {
+    for (const entry of entries) {
+      if (!entry.startsWith('chromium')) continue;
+      for (const leaf of leafOrder) {
+        const full = path.join(browsersPath, entry, leaf);
+        if (fs.existsSync(full)) return full;
+      }
+    }
+  } catch {
+    // no readable cache here
+  }
+  return null;
+}
+
 /** Resolve a usable browser binary, or null when none is installed. */
 export function resolveAnythingBrowserBinary(env = process.env) {
   const explicit = env?.ANYTHING_BROWSER_BIN;
@@ -74,19 +132,7 @@ export function resolveAnythingBrowserBinary(env = process.env) {
       // unreadable path — try the next candidate
     }
   }
-  // Glob the playwright cache so a differently-pinned build still resolves.
-  try {
-    for (const entry of fs.readdirSync('/opt/pw-browsers')) {
-      if (!entry.startsWith('chromium')) continue;
-      for (const leaf of ['chrome-linux/headless_shell', 'chrome-linux/chrome']) {
-        const full = path.join('/opt/pw-browsers', entry, leaf);
-        if (fs.existsSync(full)) return full;
-      }
-    }
-  } catch {
-    // no playwright cache here
-  }
-  return null;
+  return resolvePlaywrightChromium(playwrightBrowsersRoot(env));
 }
 
 /**
