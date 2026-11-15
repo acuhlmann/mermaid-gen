@@ -2,7 +2,11 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import express from 'express';
 import { buildOfflineOracleReply, parseGodPetitionReply } from '../src/god/godPetitionPrompt.js';
-import { filePetitionPr } from '../src/god/godPetitionPr.js';
+import {
+  dispatchPetitionWorkflow,
+  filePetitionPr,
+  inferGodWorkflowFocus
+} from '../src/god/godPetitionPr.js';
 import { createGodPetitionRouter } from '../src/routes/godPetition.js';
 import { createGodWindowGate } from '../src/middleware/godWindowGate.js';
 import { createGodStatusRouter } from '../src/routes/godStatus.js';
@@ -125,9 +129,19 @@ test('filePetitionPr returns a clear unconfigured scroll when no GitHub token is
   assert.equal(res.filePath, 'docs/petitions/add-divine-dark-mode-20261115100000.md');
   assert.match(res.ghCommand, /gh pr create/);
   assert.match(res.divineMessage, /GOD_PR_TOKEN/);
+  assert.equal(res.workflowDispatch.status, 'unconfigured');
+  assert.equal(res.workflowDispatch.dispatched, false);
+  assert.match(res.workflowDispatch.ghWorkflowCommand, /gh workflow run god\.yml/);
 });
 
-test('filePetitionPr creates branch, commits petition spec, and opens a PR via GitHub REST API', async () => {
+test('inferGodWorkflowFocus maps proposal area/title to god.yml enum choices', () => {
+  assert.equal(inferGodWorkflowFocus({ targetArea: 'apps/web', title: 'Studio button' }), 'ux');
+  assert.equal(inferGodWorkflowFocus({ title: 'Fix mermaid flowchart quotes' }), 'mermaid');
+  assert.equal(inferGodWorkflowFocus({ summary: 'Improve chart Flint labels' }), 'chart');
+  assert.equal(inferGodWorkflowFocus({ summary: 'General refactor' }), 'any');
+});
+
+test('filePetitionPr creates branch, commits petition spec, opens PR, and dispatches god.yml', async () => {
   const calls = [];
   const fetchImpl = async (url, init = {}) => {
     calls.push({ url: String(url), method: init.method ?? 'GET', body: init.body });
@@ -159,6 +173,9 @@ test('filePetitionPr creates branch, commits petition spec, and opens a PR via G
           })
       };
     }
+    if (String(url).endsWith('/actions/workflows/god.yml/dispatches')) {
+      return { ok: true, status: 204, text: async () => '' };
+    }
     return { ok: false, status: 404, text: async () => 'not found' };
   };
 
@@ -175,8 +192,70 @@ test('filePetitionPr creates branch, commits petition spec, and opens a PR via G
   assert.equal(res.mode, 'github_pr');
   assert.equal(res.prNumber, 999);
   assert.equal(res.prUrl, 'https://github.com/acuhlmann/mermaid-gen/pull/999');
-  assert.equal(calls.length, 4);
+  assert.equal(calls.length, 5);
   assert.ok(calls[2].url.includes('docs/petitions/add-divine-dark-mode-20261115100000.md'));
+  assert.ok(calls[4].url.endsWith('/actions/workflows/god.yml/dispatches'));
+  const dispatchPayload = JSON.parse(calls[4].body);
+  assert.equal(dispatchPayload.ref, 'god-petition/add-divine-dark-mode-20261115100000');
+  assert.equal(dispatchPayload.inputs.tier, 'propose');
+  assert.equal(dispatchPayload.inputs.focus, 'ux');
+  assert.equal(res.workflowDispatch.dispatched, true);
+  assert.equal(res.workflowDispatch.status, 'dispatched');
+});
+
+test('dispatchPetitionWorkflow falls back to baseBranch when a fresh branch returns 422', async () => {
+  const refsTried = [];
+  const fetchImpl = async (_url, init = {}) => {
+    const body = JSON.parse(init.body);
+    refsTried.push(body.ref);
+    if (body.ref === 'god-petition/new') {
+      return { ok: false, status: 422, text: async () => 'ref not indexed yet' };
+    }
+    return { ok: true, status: 204, text: async () => '' };
+  };
+  const res = await dispatchPetitionWorkflow({
+    repo: 'acuhlmann/mermaid-gen',
+    ref: 'god-petition/new',
+    fallbackRef: 'main',
+    focus: 'ux',
+    env: { GOD_PR_TOKEN: 'ghp_test' },
+    fetchImpl
+  });
+  assert.deepEqual(refsTried, ['god-petition/new', 'main']);
+  assert.equal(res.dispatched, true);
+  assert.equal(res.ref, 'main');
+});
+
+test('POST /api/god/petition/dispatch triggers workflow dispatch route cleanly', async () => {
+  const app = await bootApp({
+    petitionOptions: {
+      env: {},
+      dispatchWorkflow: async ({ ref, focus }) => ({
+        attempted: true,
+        dispatched: true,
+        status: 'dispatched',
+        workflow: 'god.yml',
+        ref,
+        focus,
+        workflowUrl: 'https://github.com/acuhlmann/mermaid-gen/actions/workflows/god.yml',
+        ghWorkflowCommand: 'gh workflow run god.yml',
+        message: 'Dispatched!'
+      })
+    }
+  });
+  try {
+    const res = await fetch(`${app.base}/api/god/petition/dispatch`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ ref: 'god-petition/x', focus: 'mermaid' })
+    });
+    assert.equal(res.status, 200);
+    const body = await res.json();
+    assert.equal(body.dispatched, true);
+    assert.equal(body.focus, 'mermaid');
+  } finally {
+    await app.close();
+  }
 });
 
 test('HTTP routes: capabilities, offline oracle, mocked LLM petition, file-pr, and owner gate isolation', async () => {

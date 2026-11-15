@@ -96,18 +96,32 @@ export const GOD_ALTAR_COPY = {
   returnLink: '← Return to ArchiSlop',
   closeAria: 'Leave the Altar',
   resetButton: 'New Confession',
+  audio: {
+    sfxOn: 'Divine SFX On',
+    sfxOff: 'SFX Muted',
+    voiceOn: 'Spoken Decrees On',
+    voiceOff: 'Voice Silent'
+  },
   prCard: {
     eyebrow: 'CELESTIAL PR DECREE',
     branchLabel: 'Branch',
     targetLabel: 'Target',
     planLabel: 'Sacred Implementation Plan',
+    dispatchCheckbox: 'Also dispatch god.yml workflow to implement this decree',
     fileButton: '⚡ Strike the Lightning & File PR',
     filingButton: 'Forging Pull Request…',
     filedBanner: 'Pull Request Ascended to GitHub',
     openPrLink: 'View Pull Request',
     unconfiguredTitle: 'Offline PR Scroll (No GitHub Write Token on Server)',
     copyGhLabel: 'Copy gh / git decree',
-    copiedGhLabel: 'Decree copied!'
+    copiedGhLabel: 'Decree copied!',
+    dispatchDispatched: 'Workflow Dispatched (god.yml)',
+    dispatchFallback: 'Manual Workflow Fallback',
+    dispatchButton: 'Dispatch god.yml',
+    dispatchingButton: 'Dispatching god.yml…',
+    openWorkflowLink: 'View god.yml Runs',
+    copyWorkflowLabel: 'Copy gh workflow command',
+    copiedWorkflowLabel: 'Workflow command copied!'
   },
   oracleBadge: 'Stone-Tablet Oracle (No LLM key set — still judgmental)',
   llmBadge: 'Live Celestial LLM Connected',

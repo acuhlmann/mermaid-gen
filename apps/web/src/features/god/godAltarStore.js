@@ -1,11 +1,15 @@
 /**
- * External store controlling the in-app ArchiSlop God Altar modal.
+ * External store controlling the in-app ArchiSlop God Altar modal and transient
+ * divine events (prayer / blessing / smite / PR decree) observed by the office floor.
  *
  * Kept outside `ArchiSlop.jsx` (like `officeViewModeStore.js`) so Studio, Desk OS menus,
- * and Office entry surfaces can summon the Altar without growing the shell monolith.
+ * and Office floor surfaces can summon the Altar and react to active user prayers without
+ * growing the shell monolith or emitting `uxSignals`.
  */
 
 let altarOpen = false;
+let eventSeq = 0;
+let altarEvent = null;
 const listeners = new Set();
 
 function notify() {
@@ -14,6 +18,10 @@ function notify() {
 
 export function getGodAltarOpen() {
   return altarOpen;
+}
+
+export function getGodAltarEvent() {
+  return altarEvent;
 }
 
 export function subscribeGodAltar(listener) {
@@ -33,7 +41,27 @@ export function closeGodAltar() {
   notify();
 }
 
+/**
+ * Emit a transient divine reaction event when the user actively prays or petitions a PR.
+ * @param {'pray' | 'bless' | 'smite'} kind
+ * @param {string} [mood]
+ */
+export function emitGodAltarEvent(kind, mood = 'amused') {
+  eventSeq += 1;
+  altarEvent = { seq: eventSeq, kind, mood, at: Date.now() };
+  notify();
+  return altarEvent;
+}
+
+export function clearGodAltarEvent() {
+  if (!altarEvent) return;
+  altarEvent = null;
+  notify();
+}
+
 export function resetGodAltarForTests() {
   altarOpen = false;
+  altarEvent = null;
+  eventSeq = 0;
   notify();
 }

@@ -95,11 +95,30 @@ function propStyle(prop) {
   };
 }
 
+function AltarShrineButton({ prop, style, altarCopy, altarActive, onOpenGodAltar, board, notes }) {
+  return (
+    <button
+      type="button"
+      className={`office-floor-prop office-floor-prop--shrine${altarActive ? ' is-divine' : ''}`}
+      style={style}
+      data-prop="altar"
+      data-testid="office-floor-altar"
+      title={altarCopy?.useTitle ?? 'Confess thy slop or petition a Pull Request'}
+      aria-label={altarCopy?.useLabel ?? altarCopy?.name ?? 'Altar of ArchiSlop God'}
+      onClick={() => onOpenGodAltar()}
+    >
+      {propArt(prop, board, notes)}
+    </button>
+  );
+}
+
 /**
  * @param {{
  *   copy: Record<string, any>,
  *   interactive?: boolean,
  *   onUseProp?: ((kind: string) => void) | null,
+ *   onOpenGodAltar?: (() => void) | null,
+ *   altarActive?: boolean,
  *   activeKind?: string | null,
  *   board?: import('../../utils/officeFloorBoard.js').BoardState | null
  * }} props `copy` is `officeChromeCopy().floor`. Without `onUseProp`, or with
@@ -112,6 +131,8 @@ export function FloorProps({
   copy,
   interactive = true,
   onUseProp = null,
+  onOpenGodAltar = null,
+  altarActive = false,
   activeKind = null,
   board = null
 }) {
@@ -122,6 +143,21 @@ export function FloorProps({
   const rendered = FLOOR_PROPS.map((prop, index) => {
     const key = `${prop.kind}-${index}`;
     const style = propStyle(prop);
+
+    if (prop.kind === 'altar' && interactive && typeof onOpenGodAltar === 'function') {
+      return (
+        <AltarShrineButton
+          key={key}
+          prop={prop}
+          style={style}
+          altarCopy={copy.altar}
+          altarActive={altarActive}
+          onOpenGodAltar={onOpenGodAltar}
+          board={board}
+          notes={notes}
+        />
+      );
+    }
 
     // Only the first of a kind is the usable one: three plants would otherwise
     // be three buttons with one name, and `propTileFor` derives a single mark

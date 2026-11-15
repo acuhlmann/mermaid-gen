@@ -59,6 +59,7 @@ import { YOU_SEAT_ID, isWithinNameChipRange } from '../../utils/officeFloorPlan.
  *   dwellAt?: { x: number, y: number } | null,
  *   shopTalkSaid?: { speakerId: string, text: string } | null,
  *   shopTalkAt?: { x: number, y: number } | null,
+ *   altarCameo?: { speakerId: string, text: string } | null,
  *   presence?: any,
  *   onPresenceArrive?: () => void,
  *   playerRef?: { current: HTMLElement | null },
@@ -111,6 +112,7 @@ export function FloorActors({
   dwellAt,
   shopTalkSaid,
   shopTalkAt,
+  altarCameo,
   presence,
   onPresenceArrive,
   onStep,
@@ -241,6 +243,14 @@ export function FloorActors({
           tile={shopTalkAt}
           scale={scale}
           testId="office-floor-shop-talk-line"
+        />
+      ) : null}
+      {altarCameo ? (
+        <FloorDeskSpeech
+          castId={altarCameo.speakerId}
+          line={altarCameo.text}
+          scale={scale}
+          testId="office-floor-altar-cameo"
         />
       ) : null}
 

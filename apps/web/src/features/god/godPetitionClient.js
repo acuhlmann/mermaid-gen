@@ -7,6 +7,7 @@ import { API_BASE_URL } from '../../state/diagramSession.js';
 export const GOD_PETITION_PATH = '/api/god/petition';
 export const GOD_PETITION_CAPABILITIES_PATH = '/api/god/petition/capabilities';
 export const GOD_PETITION_FILE_PR_PATH = '/api/god/petition/file-pr';
+export const GOD_PETITION_DISPATCH_PATH = '/api/god/petition/dispatch';
 
 async function readJsonSafe(res) {
   try {
@@ -77,6 +78,32 @@ export async function fileGodPetitionPr(payload, { fetchImpl = fetch } = {}) {
     return {
       ok: false,
       error: body?.error || `The PR Forge refused the decree (HTTP ${res.status}).`
+    };
+  }
+  return { ok: true, data: body };
+}
+
+export async function dispatchGodWorkflow(payload, { fetchImpl = fetch } = {}) {
+  let res;
+  try {
+    res = await fetchImpl(`${API_BASE_URL}${GOD_PETITION_DISPATCH_PATH}`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      credentials: 'same-origin',
+      cache: 'no-store',
+      body: JSON.stringify(payload)
+    });
+  } catch {
+    return {
+      ok: false,
+      error: 'Could not reach the GitHub Actions dispatch relay.'
+    };
+  }
+  const body = await readJsonSafe(res);
+  if (!res.ok || !body) {
+    return {
+      ok: false,
+      error: body?.error || `Workflow dispatch failed (HTTP ${res.status}).`
     };
   }
   return { ok: true, data: body };

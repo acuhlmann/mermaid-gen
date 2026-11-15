@@ -1498,6 +1498,25 @@ export const OFFICE_EN_AU = {
         actionTitle: 'Wander over — though turning up late tends to end a conversation',
         line: '…anyway. Oh — g’day.'
       },
+      altar: {
+        name: 'Altar of ArchiSlop God',
+        useLabel: 'Altar of ArchiSlop God — summon deity',
+        useTitle: 'Confess thy slop or petition a Pull Request',
+        cameos: {
+          pray: {
+            gilfoyle: 'Another prayer to the CI gods. Have you tried writing tests instead?',
+            dinesh: 'Wait—did God just roast my commit? I am literally sitting right here.'
+          },
+          bless: {
+            gilfoyle: 'Great. Even an omniscient deity approves PRs faster than our team.',
+            dinesh: 'If God opens a branch, does that count against my sprint velocity?'
+          },
+          smite: {
+            gilfoyle: 'I told you the monolith was a sin. Enjoy the lightning.',
+            dinesh: 'Why did the thunder hit MY monitor? My code compiled!'
+          }
+        }
+      },
       meeting: {
         eyebrow: 'GLASS ROOM',
         eyebrowRemote: 'HEADSET SYNC',

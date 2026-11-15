@@ -3,7 +3,16 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import GodAltarPanel from '../src/features/god/GodAltarPanel.jsx';
 import GodAltarHost from '../src/features/god/GodAltarModal.jsx';
-import { openGodAltar, resetGodAltarForTests } from '../src/features/god/godAltarStore.js';
+import {
+  getGodAltarEvent,
+  openGodAltar,
+  resetGodAltarForTests
+} from '../src/features/god/godAltarStore.js';
+import {
+  playGodJudgmentCue,
+  speakGodDecree,
+  stopGodSpeech
+} from '../src/features/god/godAltarAudio.js';
 import { _resetUxSignalsForTests, installUxSignals } from '../src/state/uxSignalsClient.js';
 
 const PROPOSAL = {
@@ -49,10 +58,22 @@ describe('GodAltarPanel & GodAltarModal', () => {
           v: 1,
           filed: true,
           mode: 'github_pr',
+          branch: 'god-petition/add-celestial-neon-theme-20261115',
           prNumber: 777,
           prUrl: 'https://github.com/acuhlmann/mermaid-gen/pull/777',
           ghCommand: 'gh pr create ...',
-          divineMessage: 'BEHOLD! PR #777 HATH DESCENDED FROM HEAVEN.'
+          divineMessage: 'BEHOLD! PR #777 HATH DESCENDED FROM HEAVEN.',
+          workflowDispatch: {
+            attempted: true,
+            dispatched: true,
+            status: 'dispatched',
+            workflow: 'god.yml',
+            ref: 'god-petition/add-celestial-neon-theme-20261115',
+            focus: 'ux',
+            workflowUrl: 'https://github.com/acuhlmann/mermaid-gen/actions/workflows/god.yml',
+            ghWorkflowCommand: 'gh workflow run god.yml',
+            message: 'Dispatched god.yml (focus: ux).'
+          }
         });
       }
       if (u.includes('/api/god/petition')) {
@@ -107,11 +128,15 @@ describe('GodAltarPanel & GodAltarModal', () => {
     expect(screen.getByRole('link', { name: /View Pull Request #777/i }).getAttribute('href')).toBe(
       'https://github.com/acuhlmann/mermaid-gen/pull/777'
     );
+    expect(screen.getByTestId('god-workflow-dispatch').textContent).toContain(
+      'Workflow Dispatched (god.yml)'
+    );
+    expect(getGodAltarEvent()?.kind).toBe('bless');
     expect(signalRequests).toEqual([]);
     uninstall();
   });
 
-  it('gracefully shows the local gh scroll when GitHub credentials are unconfigured', async () => {
+  it('gracefully shows the local gh scroll and workflow fallback when GitHub credentials are unconfigured', async () => {
     vi.stubGlobal(
       'fetch',
       vi.fn(async (url) => {
@@ -124,8 +149,21 @@ describe('GodAltarPanel & GodAltarModal', () => {
             v: 1,
             filed: false,
             mode: 'unconfigured',
+            branch: 'god-petition/x',
             ghCommand: 'git checkout -b god-petition/x && gh pr create',
-            divineMessage: 'NO GITHUB TOKEN DWELLS IN THIS SERVER.'
+            divineMessage: 'NO GITHUB TOKEN DWELLS IN THIS SERVER.',
+            workflowDispatch: {
+              attempted: false,
+              dispatched: false,
+              status: 'unconfigured',
+              workflow: 'god.yml',
+              ref: 'god-petition/x',
+              focus: 'ux',
+              workflowUrl: 'https://github.com/acuhlmann/mermaid-gen/actions/workflows/god.yml',
+              ghWorkflowCommand:
+                'gh workflow run god.yml --repo acuhlmann/mermaid-gen --ref god-petition/x',
+              message: 'No GitHub token configured.'
+            }
           });
         }
         return jsonResponse({
@@ -149,10 +187,82 @@ describe('GodAltarPanel & GodAltarModal', () => {
     fireEvent.click(screen.getByTestId('god-altar-submit'));
 
     await screen.findByTestId('god-pr-decree');
+    expect(screen.getByTestId('god-dispatch-checkbox').checked).toBe(true);
     fireEvent.click(screen.getByTestId('god-file-pr-button'));
     const outcome = await screen.findByTestId('god-pr-outcome');
     expect(outcome.textContent).toContain('Offline PR Scroll');
     expect(outcome.textContent).toContain('gh pr create');
+    expect(screen.getByTestId('god-workflow-dispatch').textContent).toContain(
+      'Manual Workflow Fallback'
+    );
+    expect(screen.getByTestId('god-workflow-dispatch').textContent).toContain(
+      'gh workflow run god.yml'
+    );
+  });
+
+  it('synthesizes thunder, organ/blessing/smite cues and speechSynthesis safely, and respects mute/voice toggles', async () => {
+    const oscStart = vi.fn();
+    const createOscillator = vi.fn(() => ({
+      type: 'sine',
+      frequency: { setValueAtTime: vi.fn(), exponentialRampToValueAtTime: vi.fn() },
+      connect: vi.fn(),
+      start: oscStart,
+      stop: vi.fn()
+    }));
+    const createGain = vi.fn(() => ({
+      gain: { setValueAtTime: vi.fn(), exponentialRampToValueAtTime: vi.fn() },
+      connect: vi.fn()
+    }));
+    globalThis.AudioContext = vi.fn(function MockCtx() {
+      return {
+        currentTime: 0,
+        sampleRate: 44100,
+        destination: {},
+        createOscillator,
+        createGain
+      };
+    });
+    const speak = vi.fn();
+    const cancel = vi.fn();
+    globalThis.speechSynthesis = { speak, cancel };
+    globalThis.SpeechSynthesisUtterance = vi.fn(function MockUtterance(text) {
+      this.text = text;
+    });
+
+    try {
+      const ref = { current: null };
+      playGodJudgmentCue({
+        audioContextRef: ref,
+        kind: 'smite',
+        mood: 'wrathful',
+        soundEnabled: true,
+        voiceEnabled: true,
+        text: 'BEGONE, MORTAL.'
+      });
+      expect(oscStart).toHaveBeenCalled();
+      expect(speak).toHaveBeenCalledTimes(1);
+
+      expect(speakGodDecree('Muted test', { enabled: false })).toBe(false);
+      stopGodSpeech();
+      expect(cancel).toHaveBeenCalled();
+
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(async () => jsonResponse({ v: 1, llmConfigured: false, githubPrConfigured: false }))
+      );
+      render(<GodAltarPanel />);
+      const sfxToggle = screen.getByTestId('god-altar-sfx-toggle');
+      const voiceToggle = screen.getByTestId('god-altar-voice-toggle');
+      expect(sfxToggle.getAttribute('aria-pressed')).toBe('true');
+      expect(voiceToggle.disabled).toBe(false);
+      fireEvent.click(sfxToggle);
+      expect(sfxToggle.getAttribute('aria-pressed')).toBe('false');
+      expect(voiceToggle.disabled).toBe(true);
+    } finally {
+      delete globalThis.AudioContext;
+      delete globalThis.speechSynthesis;
+      delete globalThis.SpeechSynthesisUtterance;
+    }
   });
 
   it('opens GodAltarModal via store, links to /god?tab=altar, and closes on Escape', async () => {

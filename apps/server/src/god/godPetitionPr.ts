@@ -7,6 +7,18 @@ type Env = Record<string, string | undefined>;
 const REPO_SLUG_RE = /^[\w.-]{1,80}\/[\w.-]{1,80}$/;
 const BASE_BRANCH_RE = /^[A-Za-z0-9._/-]{1,80}$/;
 const GITHUB_TIMEOUT_MS = 12_000;
+export const GOD_WORKFLOW_FILE = 'god.yml';
+export const GOD_WORKFLOW_FOCUSES = [
+  'any',
+  'ux',
+  'mermaid',
+  'infographic',
+  'metaphor3d',
+  'chart',
+  'forms',
+  'anything'
+] as const;
+export type GodWorkflowFocus = (typeof GOD_WORKFLOW_FOCUSES)[number];
 
 export function resolvePetitionGitHubToken(env: Env = process.env): string | null {
   for (const key of ['GOD_PR_TOKEN', 'GITHUB_TOKEN', 'GH_TOKEN']) {
@@ -24,6 +36,31 @@ export function resolvePetitionRepo(env: Env = process.env): string {
 export function resolvePetitionBaseBranch(env: Env = process.env): string {
   const raw = (env.GOD_PETITION_BASE_BRANCH ?? 'main').trim();
   return BASE_BRANCH_RE.test(raw) && !raw.includes('..') ? raw : 'main';
+}
+
+const FOCUS_PATTERNS: ReadonlyArray<{ focus: GodWorkflowFocus; re: RegExp }> = [
+  { focus: 'mermaid', re: /\bmermaid|flowchart|sequence|state\s+diagram|er\s*diagram/i },
+  { focus: 'infographic', re: /\binfographic|antv/i },
+  { focus: 'metaphor3d', re: /\bmetaphor|3d|three\.js/i },
+  { focus: 'chart', re: /\bchart|vega|flint|echarts|plotly/i },
+  { focus: 'forms', re: /\bforms|a2ui/i },
+  { focus: 'anything', re: /\banything|html|sandbox/i },
+  { focus: 'ux', re: /\bux|ui|studio|office|button|hotkey|shortcut|theme|dark\s*mode|apps\/web/i }
+];
+
+export function inferGodWorkflowFocus(proposal: Partial<GodPrProposal>): GodWorkflowFocus {
+  const haystack = `${proposal.targetArea ?? ''} ${proposal.title ?? ''} ${proposal.summary ?? ''}`;
+  const matched = FOCUS_PATTERNS.find((entry) => entry.re.test(haystack));
+  return matched ? matched.focus : 'any';
+}
+
+export function buildManualWorkflowCommand(input: {
+  repo: string;
+  ref: string;
+  focus: GodWorkflowFocus;
+}): string {
+  const q = (v: string) => `'${v.replace(/'/g, "'\\''")}'`;
+  return `gh workflow run ${GOD_WORKFLOW_FILE} --repo ${q(input.repo)} --ref ${q(input.ref)} -f tier=propose -f focus=${input.focus} -f force=true`;
 }
 
 export function buildPetitionSpecMarkdown(input: {
@@ -79,16 +116,16 @@ export function buildPetitionPrBody(input: {
     '',
     `Petitioner **${mortal}** approached the Altar (Divine Favor: **${input.favor}/100**) and was judged worthy of a branch.`,
     '',
-    `### Summary`,
+    '### Summary',
     input.proposal.summary,
     '',
-    `### Target Area`,
+    '### Target Area',
     `\`${input.proposal.targetArea}\``,
     '',
     '### Sacred Implementation Plan',
     plan,
     '',
-    `### Petition Artifact`,
+    '### Petition Artifact',
     `Recorded in \`${input.filePath}\`.`
   ];
   if (input.prayerSummary?.trim()) {
@@ -115,6 +152,19 @@ export function buildManualGhCommand(input: {
   ].join(' && ');
 }
 
+export type GodWorkflowDispatchResult = {
+  attempted: boolean;
+  dispatched: boolean;
+  status: 'dispatched' | 'unconfigured' | 'failed' | 'skipped';
+  workflow: string;
+  ref: string;
+  focus: GodWorkflowFocus;
+  workflowUrl: string;
+  ghWorkflowCommand: string;
+  reason?: string;
+  message: string;
+};
+
 export type GodPrActionResult = {
   filed: boolean;
   mode: 'github_pr' | 'unconfigured' | 'github_error';
@@ -129,6 +179,7 @@ export type GodPrActionResult = {
   prUrl?: string;
   ghCommand: string;
   divineMessage: string;
+  workflowDispatch: GodWorkflowDispatchResult;
 };
 
 async function githubJson<T>(
@@ -156,6 +207,9 @@ async function githubJson<T>(
       detail: redactSecrets(text.slice(0, 300))
     };
   }
+  if (response.status === 204 || !text.trim()) {
+    return { ok: true, data: {} as T };
+  }
   try {
     return { ok: true, data: JSON.parse(text) as T };
   } catch {
@@ -163,11 +217,102 @@ async function githubJson<T>(
   }
 }
 
+export type DispatchPetitionWorkflowOptions = {
+  repo?: string;
+  ref: string;
+  fallbackRef?: string;
+  focus: GodWorkflowFocus;
+  env?: Env;
+  fetchImpl?: typeof fetch;
+};
+
+function makeWorkflowDispatchBase(repo: string, ref: string, focus: GodWorkflowFocus) {
+  return {
+    workflow: GOD_WORKFLOW_FILE,
+    ref,
+    focus,
+    workflowUrl: `https://github.com/${repo}/actions/workflows/${GOD_WORKFLOW_FILE}`,
+    ghWorkflowCommand: buildManualWorkflowCommand({ repo, ref, focus })
+  };
+}
+
+function shouldFallbackRef(status: number, options: DispatchPetitionWorkflowOptions): boolean {
+  return Boolean(
+    (status === 422 || status === 404) && options.fallbackRef && options.fallbackRef !== options.ref
+  );
+}
+
+export async function dispatchPetitionWorkflow(
+  options: DispatchPetitionWorkflowOptions
+): Promise<GodWorkflowDispatchResult> {
+  const env = options.env ?? process.env;
+  const fetchImpl = options.fetchImpl ?? fetch;
+  const repo =
+    options.repo && REPO_SLUG_RE.test(options.repo) ? options.repo : resolvePetitionRepo(env);
+  const base = makeWorkflowDispatchBase(repo, options.ref, options.focus);
+  const token = resolvePetitionGitHubToken(env);
+
+  if (!token) {
+    return {
+      ...base,
+      attempted: false,
+      dispatched: false,
+      status: 'unconfigured',
+      reason: 'missing_github_token',
+      message:
+        'No GitHub token is configured on this server; dispatch god.yml manually with the gh command below.'
+    };
+  }
+
+  const endpoint = `https://api.github.com/repos/${repo}/actions/workflows/${GOD_WORKFLOW_FILE}/dispatches`;
+  const postDispatch = (ref: string) =>
+    githubJson<Record<string, never>>(fetchImpl, endpoint, token, {
+      method: 'POST',
+      body: JSON.stringify({
+        ref,
+        inputs: {
+          spike: 'false',
+          force: 'true',
+          tier: 'propose',
+          focus: options.focus
+        }
+      })
+    });
+
+  let activeRef = options.ref;
+  let dispatchRes = await postDispatch(activeRef);
+  if (dispatchRes.ok === false && shouldFallbackRef(dispatchRes.status, options)) {
+    activeRef = options.fallbackRef ?? activeRef;
+    dispatchRes = await postDispatch(activeRef);
+  }
+
+  const finalBase = makeWorkflowDispatchBase(repo, activeRef, options.focus);
+  if (dispatchRes.ok === false) {
+    return {
+      ...finalBase,
+      attempted: true,
+      dispatched: false,
+      status: 'failed',
+      reason: `dispatch_${dispatchRes.status}`,
+      message: `GitHub refused workflow_dispatch (${dispatchRes.status}: ${dispatchRes.detail}). Run the gh workflow command below instead.`
+    };
+  }
+
+  return {
+    ...finalBase,
+    attempted: true,
+    dispatched: true,
+    status: 'dispatched',
+    message: `Dispatched ${GOD_WORKFLOW_FILE} on ${activeRef} (tier: propose, focus: ${options.focus}) so God's harness can implement the decree.`
+  };
+}
+
 export type FilePetitionPrOptions = {
   proposal: GodPrProposal;
   prayerSummary?: string;
   favor: number;
   userName?: string;
+  dispatchWorkflow?: boolean;
   env?: Env;
   fetchImpl?: typeof fetch;
   nowMs?: () => number;
@@ -182,6 +327,8 @@ type PreparedPrContext = {
   body: string;
   ghCommand: string;
   markdown: string;
+  focus: GodWorkflowFocus;
+  dispatchWorkflow: boolean;
 };
 
 function prFailure(
@@ -189,6 +336,7 @@ function prFailure(
   reason: string,
   divineMessage: string
 ): GodPrActionResult {
+  const base = makeWorkflowDispatchBase(ctx.repo, ctx.branch, ctx.focus);
   return {
     filed: false,
     mode: 'github_error',
@@ -200,13 +348,47 @@ function prFailure(
     title: ctx.title,
     body: ctx.body,
     ghCommand: ctx.ghCommand,
-    divineMessage
+    divineMessage,
+    workflowDispatch: {
+      ...base,
+      attempted: false,
+      dispatched: false,
+      status: 'skipped',
+      reason: 'pr_not_opened',
+      message: 'Workflow dispatch skipped because the PR branch did not finish opening.'
+    }
   };
+}
+
+async function resolveWorkflowAfterPr(
+  fetchImpl: typeof fetch,
+  env: Env,
+  ctx: PreparedPrContext
+): Promise<GodWorkflowDispatchResult> {
+  if (!ctx.dispatchWorkflow) {
+    return {
+      ...makeWorkflowDispatchBase(ctx.repo, ctx.branch, ctx.focus),
+      attempted: false,
+      dispatched: false,
+      status: 'skipped',
+      reason: 'dispatch_disabled',
+      message: 'Workflow dispatch was left unchecked; trigger god.yml manually if desired.'
+    };
+  }
+  return dispatchPetitionWorkflow({
+    repo: ctx.repo,
+    ref: ctx.branch,
+    fallbackRef: ctx.baseBranch,
+    focus: ctx.focus,
+    env,
+    fetchImpl
+  });
 }
 
 async function createPrOnGitHub(
   fetchImpl: typeof fetch,
   token: string,
+  env: Env,
   ctx: PreparedPrContext
 ): Promise<GodPrActionResult> {
   const baseApi = `https://api.github.com/repos/${ctx.repo}`;
@@ -285,6 +467,11 @@ async function createPrOnGitHub(
     return prFailure(ctx, 'missing_pr_url', 'GitHub returned no pull request URL.');
   }
 
+  const workflowDispatch = await resolveWorkflowAfterPr(fetchImpl, env, ctx);
+  const dispatchNote = workflowDispatch.dispatched
+    ? ` ${GOD_WORKFLOW_FILE} hath been dispatched (focus: ${workflowDispatch.focus}) to manifest the code.`
+    : '';
+
   return {
     filed: true,
     mode: 'github_pr',
@@ -297,7 +484,8 @@ async function createPrOnGitHub(
     prNumber: prRes.data.number,
     prUrl: prRes.data.html_url,
     ghCommand: ctx.ghCommand,
-    divineMessage: `BEHOLD! PR #${String(prRes.data.number ?? '?')} HATH DESCENDED FROM HEAVEN ON BRANCH \`${ctx.branch}\`. Now go beg a human reviewer for an LGTM.`
+    divineMessage: `BEHOLD! PR #${String(prRes.data.number ?? '?')} HATH DESCENDED FROM HEAVEN ON BRANCH \`${ctx.branch}\`.${dispatchNote}`,
+    workflowDispatch
   };
 }
 
@@ -314,6 +502,8 @@ export async function filePetitionPr(options: FilePetitionPrOptions): Promise<Go
   const branch = `god-petition/${slug}-${stamp}`;
   const filePath = `docs/petitions/${slug}-${stamp}.md`;
   const title = redactSecrets(options.proposal.title.trim().slice(0, 120));
+  const focus = inferGodWorkflowFocus(options.proposal);
+  const dispatchWorkflow = options.dispatchWorkflow !== false;
   const body = buildPetitionPrBody({
     proposal: options.proposal,
     prayerSummary: options.prayerSummary,
@@ -332,6 +522,7 @@ export async function filePetitionPr(options: FilePetitionPrOptions): Promise<Go
 
   const token = resolvePetitionGitHubToken(env);
   if (!token) {
+    const wfBase = makeWorkflowDispatchBase(repo, branch, focus);
     return {
       filed: false,
       mode: 'unconfigured',
@@ -344,11 +535,20 @@ export async function filePetitionPr(options: FilePetitionPrOptions): Promise<Go
       body,
       ghCommand,
       divineMessage:
-        'THUNDER ROLLED, YET NO GITHUB TOKEN DWELLS IN THIS SERVER’S ENVIRONMENT (GOD_PR_TOKEN / GITHUB_TOKEN). Behold thy consecrated PR scroll—execute it with thine own mortal hands or bestow a token upon this server.'
+        'THUNDER ROLLED, YET NO GITHUB TOKEN DWELLS IN THIS SERVER’S ENVIRONMENT (GOD_PR_TOKEN / GITHUB_TOKEN). Behold thy consecrated PR scroll—execute it with thine own mortal hands or bestow a token upon this server.',
+      workflowDispatch: {
+        ...wfBase,
+        attempted: false,
+        dispatched: false,
+        status: 'unconfigured',
+        reason: 'missing_github_token',
+        message:
+          'No GitHub token is configured on this server; run the gh workflow command below after pushing.'
+      }
     };
   }
 
-  return createPrOnGitHub(fetchImpl, token, {
+  return createPrOnGitHub(fetchImpl, token, env, {
     repo,
     baseBranch,
     branch,
@@ -356,6 +556,8 @@ export async function filePetitionPr(options: FilePetitionPrOptions): Promise<Go
     title,
     body,
     ghCommand,
-    markdown
+    markdown,
+    focus,
+    dispatchWorkflow
   });
 }

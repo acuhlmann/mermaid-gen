@@ -559,6 +559,30 @@ const PROP_ART = {
       <circle cx="12" cy="-27" r="10" fill="#268a52" />
     </g>
   ),
+  altar: () => (
+    <g>
+      <IsoBox w={0.78} d={0.78} h={10} color="#2c3548" />
+      <IsoBox w={0.56} d={0.56} h={22} color="#1f2738" lift={10} />
+      <IsoBox w={0.62} d={0.62} h={5} color="#d4af37" lift={32} />
+      <IsoBox w={0.28} d={0.28} h={5} color="#fde68a" lift={37} />
+      <ellipse
+        cx="0"
+        cy="-52"
+        rx="14"
+        ry="4.5"
+        fill="none"
+        stroke="#e5c158"
+        strokeWidth="2"
+        className="office-floor-altar-halo"
+      />
+      <path
+        d="M2 -58 L-4 -47 L1 -47 L-2 -38 L6 -50 L1 -50 Z"
+        fill="#fde68a"
+        stroke="#b45309"
+        strokeWidth="0.9"
+      />
+    </g>
+  ),
   glassPanel: ({ span, axis }) => (
     <IsoPanel span={span} axis={axis} h={78} color="#7dd3fc" opacity={0.26} />
   )

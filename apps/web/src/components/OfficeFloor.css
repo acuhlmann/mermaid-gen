@@ -649,6 +649,68 @@
   animation: office-floor-speaking 1.9s ease-in-out infinite;
 }
 
+.office-floor-prop--shrine {
+  padding: 0;
+  border: 0;
+  background: none;
+  pointer-events: none;
+  cursor: pointer;
+}
+
+.office-floor-prop--shrine .office-floor-prop-art {
+  pointer-events: none;
+}
+
+.office-floor-prop--shrine .office-floor-prop-art * {
+  pointer-events: visiblePainted;
+}
+
+.office-floor-prop--shrine:hover .office-floor-prop-art,
+.office-floor-prop--shrine.is-divine .office-floor-prop-art {
+  filter: drop-shadow(0 0 8px #e5c158) drop-shadow(0 0 18px rgba(229, 193, 88, 0.65));
+}
+
+.office-floor-prop--shrine:focus-visible {
+  outline: none;
+}
+
+.office-floor-prop--shrine:focus-visible .office-floor-prop-art {
+  filter: drop-shadow(0 0 6px #fff) drop-shadow(0 0 14px #e5c158)
+    drop-shadow(0 0 24px rgba(229, 193, 88, 0.8));
+}
+
+.office-floor-prop--shrine.is-divine .office-floor-prop-art {
+  animation: office-floor-speaking 1.1s ease-in-out infinite;
+}
+
+.office-floor.is-divine-bless .office-floor-viewport,
+.office-floor.is-divine-pray .office-floor-viewport {
+  animation: office-floor-divine-glow 1.8s ease-out;
+}
+
+.office-floor.is-divine-smite .office-floor-viewport {
+  animation: office-floor-divine-smite 1.6s ease-out;
+}
+
+@keyframes office-floor-divine-glow {
+  0% {
+    box-shadow: inset 0 0 80px rgba(229, 193, 88, 0.5);
+  }
+  100% {
+    box-shadow: inset 0 0 0 rgba(229, 193, 88, 0);
+  }
+}
+
+@keyframes office-floor-divine-smite {
+  0%,
+  18% {
+    box-shadow: inset 0 0 90px rgba(239, 68, 68, 0.55);
+  }
+  100% {
+    box-shadow: inset 0 0 0 rgba(239, 68, 68, 0);
+  }
+}
+
 /* Stands in for the PersonaFace the person/peek/talk cards put here — a machine
    has no face, and an emoji is cheaper than a prop portrait. */
 .office-floor-prop-glyph {
@@ -1856,6 +1918,11 @@
     stroke: Highlight;
     stroke-width: 2.5;
   }
+
+  .office-floor-prop--shrine:focus-visible .office-floor-prop-art * {
+    stroke: Highlight;
+    stroke-width: 2.5;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1870,6 +1937,10 @@
   .office-floor-person.is-speaking .office-floor-person-figure::before,
   .office-floor-walker.is-speaking .office-floor-person-figure::before,
   .office-floor-prop--usable.is-active .office-floor-prop-art,
+  .office-floor-prop--shrine.is-divine .office-floor-prop-art,
+  .office-floor.is-divine-bless .office-floor-viewport,
+  .office-floor.is-divine-pray .office-floor-viewport,
+  .office-floor.is-divine-smite .office-floor-viewport,
   .office-floor-you-tile,
   .office-floor-bubble,
   .floor-screen,

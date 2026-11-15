@@ -29,11 +29,17 @@ import {
   type GodPetitionParsedReply
 } from '../god/godPetitionPrompt.js';
 import {
+  GOD_WORKFLOW_FOCUSES,
+  dispatchPetitionWorkflow,
   filePetitionPr,
+  inferGodWorkflowFocus,
+  resolvePetitionBaseBranch,
   resolvePetitionGitHubToken,
   resolvePetitionRepo,
+  type DispatchPetitionWorkflowOptions,
   type FilePetitionPrOptions,
-  type GodPrActionResult
+  type GodPrActionResult,
+  type GodWorkflowDispatchResult
 } from '../god/godPetitionPr.js';
 
 type Env = Record<string, string | undefined>;
@@ -61,7 +67,14 @@ const FilePrBodySchema = z.object({
   proposal: GodPrProposalSchema,
   prayerSummary: z.string().max(1_000).optional(),
   favor: z.number().min(0).max(100).default(70),
-  userName: z.string().max(80).optional()
+  userName: z.string().max(80).optional(),
+  dispatchWorkflow: z.boolean().default(true)
+});
+
+const DispatchWorkflowBodySchema = z.object({
+  ref: z.string().trim().min(1).max(120).optional(),
+  focus: z.enum(GOD_WORKFLOW_FOCUSES).optional(),
+  proposal: GodPrProposalSchema.partial().optional()
 });
 
 export const GOD_PETITION_ROUTE_BASE = '/petition';
@@ -74,6 +87,9 @@ export type GodPetitionRouterOptions = {
     modelProfile: 'fast' | 'quality';
   }) => Promise<string>;
   filePr?: (options: FilePetitionPrOptions) => Promise<GodPrActionResult>;
+  dispatchWorkflow?: (
+    options: DispatchPetitionWorkflowOptions
+  ) => Promise<GodWorkflowDispatchResult>;
   nowMs?: () => number;
 };
 
@@ -207,8 +223,35 @@ export function createGodPetitionRouter(options: GodPetitionRouterOptions = {}) 
         prayerSummary: payload.prayerSummary,
         favor: clampFavor(payload.favor),
         userName: payload.userName,
+        dispatchWorkflow: payload.dispatchWorkflow,
         env,
         nowMs: options.nowMs
+      });
+      res.status(200).json({ v: 1, ...result });
+    } catch (error) {
+      res.status(502).json({ error: safeError(error) });
+    }
+  });
+
+  router.post('/petition/dispatch', async (req: Request, res: Response) => {
+    res.set('Cache-Control', 'no-store');
+    const parsed = DispatchWorkflowBodySchema.safeParse(req.body ?? {});
+    if (!parsed.success) {
+      res
+        .status(400)
+        .json({ error: 'Invalid workflow dispatch payload', details: parsed.error.flatten() });
+      return;
+    }
+    const payload = parsed.data;
+    const baseBranch = resolvePetitionBaseBranch(env);
+    const focus = payload.focus ?? inferGodWorkflowFocus(payload.proposal ?? {});
+    const runner = options.dispatchWorkflow ?? dispatchPetitionWorkflow;
+    try {
+      const result = await runner({
+        ref: payload.ref ?? baseBranch,
+        fallbackRef: baseBranch,
+        focus,
+        env
       });
       res.status(200).json({ v: 1, ...result });
     } catch (error) {

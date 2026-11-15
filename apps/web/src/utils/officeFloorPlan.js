@@ -470,6 +470,7 @@ export const FLOOR_PROPS = [
   { kind: 'waterCooler', x: 0.4, y: 8.2 },
   { kind: 'meetingTable', x: 10.4, y: 6.9 },
   { kind: 'plant', x: 0, y: 3.6 },
+  { kind: 'altar', x: 0.6, y: 4.6 },
   { kind: 'plant', x: 11.2, y: 3 },
   { kind: 'plant', x: 3, y: 8.2 },
   /*

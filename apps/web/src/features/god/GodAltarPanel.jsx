@@ -5,7 +5,14 @@ import {
   GOD_MOOD_META,
   GOD_QUICK_PRAYERS
 } from './godAltarCopy.js';
-import { fetchGodCapabilities, fileGodPetitionPr, sendGodPrayer } from './godPetitionClient.js';
+import { playGodJudgmentCue, stopGodSpeech } from './godAltarAudio.js';
+import { emitGodAltarEvent } from './godAltarStore.js';
+import {
+  dispatchGodWorkflow,
+  fetchGodCapabilities,
+  fileGodPetitionPr,
+  sendGodPrayer
+} from './godPetitionClient.js';
 import './GodAltar.css';
 
 function CelestialHaloIcon() {
@@ -51,9 +58,35 @@ function initialHistory() {
   ];
 }
 
-function AltarHeader({ capabilities }) {
-  const llmLabel = capabilities?.llmConfigured ? COPY.llmBadge : COPY.oracleBadge;
-  const ghLabel = capabilities?.githubPrConfigured ? COPY.githubReadyBadge : COPY.githubLocalBadge;
+function AudioToggles({ soundEnabled, voiceEnabled, onToggleSound, onToggleVoice }) {
+  return (
+    <>
+      <button
+        type="button"
+        className={`god-altar-audio-toggle${soundEnabled ? ' is-on' : ''}`}
+        data-testid="god-altar-sfx-toggle"
+        aria-pressed={soundEnabled}
+        onClick={onToggleSound}
+      >
+        {soundEnabled ? `🔊 ${COPY.audio.sfxOn}` : `🔇 ${COPY.audio.sfxOff}`}
+      </button>
+      <button
+        type="button"
+        className={`god-altar-audio-toggle${soundEnabled && voiceEnabled ? ' is-on' : ''}`}
+        data-testid="god-altar-voice-toggle"
+        aria-pressed={voiceEnabled}
+        disabled={!soundEnabled}
+        onClick={onToggleVoice}
+      >
+        {voiceEnabled ? `🗣️ ${COPY.audio.voiceOn}` : `🤫 ${COPY.audio.voiceOff}`}
+      </button>
+    </>
+  );
+}
+
+function AltarHeader({ capabilities, soundEnabled, voiceEnabled, onToggleSound, onToggleVoice }) {
+  const llmLive = Boolean(capabilities?.llmConfigured);
+  const ghReady = Boolean(capabilities?.githubPrConfigured);
 
   return (
     <header className="god-altar-header">
@@ -68,12 +101,18 @@ function AltarHeader({ capabilities }) {
         </div>
       </div>
       <div className="god-altar-badges">
-        <span className={`god-altar-pill${capabilities?.llmConfigured ? ' is-live' : ''}`}>
-          {llmLabel}
+        <span className={`god-altar-pill${llmLive ? ' is-live' : ''}`}>
+          {llmLive ? COPY.llmBadge : COPY.oracleBadge}
         </span>
-        <span className={`god-altar-pill${capabilities?.githubPrConfigured ? ' is-gold' : ''}`}>
-          {ghLabel}
+        <span className={`god-altar-pill${ghReady ? ' is-gold' : ''}`}>
+          {ghReady ? COPY.githubReadyBadge : COPY.githubLocalBadge}
         </span>
+        <AudioToggles
+          soundEnabled={soundEnabled}
+          voiceEnabled={voiceEnabled}
+          onToggleSound={onToggleSound}
+          onToggleVoice={onToggleVoice}
+        />
       </div>
     </header>
   );
@@ -123,17 +162,126 @@ function PrayerThread({ messages, userName, threadEndRef }) {
   );
 }
 
-function PrDecreeCard({ proposal, onTitleChange, onFilePr, filing, prOutcome }) {
-  const [copied, setCopied] = useState(false);
+function WorkflowDispatchStatus({
+  dispatchInfo,
+  dispatching,
+  onManualDispatch,
+  copiedWorkflow,
+  onCopyWorkflow
+}) {
+  if (!dispatchInfo) return null;
+  const dispatched = Boolean(dispatchInfo.dispatched);
+  return (
+    <div className="god-altar-dispatch-box" data-testid="god-workflow-dispatch">
+      <div className="god-altar-dispatch-head">
+        <strong>
+          {dispatched
+            ? `⚙️ ${COPY.prCard.dispatchDispatched}`
+            : `🛠️ ${COPY.prCard.dispatchFallback}`}
+        </strong>
+        <span className="god-altar-pill">
+          focus: {dispatchInfo.focus} · ref: {dispatchInfo.ref}
+        </span>
+      </div>
+      <p className="god-altar-msg-body">{dispatchInfo.message}</p>
+      <div className="god-altar-pr-actions">
+        {dispatched && dispatchInfo.workflowUrl ? (
+          <a href={dispatchInfo.workflowUrl} target="_blank" rel="noreferrer">
+            {COPY.prCard.openWorkflowLink} →
+          </a>
+        ) : null}
+        {!dispatched ? (
+          <button
+            type="button"
+            className="god-altar-secondary-btn"
+            data-testid="god-dispatch-workflow-button"
+            disabled={dispatching}
+            onClick={onManualDispatch}
+          >
+            {dispatching ? COPY.prCard.dispatchingButton : COPY.prCard.dispatchButton}
+          </button>
+        ) : null}
+      </div>
+      {!dispatched && dispatchInfo.ghWorkflowCommand ? (
+        <>
+          <pre className="god-altar-gh-scroll">{dispatchInfo.ghWorkflowCommand}</pre>
+          <div>
+            <button type="button" className="god-altar-secondary-btn" onClick={onCopyWorkflow}>
+              {copiedWorkflow ? COPY.prCard.copiedWorkflowLabel : COPY.prCard.copyWorkflowLabel}
+            </button>
+          </div>
+        </>
+      ) : null}
+    </div>
+  );
+}
 
-  const handleCopy = async () => {
-    if (!prOutcome?.ghCommand) return;
+function PrDecreeOutcome({
+  prOutcome,
+  dispatching,
+  onManualDispatch,
+  copiedGh,
+  copiedWorkflow,
+  onCopyGh,
+  onCopyWorkflow
+}) {
+  if (!prOutcome) return null;
+  return (
+    <div
+      className={`god-altar-pr-outcome${prOutcome.filed ? '' : ' is-unconfigured'}`}
+      data-testid="god-pr-outcome"
+      role="status"
+    >
+      <strong>{prOutcome.filed ? COPY.prCard.filedBanner : COPY.prCard.unconfiguredTitle}</strong>
+      <p className="god-altar-msg-body">{prOutcome.divineMessage}</p>
+      {prOutcome.prUrl ? (
+        <a href={prOutcome.prUrl} target="_blank" rel="noreferrer">
+          {COPY.prCard.openPrLink} #{prOutcome.prNumber ?? ''} →
+        </a>
+      ) : null}
+      {prOutcome.ghCommand && !prOutcome.filed ? (
+        <>
+          <pre className="god-altar-gh-scroll">{prOutcome.ghCommand}</pre>
+          <div>
+            <button type="button" className="god-altar-secondary-btn" onClick={onCopyGh}>
+              {copiedGh ? COPY.prCard.copiedGhLabel : COPY.prCard.copyGhLabel}
+            </button>
+          </div>
+        </>
+      ) : null}
+      <WorkflowDispatchStatus
+        dispatchInfo={prOutcome.workflowDispatch}
+        dispatching={dispatching}
+        onManualDispatch={onManualDispatch}
+        copiedWorkflow={copiedWorkflow}
+        onCopyWorkflow={onCopyWorkflow}
+      />
+    </div>
+  );
+}
+
+function PrDecreeCard({
+  proposal,
+  dispatchWorkflow,
+  onToggleDispatchWorkflow,
+  onTitleChange,
+  onFilePr,
+  onManualDispatch,
+  filing,
+  dispatching,
+  prOutcome
+}) {
+  const [copiedGh, setCopiedGh] = useState(false);
+  const [copiedWorkflow, setCopiedWorkflow] = useState(false);
+
+  const copyText = async (text, setter) => {
+    if (!text) return;
     try {
-      await navigator.clipboard?.writeText(prOutcome.ghCommand);
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 2000);
+      await navigator.clipboard?.writeText(text);
+      setter(true);
+      window.setTimeout(() => setter(false), 2000);
     } catch {
-      setCopied(false);
+      setter(false);
     }
   };
 
@@ -166,6 +314,15 @@ function PrDecreeCard({ proposal, onTitleChange, onFilePr, filing, prOutcome }) 
         </ol>
       </div>
       <p className="god-altar-pr-blessing">“{proposal.divineBlessing}”</p>
+      <label className="god-altar-dispatch-opt">
+        <input
+          type="checkbox"
+          data-testid="god-dispatch-checkbox"
+          checked={dispatchWorkflow}
+          onChange={(event) => onToggleDispatchWorkflow(event.target.checked)}
+        />
+        <span>{COPY.prCard.dispatchCheckbox}</span>
+      </label>
       <div className="god-altar-pr-actions">
         <button
           type="button"
@@ -177,33 +334,17 @@ function PrDecreeCard({ proposal, onTitleChange, onFilePr, filing, prOutcome }) 
           {filing ? COPY.prCard.filingButton : COPY.prCard.fileButton}
         </button>
       </div>
-      {prOutcome ? (
-        <div
-          className={`god-altar-pr-outcome${prOutcome.filed ? '' : ' is-unconfigured'}`}
-          data-testid="god-pr-outcome"
-          role="status"
-        >
-          <strong>
-            {prOutcome.filed ? COPY.prCard.filedBanner : COPY.prCard.unconfiguredTitle}
-          </strong>
-          <p className="god-altar-msg-body">{prOutcome.divineMessage}</p>
-          {prOutcome.prUrl ? (
-            <a href={prOutcome.prUrl} target="_blank" rel="noreferrer">
-              {COPY.prCard.openPrLink} #{prOutcome.prNumber ?? ''} →
-            </a>
-          ) : null}
-          {prOutcome.ghCommand ? (
-            <>
-              <pre className="god-altar-gh-scroll">{prOutcome.ghCommand}</pre>
-              <div>
-                <button type="button" className="god-altar-secondary-btn" onClick={handleCopy}>
-                  {copied ? COPY.prCard.copiedGhLabel : COPY.prCard.copyGhLabel}
-                </button>
-              </div>
-            </>
-          ) : null}
-        </div>
-      ) : null}
+      <PrDecreeOutcome
+        prOutcome={prOutcome}
+        dispatching={dispatching}
+        onManualDispatch={onManualDispatch}
+        copiedGh={copiedGh}
+        copiedWorkflow={copiedWorkflow}
+        onCopyGh={() => void copyText(prOutcome?.ghCommand, setCopiedGh)}
+        onCopyWorkflow={() =>
+          void copyText(prOutcome?.workflowDispatch?.ghWorkflowCommand, setCopiedWorkflow)
+        }
+      />
     </section>
   );
 }
@@ -319,18 +460,42 @@ function useGodCapabilities() {
   return capabilities;
 }
 
-/**
- * Interactive prayer & Wish-to-PR sanctuary for ArchiSlop God.
- * Shared by the Studio/Office `GodAltarModal` and the standalone `/god` window.
- */
-export default function GodAltarPanel({
-  diagramSource = '',
-  contentType = 'mermaid',
-  userName = '',
-  modelProfile = 'fast',
-  extraHeaderActions = null
-}) {
+function classifyDivineEventKind(data) {
+  if (data.prProposal || data.mood === 'benevolent' || data.mood === 'smitten') return 'bless';
+  if (data.mood === 'wrathful' || data.mood === 'unimpressed') return 'smite';
+  return 'pray';
+}
+
+function buildDiagramContextPayload(diagramSource, contentType) {
+  const trimmed = typeof diagramSource === 'string' ? diagramSource.trim() : '';
+  return trimmed ? { contentType, diagramSource: trimmed.slice(0, 4000) } : undefined;
+}
+
+function useGodAltarAudioPrefs() {
+  const [soundEnabled, setSoundEnabled] = useState(true);
+  const [voiceEnabled, setVoiceEnabled] = useState(true);
+  const audioContextRef = useRef(null);
+  useEffect(() => () => stopGodSpeech(), []);
+  return {
+    soundEnabled,
+    voiceEnabled,
+    audioContextRef,
+    toggleSound: () =>
+      setSoundEnabled((prev) => {
+        if (prev) stopGodSpeech();
+        return !prev;
+      }),
+    toggleVoice: () =>
+      setVoiceEnabled((prev) => {
+        if (prev) stopGodSpeech();
+        return !prev;
+      })
+  };
+}
+
+function useGodAltarState({ diagramSource, contentType, userName, modelProfile }) {
   const capabilities = useGodCapabilities();
+  const audio = useGodAltarAudioPrefs();
   const [messages, setMessages] = useState(initialHistory);
   const [favor, setFavor] = useState(35);
   const [mood, setMood] = useState('unimpressed');
@@ -339,6 +504,8 @@ export default function GodAltarPanel({
   const [draft, setDraft] = useState('');
   const [busy, setBusy] = useState(false);
   const [filing, setFiling] = useState(false);
+  const [dispatching, setDispatching] = useState(false);
+  const [dispatchWorkflow, setDispatchWorkflow] = useState(true);
   const [error, setError] = useState(null);
   const [proposal, setProposal] = useState(null);
   const [prOutcome, setPrOutcome] = useState(null);
@@ -350,48 +517,16 @@ export default function GodAltarPanel({
     threadEndRef.current?.scrollIntoView?.({ block: 'nearest' });
   }, [messages.length, proposal]);
 
-  const offerings = Array.isArray(capabilities?.offerings)
-    ? capabilities.offerings
-    : DEFAULT_GOD_OFFERINGS;
-
   const nextId = (prefix) => {
     nextMsgIdRef.current += 1;
     return `${prefix}-${nextMsgIdRef.current}`;
   };
 
-  const buildDiagramContext = () => {
-    const trimmed = typeof diagramSource === 'string' ? diagramSource.trim() : '';
-    return trimmed ? { contentType, diagramSource: trimmed.slice(0, 4000) } : undefined;
-  };
-
-  const submitPrayer = async (textOverride, offeringOverride) => {
-    const text = (textOverride ?? draft).trim();
-    if (!text || busy) return;
-    const chosenOffering = offeringOverride ?? offering;
-    const nextMessages = [...messages, { id: nextId('user'), role: 'user', content: text }];
-    setMessages(nextMessages);
-    if (!textOverride) setDraft('');
-    setBusy(true);
-    setError(null);
-    setPrOutcome(null);
-
-    const res = await sendGodPrayer({
-      messages: nextMessages.map((m) => ({ role: m.role, content: m.content })),
-      offering: chosenOffering,
-      currentFavor: favor,
-      userName,
-      modelProfile,
-      diagramContext: buildDiagramContext()
-    });
-    setBusy(false);
-    if (!res.ok) {
-      setError(res.error);
-      return;
-    }
-
-    const data = res.data;
+  const applyPrayerSuccess = (data) => {
+    const nextMood = data.mood ?? mood;
+    const eventKind = classifyDivineEventKind(data);
     setFavor(data.favor ?? favor);
-    setMood(data.mood ?? mood);
+    setMood(nextMood);
     setJudgment(data.judgment ?? judgment);
     setThunderSeq((n) => n + 1);
     if (data.prProposal) setProposal(data.prProposal);
@@ -405,6 +540,42 @@ export default function GodAltarPanel({
         judgment: data.judgment
       }
     ]);
+    emitGodAltarEvent(eventKind, nextMood);
+    playGodJudgmentCue({
+      audioContextRef: audio.audioContextRef,
+      kind: eventKind,
+      mood: nextMood,
+      hasProposal: Boolean(data.prProposal),
+      soundEnabled: audio.soundEnabled,
+      voiceEnabled: audio.voiceEnabled,
+      text: data.reply
+    });
+  };
+
+  const submitPrayer = async (textOverride, offeringOverride) => {
+    const text = (textOverride ?? draft).trim();
+    if (!text || busy) return;
+    const nextMessages = [...messages, { id: nextId('user'), role: 'user', content: text }];
+    setMessages(nextMessages);
+    if (!textOverride) setDraft('');
+    setBusy(true);
+    setError(null);
+    setPrOutcome(null);
+
+    const res = await sendGodPrayer({
+      messages: nextMessages.map((m) => ({ role: m.role, content: m.content })),
+      offering: offeringOverride ?? offering,
+      currentFavor: favor,
+      userName,
+      modelProfile,
+      diagramContext: buildDiagramContextPayload(diagramSource, contentType)
+    });
+    setBusy(false);
+    if (!res.ok) {
+      setError(res.error);
+      return;
+    }
+    applyPrayerSuccess(res.data);
   };
 
   const handleFilePr = async () => {
@@ -416,7 +587,8 @@ export default function GodAltarPanel({
       proposal,
       prayerSummary: lastPrayer,
       favor,
-      userName
+      userName,
+      dispatchWorkflow
     });
     setFiling(false);
     if (!res.ok) {
@@ -425,9 +597,36 @@ export default function GodAltarPanel({
     }
     setThunderSeq((n) => n + 1);
     setPrOutcome(res.data);
+    emitGodAltarEvent('bless', 'smitten');
+    playGodJudgmentCue({
+      audioContextRef: audio.audioContextRef,
+      kind: 'file-pr',
+      mood: 'smitten',
+      hasProposal: true,
+      soundEnabled: audio.soundEnabled,
+      voiceEnabled: audio.voiceEnabled,
+      text: res.data.divineMessage
+    });
+  };
+
+  const handleManualDispatch = async () => {
+    if (!prOutcome || dispatching) return;
+    setDispatching(true);
+    const res = await dispatchGodWorkflow({
+      ref: prOutcome.branch,
+      focus: prOutcome.workflowDispatch?.focus,
+      proposal
+    });
+    setDispatching(false);
+    if (!res.ok) {
+      setError(res.error);
+      return;
+    }
+    setPrOutcome((prev) => (prev ? { ...prev, workflowDispatch: res.data } : prev));
   };
 
   const handleReset = () => {
+    stopGodSpeech();
     setMessages(initialHistory());
     setFavor(35);
     setMood('unimpressed');
@@ -438,48 +637,106 @@ export default function GodAltarPanel({
     setError(null);
   };
 
+  return {
+    capabilities,
+    messages,
+    favor,
+    mood,
+    judgment,
+    offering,
+    setOffering,
+    draft,
+    setDraft,
+    busy,
+    filing,
+    dispatching,
+    dispatchWorkflow,
+    setDispatchWorkflow,
+    error,
+    proposal,
+    setProposal,
+    prOutcome,
+    thunderSeq,
+    soundEnabled: audio.soundEnabled,
+    voiceEnabled: audio.voiceEnabled,
+    threadEndRef,
+    submitPrayer,
+    handleFilePr,
+    handleManualDispatch,
+    handleReset,
+    toggleSound: audio.toggleSound,
+    toggleVoice: audio.toggleVoice
+  };
+}
+
+/**
+ * Interactive prayer & Wish-to-PR sanctuary for ArchiSlop God.
+ * Shared by the Studio/Office `GodAltarModal` and the standalone `/god` window.
+ */
+export default function GodAltarPanel({
+  diagramSource = '',
+  contentType = 'mermaid',
+  userName = '',
+  modelProfile = 'fast',
+  extraHeaderActions = null
+}) {
+  const s = useGodAltarState({ diagramSource, contentType, userName, modelProfile });
+  const offerings = Array.isArray(s.capabilities?.offerings)
+    ? s.capabilities.offerings
+    : DEFAULT_GOD_OFFERINGS;
+
   return (
     <div
-      key={thunderSeq > 0 ? `altar-${thunderSeq}` : 'altar-0'}
-      className={`god-altar${thunderSeq > 0 ? ' is-thunder' : ''}`}
+      key={s.thunderSeq > 0 ? `altar-${s.thunderSeq}` : 'altar-0'}
+      className={`god-altar${s.thunderSeq > 0 ? ' is-thunder' : ''}`}
       data-testid="god-altar-panel"
     >
-      <AltarHeader capabilities={capabilities} />
-      <DivineFavorMeter favor={favor} mood={mood} judgment={judgment} />
-      <PrayerThread messages={messages} userName={userName} threadEndRef={threadEndRef} />
-      {proposal ? (
+      <AltarHeader
+        capabilities={s.capabilities}
+        soundEnabled={s.soundEnabled}
+        voiceEnabled={s.voiceEnabled}
+        onToggleSound={s.toggleSound}
+        onToggleVoice={s.toggleVoice}
+      />
+      <DivineFavorMeter favor={s.favor} mood={s.mood} judgment={s.judgment} />
+      <PrayerThread messages={s.messages} userName={userName} threadEndRef={s.threadEndRef} />
+      {s.proposal ? (
         <PrDecreeCard
-          proposal={proposal}
-          onTitleChange={(title) => setProposal((prev) => (prev ? { ...prev, title } : prev))}
-          onFilePr={handleFilePr}
-          filing={filing}
-          prOutcome={prOutcome}
+          proposal={s.proposal}
+          dispatchWorkflow={s.dispatchWorkflow}
+          onToggleDispatchWorkflow={s.setDispatchWorkflow}
+          onTitleChange={(title) => s.setProposal((prev) => (prev ? { ...prev, title } : prev))}
+          onFilePr={s.handleFilePr}
+          onManualDispatch={s.handleManualDispatch}
+          filing={s.filing}
+          dispatching={s.dispatching}
+          prOutcome={s.prOutcome}
         />
       ) : null}
-      {error ? (
+      {s.error ? (
         <p className="god-altar-error" role="alert">
-          {error}
+          {s.error}
         </p>
       ) : null}
       <OfferingsStrip
         offerings={offerings}
-        offering={offering}
-        busy={busy}
-        onSelect={setOffering}
+        offering={s.offering}
+        busy={s.busy}
+        onSelect={s.setOffering}
       />
       <QuickPrayersStrip
-        busy={busy}
+        busy={s.busy}
         onPick={(q) => {
-          setOffering(q.offering);
-          void submitPrayer(q.prompt, q.offering);
+          s.setOffering(q.offering);
+          void s.submitPrayer(q.prompt, q.offering);
         }}
       />
       <PrayerComposer
-        draft={draft}
-        busy={busy}
-        onDraftChange={setDraft}
-        onSubmit={() => void submitPrayer()}
-        onReset={handleReset}
+        draft={s.draft}
+        busy={s.busy}
+        onDraftChange={s.setDraft}
+        onSubmit={() => void s.submitPrayer()}
+        onReset={s.handleReset}
         extraHeaderActions={extraHeaderActions}
       />
     </div>

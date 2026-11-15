@@ -79,6 +79,7 @@ export function useFloorSpokenText({
      that slice 18's extraction was a shape rather than a one-off. Same rules:
      said once, and never over the top of a scripted scene. */
   dwellSaid,
+  altarCameo,
   /**
    * Slice 22, and the third posture in this file rather than a third caller of
    * `useNarratedAside`: shop talk is **paced**, so its narration is driven by
@@ -203,6 +204,7 @@ export function useFloorSpokenText({
 
   useNarratedAside(wandererSaid, narrateTracked);
   useNarratedAside(dwellSaid, narrateTracked);
+  useNarratedAside(altarCameo, narrateTracked);
 
   // Paced coffee/battle lines are narrated in `OfficeLayer`. Prefer the
   // per-line spoken flag from pacing so a failed TTS falls back to bubbles;

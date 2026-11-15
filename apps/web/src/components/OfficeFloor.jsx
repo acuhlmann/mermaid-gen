@@ -39,6 +39,7 @@ import { useStageScale } from '../hooks/useStageScale.js';
 import { reachTileFor, whereaboutsOf } from '../utils/officeFloorReach.js';
 import { interruptSpeech } from '../utils/officeFloorInterrupt.js';
 import { useFloorDwell } from './officeFloor/useFloorDwell.js';
+import { useFloorAltarCameo } from './officeFloor/useFloorAltarCameo.js';
 import { useFloorInterruptMemory } from './officeFloor/useFloorInterruptMemory.js';
 import { useFloorPeekMemory } from './officeFloor/useFloorPeekMemory.js';
 import { useFloorShopTalk } from './officeFloor/useFloorShopTalk.js';
@@ -232,6 +233,7 @@ function OfficeFloorView({ bridge, viewPhase }) {
     onRunContextChange,
     onGetCoffee,
     onPropCue,
+    onOpenGodAltar,
     onFloorCue,
     onAdoptPrompt,
     onDismissWalkBy,
@@ -539,6 +541,12 @@ function OfficeFloorView({ bridge, viewPhase }) {
 
   const hasActiveSpeech = hasOtherSpeech || Boolean(shopTalk.said);
 
+  const altar = useFloorAltarCameo({
+    copy,
+    suspended: physicalMeeting,
+    suppressed: hasActiveSpeech
+  });
+
   /*
    * Slice 23: the way into a conversation you are only near.
    *
@@ -682,6 +690,7 @@ function OfficeFloorView({ bridge, viewPhase }) {
     walkBy: walker,
     wandererSaid,
     dwellSaid: dwell.said,
+    altarCameo: altar.cameo,
     // Slice 22: paced rather than a one-off aside, so its own spoken flag is
     // what hides the balloon — same posture as the lifted coffee/battle lines.
     pacedSpeech: Boolean(shopTalk.said) && shopTalk.lineSpoken,
@@ -732,7 +741,7 @@ function OfficeFloorView({ bridge, viewPhase }) {
 
   return (
     <div
-      className="office-floor"
+      className={`office-floor${altar.divineFlash ? ` is-divine-${altar.divineFlash}` : ''}`}
       data-testid="office-floor"
       data-view-phase={viewPhase}
       data-day-phase={dayPhase}
@@ -776,6 +785,8 @@ function OfficeFloorView({ bridge, viewPhase }) {
           // Same reason as the roam surface: a glass-room chair is not a place
           // you press the coffee machine from.
           onUseProp={physicalMeeting ? null : activity.startUseProp}
+          onOpenGodAltar={physicalMeeting ? null : onOpenGodAltar}
+          altarActive={Boolean(altar.divineFlash)}
           activePropKind={activity.activePropKind}
           vacantIds={awayIds}
           onCallIds={onCallIds}
@@ -819,6 +830,7 @@ function OfficeFloorView({ bridge, viewPhase }) {
             // balloon each (§ 6 rule 29).
             shopTalkSaid={showSpokenText ? shopTalk.said : null}
             shopTalkAt={shopTalk.at}
+            altarCameo={showSpokenText ? altar.cameo : null}
             onWandererArrive={handleWanderArrive}
             wandererRef={wandererRef}
             // Slice 17: the walk to a moment and the walk back from it.

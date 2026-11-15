@@ -455,6 +455,50 @@
   font-weight: 650;
 }
 
+.god-altar-audio-toggle {
+  padding: 0.24rem 0.6rem;
+  border-radius: 999px;
+  border: 1px solid rgba(152, 166, 196, 0.34);
+  background: rgba(12, 16, 26, 0.72);
+  color: var(--altar-muted);
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.god-altar-audio-toggle.is-on {
+  border-color: rgba(229, 193, 88, 0.55);
+  background: rgba(229, 193, 88, 0.12);
+  color: #fde68a;
+}
+
+.god-altar-dispatch-opt {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.8rem;
+  color: var(--altar-muted);
+  cursor: pointer;
+}
+
+.god-altar-dispatch-box {
+  margin-top: 0.35rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid rgba(152, 166, 196, 0.24);
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.god-altar-dispatch-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
 .god-altar-composer {
   display: flex;
   flex-direction: column;
