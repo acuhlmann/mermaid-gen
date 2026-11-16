@@ -45,7 +45,12 @@ describe('bottom-chrome advisor-bubble layer gating', () => {
     // streaming state. Scan every `transform: translateZ(0)` block for a bare
     // `.bottom-chrome` selector that is not behind `[data-streaming`.
     const ruleRe = /([^{}]+)\{([^{}]*transform:\s*translateZ\(0\)[^{}]*)\}/g;
-    for (const match of css.matchAll(ruleRe)) {
+    const gpuRules = [...css.matchAll(ruleRe)];
+    // Companion non-empty assertion: a stylesheet with no translateZ(0) rules would
+    // let the sweep below pass while examining nothing.
+    expect(gpuRules.length).toBeGreaterThan(0);
+    expect(gpuRules.some((match) => /\.bottom-chrome\b/.test(match[1]))).toBe(true);
+    for (const match of gpuRules) {
       const selectorList = match[1];
       if (!/\.bottom-chrome\b/.test(selectorList)) continue;
       expect(

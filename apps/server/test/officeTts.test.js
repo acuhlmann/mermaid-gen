@@ -95,6 +95,10 @@ test('accent overrides never leak out of English', () => {
 });
 
 test('every accent override targets a real speaker and an English locale', () => {
+  assert.ok(
+    Object.keys(_CHIRP3_ACCENT_LANG).length > 0,
+    '_CHIRP3_ACCENT_LANG must not be empty — the sweep below would pass on nothing'
+  );
   for (const [speaker, lang] of Object.entries(_CHIRP3_ACCENT_LANG)) {
     assert.ok(OFFICE_SPEAKER_IDS.includes(speaker), `${speaker} is not a canonical speaker id`);
     assert.ok(lang.startsWith('en-'), `${speaker} override ${lang} is not an English locale`);
@@ -196,6 +200,11 @@ test('the Chirp3-HD roster covers exactly the canonical speaker ids', () => {
 });
 
 test('every Neural2 overlay locale covers exactly the canonical speaker ids', () => {
+  const locales = Object.keys(_NEURAL2_VOICE_NAMES);
+  assert.ok(
+    locales.length > 0,
+    '_NEURAL2_VOICE_NAMES must not be empty — the sweep below would pass on nothing'
+  );
   for (const [locale, names] of Object.entries(_NEURAL2_VOICE_NAMES)) {
     assert.deepEqual(
       Object.keys(names).sort(),
@@ -212,6 +221,11 @@ test('every Neural2 overlay locale covers exactly the canonical speaker ids', ()
 });
 
 test('every locale table covers exactly the canonical speaker ids', () => {
+  assert.ok(
+    Object.keys(_VOICES_BY_LANG).length > 0,
+    '_VOICES_BY_LANG must not be empty — the sweep below would pass on nothing'
+  );
+  assert.ok(OFFICE_SPEAKER_IDS.length > 0, 'OFFICE_SPEAKER_IDS must not be empty');
   for (const [locale, table] of Object.entries(_VOICES_BY_LANG)) {
     assert.deepEqual(
       Object.keys(table).sort(),
