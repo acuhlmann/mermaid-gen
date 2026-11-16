@@ -38,6 +38,22 @@ export const UX_CLIENT_ERROR_CAP = 20;
 
 const listeners = new Set();
 
+function freshReceipts() {
+  return {
+    runs: 0,
+    accepted: 0,
+    failed: 0,
+    retries: 0,
+    autofixFired: 0,
+    autofixFailed: 0,
+    modeSwitches: 0,
+    manualEditsAfterAgent: 0,
+    critiqueFixes: 0,
+    clientErrors: 0,
+    lastFailureClass: /** @type {string | null} */ (null)
+  };
+}
+
 function freshState() {
   return {
     installed: false,
@@ -46,6 +62,7 @@ function freshState() {
     recorded: 0,
     clientErrors: 0,
     session: { startedAt: 0, runs: 0, accepted: 0, failed: 0, lastRunFailed: false },
+    receipts: freshReceipts(),
     summarySent: false,
     /** contentType → when an agent last produced accepted output, and whether an edit followed. */
     agentAccepted: new Map(),
@@ -53,6 +70,66 @@ function freshState() {
       null
     ),
     teardown: /** @type {null | (() => void)} */ (null)
+  };
+}
+
+function recordReceiptFromSignal(signal) {
+  const r = state.receipts;
+  switch (signal.kind) {
+    case 'retry':
+      r.retries = clampUxCount(r.retries + 1);
+      r.lastFailureClass = signal.failureClass;
+      break;
+    case 'autofix':
+      if (signal.outcome === 'failed') r.autofixFailed = clampUxCount(r.autofixFailed + 1);
+      else r.autofixFired = clampUxCount(r.autofixFired + 1);
+      break;
+    case 'mode_switch':
+      r.modeSwitches = clampUxCount(r.modeSwitches + 1);
+      break;
+    case 'manual_edit_after_agent':
+      r.manualEditsAfterAgent = clampUxCount(r.manualEditsAfterAgent + 1);
+      break;
+    case 'critique_fix':
+      r.critiqueFixes = clampUxCount(r.critiqueFixes + 1);
+      break;
+    case 'client_error':
+      r.clientErrors = clampUxCount(r.clientErrors + 1);
+      break;
+    default:
+      break;
+  }
+}
+
+/**
+ * Read-only content-free session receipt summary for the ArchiSlop God Altar.
+ * Never queues or sends telemetry.
+ */
+export function getUxSessionReceipts() {
+  if (!state.installed || !isUsageSignalsEnabled()) return null;
+  const r = state.receipts;
+  const hasActivity =
+    r.runs > 0 ||
+    r.retries > 0 ||
+    r.autofixFired > 0 ||
+    r.autofixFailed > 0 ||
+    r.modeSwitches > 0 ||
+    r.manualEditsAfterAgent > 0 ||
+    r.critiqueFixes > 0 ||
+    r.clientErrors > 0;
+  if (!hasActivity) return null;
+  return {
+    runs: r.runs,
+    accepted: r.accepted,
+    failed: r.failed,
+    retries: r.retries,
+    autofixFired: r.autofixFired,
+    autofixFailed: r.autofixFailed,
+    modeSwitches: r.modeSwitches,
+    manualEditsAfterAgent: r.manualEditsAfterAgent,
+    critiqueFixes: r.critiqueFixes,
+    clientErrors: r.clientErrors,
+    ...(r.lastFailureClass ? { lastFailureClass: r.lastFailureClass } : {})
   };
 }
 
@@ -141,6 +218,7 @@ export function recordUxSignal(signal) {
   if (!parsed.success) return false;
   state.queue.push(parsed.data);
   state.recorded += 1;
+  recordReceiptFromSignal(parsed.data);
   if (state.queue.length >= UX_SIGNAL_FLUSH_AT) flushUxSignals();
   return true;
 }
@@ -160,8 +238,11 @@ export function noteRunOutcome({ contentType, profile, status, failureClass, sta
   if (!state.installed) return;
   const s = state.session;
   s.runs += 1;
+  if (isUsageSignalsEnabled()) state.receipts.runs = clampUxCount(state.receipts.runs + 1);
   if (status === 'done') {
     s.accepted += 1;
+    if (isUsageSignalsEnabled())
+      state.receipts.accepted = clampUxCount(state.receipts.accepted + 1);
     s.lastRunFailed = false;
     if (isConcreteContentType(contentType)) {
       state.agentAccepted.set(contentType, { at: now(), consumed: false });
@@ -173,10 +254,15 @@ export function noteRunOutcome({ contentType, profile, status, failureClass, sta
     s.failed += 1;
     s.lastRunFailed = true;
     const known = UxFailureClassSchema.safeParse(failureClass);
+    const resolvedClass = known.success ? known.data : 'generic';
+    if (isUsageSignalsEnabled()) {
+      state.receipts.failed = clampUxCount(state.receipts.failed + 1);
+      state.receipts.lastFailureClass = resolvedClass;
+    }
     recordUxSignal({
       kind: 'run_failed',
       contentType,
-      failureClass: known.success ? known.data : 'generic',
+      failureClass: resolvedClass,
       profile: profile === 'quality' ? 'quality' : 'fast'
     });
   } else if (status === 'cancelled') {

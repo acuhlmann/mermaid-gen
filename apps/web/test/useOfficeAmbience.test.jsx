@@ -9,6 +9,11 @@ import {
   pushOfficeMeetingInvite,
   setOfficeFocusTime
 } from '../src/state/officeMomentStore.js';
+import {
+  closeGodAltar,
+  openGodAltar,
+  resetGodAltarForTests
+} from '../src/features/god/godAltarStore.js';
 import { OFFICE_FIRST_MOMENT_MIN_MS } from '../src/utils/officeCadence.js';
 
 function countSurfaces(snapshot) {
@@ -58,6 +63,7 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   _resetForTests();
+  resetGodAltarForTests();
   vi.unstubAllGlobals();
   vi.useRealTimers();
   window.localStorage.clear();
@@ -117,5 +123,33 @@ describe('useOfficeAmbience', () => {
     renderHook(() => useOfficeAmbience(BASE_PARAMS));
     await vi.advanceTimersByTimeAsync(FIRST_FIRE_MS);
     expect(getOfficeSnapshot().deskArrivals.filter((a) => a.kind === 'im').length).toBe(1);
+  });
+
+  it('aborts in-flight LLM moments when the Altar opens and does not trigger a canned fallback', async () => {
+    let seenSignal;
+    let rejectFetch;
+    const fetchMock = vi.fn((_url, init = {}) => {
+      seenSignal = init.signal;
+      return new Promise((_resolve, reject) => {
+        rejectFetch = reject;
+      });
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    // Advance past first-moment stretch with a roll that selects an LLM moment.
+    renderHook(() => useOfficeAmbience({ ...BASE_PARAMS, random: () => 0.1 }));
+    await vi.advanceTimersByTimeAsync(FIRST_FIRE_MS);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    openGodAltar();
+    expect(seenSignal?.aborted).toBe(true);
+    closeGodAltar();
+
+    rejectFetch?.(new DOMException('Aborted', 'AbortError'));
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(countSurfaces(getOfficeSnapshot())).toBe(0);
+    expect(getOfficeSnapshot().emails.length).toBe(0);
   });
 });

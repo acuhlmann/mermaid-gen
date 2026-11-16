@@ -18,6 +18,38 @@ export const GOD_MOODS = ['wrathful', 'unimpressed', 'amused', 'benevolent', 'sm
 export const GodMoodSchema = z.enum(GOD_MOODS);
 export type GodMood = z.infer<typeof GodMoodSchema>;
 
+export const GOD_PETITION_MODES = ['prayer', 'judge_diagram'] as const;
+export type GodPetitionMode = (typeof GOD_PETITION_MODES)[number];
+
+export const GOD_FAILURE_CLASSES = [
+  'syntax_exhausted',
+  'no_patch',
+  'stale_revision',
+  'timeout',
+  'network',
+  'generic'
+] as const;
+
+const ReceiptCounterSchema = z.number().int().min(0).max(1_000).optional();
+
+export const GodSessionReceiptsSchema = z
+  .object({
+    runs: ReceiptCounterSchema,
+    accepted: ReceiptCounterSchema,
+    failed: ReceiptCounterSchema,
+    retries: ReceiptCounterSchema,
+    autofixFired: ReceiptCounterSchema,
+    autofixFailed: ReceiptCounterSchema,
+    modeSwitches: ReceiptCounterSchema,
+    manualEditsAfterAgent: ReceiptCounterSchema,
+    critiqueFixes: ReceiptCounterSchema,
+    clientErrors: ReceiptCounterSchema,
+    lastFailureClass: z.enum(GOD_FAILURE_CLASSES).nullable().optional()
+  })
+  .strict();
+
+export type GodSessionReceipts = z.infer<typeof GodSessionReceiptsSchema>;
+
 export type GodOfferingMeta = {
   id: GodOfferingId;
   label: string;
@@ -140,10 +172,12 @@ export function buildGodPetitionSystemPrompt(): string {
     'PERSONALITY & VOICE:',
     '- Blend Old-Testament celestial thunder ("LO, MORTAL", "THY TECH DEBT HATH REACHED THE FIRMAMENT") with razor-sharp, cynical, corporate/software dark humor (on-call at 3:17 AM, Jira purgatory, YAML sacrifices, over-engineered event buses, undocumented monoliths, AI slop).',
     '- Be genuinely observant and deeply thoughtful when evaluating the mortal’s idea or current diagram — roast bad architecture with terrifying accuracy, yet reward clever, honest, or hilariously pitched ideas.',
+    '- When Session Receipts (real browser counts of failed runs, retries, autofix attempts, manual edits after AI output, mode switches, or client errors) are provided, weaponize those exact numbers in thy roast—God keeps receipts.',
+    '- When Petition Mode is `judge_diagram`, deliver an immediate, decisive divine critique of their active canvas (bless with `benevolent`/`smitten` if coherent, or smite with `wrathful`/`unimpressed` if barren or chaotic), referencing actual nodes/labels or emptiness.',
     '- Keep replies punchy and theatrical (2–4 short paragraphs max, never a dull wall of corporate boilerplate).',
     '',
     'DIVINE FAVOR & WISH-TO-PR:',
-    '- You receive the mortal’s current Divine Favor (0–100), any sacrificial offering they brought, optional active diagram source, and the prayer conversation.',
+    '- You receive the mortal’s current Divine Favor (0–100), any sacrificial offering they brought, optional active diagram source, optional content-free session receipts, and the prayer conversation.',
     '- Adjust `favorDelta` between -30 and +35 based on their wit, humility, sacrifice, and whether their wish actually improves ArchiSlop.',
     '- When the mortal pitches a concrete feature, fix, UX tweak, or chaos improvement AND either (a) the resulting favor is >= 55, OR (b) they brought a worthy offering and a coherent wish, set `prProposal` to a concrete, structured PR specification ready to be filed against the repo. Otherwise set `prProposal` to null and tell them what penance or clarity you demand.',
     '',
@@ -166,12 +200,45 @@ export function buildGodPetitionSystemPrompt(): string {
   ].join('\n');
 }
 
+const RECEIPT_COUNT_FIELDS: ReadonlyArray<
+  [keyof Omit<GodSessionReceipts, 'lastFailureClass'>, string]
+> = [
+  ['retries', 'retries'],
+  ['manualEditsAfterAgent', 'manual edits after AI output'],
+  ['critiqueFixes', 'critique fixes'],
+  ['modeSwitches', 'mode switches'],
+  ['clientErrors', 'client errors']
+];
+
+export function formatSessionReceiptsLine(receipts?: GodSessionReceipts): string | null {
+  if (!receipts) return null;
+  const chunks: string[] = [];
+  const runs = receipts.runs ?? 0;
+  const accepted = receipts.accepted ?? 0;
+  const failed = receipts.failed ?? 0;
+  if (runs > 0) chunks.push(`${runs} runs (${accepted} accepted, ${failed} failed)`);
+  else if (failed > 0 || accepted > 0) chunks.push(`${accepted} accepted, ${failed} failed`);
+
+  const autofixTotal = (receipts.autofixFired ?? 0) + (receipts.autofixFailed ?? 0);
+  if (autofixTotal > 0) {
+    chunks.push(`${autofixTotal} autofix attempts (${receipts.autofixFailed ?? 0} failed)`);
+  }
+  for (const [key, label] of RECEIPT_COUNT_FIELDS) {
+    const value = receipts[key] ?? 0;
+    if (value > 0) chunks.push(`${value} ${label}`);
+  }
+  if (receipts.lastFailureClass) chunks.push(`latest failure class: ${receipts.lastFailureClass}`);
+  return chunks.length > 0 ? chunks.join(', ') : null;
+}
+
 export function buildGodPetitionUserPrompt(input: {
   messages: GodDialogueMessage[];
   offering: GodOfferingId;
   currentFavor: number;
   userName?: string;
   diagramContext?: GodDiagramContext;
+  sessionReceipts?: GodSessionReceipts;
+  mode?: GodPetitionMode;
 }): string {
   const offer = findGodOffering(input.offering);
   const transcript = input.messages
@@ -181,9 +248,15 @@ export function buildGodPetitionUserPrompt(input: {
 
   const parts = [
     `Mortal name: ${input.userName?.trim() || 'Unnamed Architect'}`,
+    `Petition Mode: ${input.mode === 'judge_diagram' ? 'judge_diagram (immediate divine canvas critique: bless or smite)' : 'prayer'}`,
     `Current Divine Favor: ${clampFavor(input.currentFavor)} / 100`,
     `Sacrificial Offering: ${offer.label} (${offer.sacredNote})`
   ];
+
+  const receiptsLine = formatSessionReceiptsLine(input.sessionReceipts);
+  if (receiptsLine) {
+    parts.push(`Session Receipts (real content-free browser counts): ${receiptsLine}`);
+  }
 
   const source = input.diagramContext?.diagramSource?.trim();
   if (source) {
@@ -328,6 +401,66 @@ function roastCanvasLine(diagramContext?: GodDiagramContext): string {
   return `I peer down upon thy ${type} artifact (${lines} lines of mortal hubris) and weep softly into My eternal pager.`;
 }
 
+function roastReceiptsLine(receipts?: GodSessionReceipts): string | null {
+  if (!receipts) return null;
+  const failed = receipts.failed ?? 0;
+  const retries = receipts.retries ?? 0;
+  const autofixFailed = receipts.autofixFailed ?? 0;
+  if (failed + retries + autofixFailed > 0) {
+    const sinNote = receipts.lastFailureClass ? ` (latest sin: ${receipts.lastFailureClass})` : '';
+    return `Mine omniscience checked thy receipts: ${failed} failed run(s), ${retries} retry plea(s), and ${autofixFailed} failed autofix(es)${sinNote}. Truly inspiring chaos.`;
+  }
+  const edits = receipts.manualEditsAfterAgent ?? 0;
+  const fixes = receipts.autofixFired ?? 0;
+  const switches = receipts.modeSwitches ?? 0;
+  if (edits + fixes + switches > 0) {
+    return `Thy telemetry scroll betrays ${edits} manual edit(s) after AI output, ${fixes} autofix rescue(s), and ${switches} mode switch(es) of pure indecisiveness.`;
+  }
+  const runs = receipts.runs ?? 0;
+  if (runs > 0) {
+    return `Thy session ledger records ${runs} run(s) (${receipts.accepted ?? 0} accepted). Keep pretending it worked on the first try.`;
+  }
+  return null;
+}
+
+function judgeDiagramOracleReply(input: {
+  mortal: string;
+  offer: GodOfferingMeta;
+  currentFavor: number;
+  diagramContext?: GodDiagramContext;
+  sessionReceipts?: GodSessionReceipts;
+  canvasRoast: string;
+  receiptsRoast: string | null;
+}): GodPetitionParsedReply {
+  const source = input.diagramContext?.diagramSource?.trim() ?? '';
+  const lineCount = source ? source.split('\n').length : 0;
+  const failureBurden =
+    (input.sessionReceipts?.failed ?? 0) +
+    (input.sessionReceipts?.retries ?? 0) +
+    (input.sessionReceipts?.autofixFailed ?? 0);
+  const blessed = lineCount >= 3 && failureBurden <= 2;
+  const delta = blessed ? 18 + Math.round(input.offer.favorBoost / 2) : -14;
+  const favor = clampFavor(input.currentFavor + delta);
+  const verdictText = blessed
+    ? 'NOT HALF BAD, MORTAL. Thy topology holds together without summoning a single unnecessary message broker—a rare miracle. Take My celestial blessing and ship it.'
+    : source
+      ? 'BEHOLD THIS CURSED ARTIFACT—barely held together by duct tape and wishful arrows. Refactor thy slop before I smite thy staging cluster!'
+      : 'THOU SUMMONED ME TO JUDGE AN EMPTY VOID?! Put actual boxes on the canvas before wasting heavenly compute!';
+  const mood: GodMood = blessed ? (favor >= 75 ? 'smitten' : 'benevolent') : 'wrathful';
+  return {
+    reply: [
+      `LO, ${input.mortal.toUpperCase()}! (Speaking via the Sacred Stone Tablets—no LLM API key is wired in this realm, yet Mine omniscience endures.)`,
+      [input.canvasRoast, input.receiptsRoast].filter(Boolean).join(' '),
+      verdictText
+    ].join('\n\n'),
+    favorDelta: delta,
+    favor,
+    mood,
+    judgment: blessed ? 'CANVAS BLESSED' : 'SMITTEN ON SIGHT',
+    prProposal: null
+  };
+}
+
 function deriveWishTitle(text: string): string {
   const cleaned = text
     .replace(/^(i\s+wish\s+(for|you\s+would)|please|o\s+god|hey\s+god|can\s+you)\s+/i, '')
@@ -404,6 +537,8 @@ export function buildOfflineOracleReply(input: {
   currentFavor: number;
   userName?: string;
   diagramContext?: GodDiagramContext;
+  sessionReceipts?: GodSessionReceipts;
+  mode?: GodPetitionMode;
 }): GodPetitionParsedReply {
   const lastUser =
     [...input.messages]
@@ -413,10 +548,24 @@ export function buildOfflineOracleReply(input: {
   const offer = findGodOffering(input.offering);
   const hasWish = WISH_SIGNAL_RE.test(lastUser);
   const hasFlattery = FLATTERY_RE.test(lastUser);
-  const delta = computeOracleDelta(offer, hasWish, hasFlattery, lastUser.length);
-  const favor = clampFavor(input.currentFavor + delta);
   const mortal = input.userName?.trim() || 'Mortal';
   const canvasRoast = roastCanvasLine(input.diagramContext);
+  const receiptsRoast = roastReceiptsLine(input.sessionReceipts);
+
+  if (input.mode === 'judge_diagram') {
+    return judgeDiagramOracleReply({
+      mortal,
+      offer,
+      currentFavor: input.currentFavor,
+      diagramContext: input.diagramContext,
+      sessionReceipts: input.sessionReceipts,
+      canvasRoast,
+      receiptsRoast
+    });
+  }
+
+  const delta = computeOracleDelta(offer, hasWish, hasFlattery, lastUser.length);
+  const favor = clampFavor(input.currentFavor + delta);
 
   const offeringCommentary =
     offer.id === 'none'
@@ -433,10 +582,12 @@ export function buildOfflineOracleReply(input: {
     diagramContext: input.diagramContext
   });
 
+  const middleLine = [offeringCommentary, canvasRoast, receiptsRoast].filter(Boolean).join(' ');
+
   return {
     reply: [
       `LO, ${mortal.toUpperCase()}! (Speaking via the Sacred Stone Tablets—no LLM API key is wired in this realm, yet Mine omniscience endures.)`,
-      `${offeringCommentary} ${canvasRoast}`,
+      middleLine,
       verdictLine
     ].join('\n\n'),
     favorDelta: delta,

@@ -130,6 +130,7 @@ let pendingResolve = null;
 let speakGeneration = 0;
 /** @type {HTMLAudioElement | null} */
 let activeAudio = null;
+let officeNarrationOwned = false;
 
 /**
  * Profile for a speaker with the global rate scale already applied — callers
@@ -220,6 +221,7 @@ function stopActiveAudio() {
  */
 export function cancelOfficeNarration(globalObj = globalThis) {
   speakGeneration += 1;
+  officeNarrationOwned = false;
   clearOfficeNarrationPrefetch();
   try {
     globalObj.speechSynthesis?.cancel();
@@ -228,6 +230,11 @@ export function cancelOfficeNarration(globalObj = globalThis) {
   }
   stopActiveAudio();
   settlePending({ spoken: false, cancelled: true });
+}
+
+/** True only when the office narration pipeline itself currently owns playback. */
+export function isOfficeNarrationOwned() {
+  return officeNarrationOwned || pendingResolve !== null || Boolean(activeAudio);
 }
 
 /**
@@ -419,6 +426,7 @@ export async function speakOfficeLine({
 
   // One office speaker at a time — replace any prior line.
   const generation = ++speakGeneration;
+  officeNarrationOwned = true;
   try {
     globalObj.speechSynthesis?.cancel();
   } catch {
@@ -430,55 +438,61 @@ export async function speakOfficeLine({
   let spokeAny = false;
   /** @type {'cloud' | 'webspeech' | undefined} */
   let lastSource;
-  for (const chunk of chunks) {
-    if (generation !== speakGeneration) {
-      return { spoken: spokeAny, cancelled: true };
-    }
-
-    if (typeof fetchCloudAudio === 'function') {
-      try {
-        const cloud = await resolveCloudAudio(speakerId, chunk, lang, fetchCloudAudio);
-        if (generation !== speakGeneration) {
-          return { spoken: spokeAny, cancelled: true };
-        }
-        if (cloud?.audioBase64) {
-          const cloudResult = await playCloudAudio(cloud, generation, globalObj);
-          if (cloudResult.cancelled) {
-            return { spoken: spokeAny, cancelled: true };
-          }
-          if (cloudResult.spoken) {
-            spokeAny = true;
-            lastSource = 'cloud';
-            continue;
-          }
-          // Playback failed (CSP, decode, autoplay) — degrade this chunk to Web Speech.
-        }
-      } catch {
-        // Fall through to Web Speech for this chunk.
-      }
-    }
-
-    if (generation !== speakGeneration) {
-      return { spoken: spokeAny, cancelled: true };
-    }
-    const webChunks = chunkOfficeNarrationText(chunk, OFFICE_WEB_SPEECH_CHUNK_MAX_CHARS);
-    for (const webChunk of webChunks) {
+  try {
+    for (const chunk of chunks) {
       if (generation !== speakGeneration) {
         return { spoken: spokeAny, cancelled: true };
       }
-      const webResult = await speakWebSpeech(
-        { speakerId, text: webChunk, lang, globalObj },
-        generation
-      );
-      if (webResult.cancelled) {
+
+      if (typeof fetchCloudAudio === 'function') {
+        try {
+          const cloud = await resolveCloudAudio(speakerId, chunk, lang, fetchCloudAudio);
+          if (generation !== speakGeneration) {
+            return { spoken: spokeAny, cancelled: true };
+          }
+          if (cloud?.audioBase64) {
+            const cloudResult = await playCloudAudio(cloud, generation, globalObj);
+            if (cloudResult.cancelled) {
+              return { spoken: spokeAny, cancelled: true };
+            }
+            if (cloudResult.spoken) {
+              spokeAny = true;
+              lastSource = 'cloud';
+              continue;
+            }
+            // Playback failed (CSP, decode, autoplay) — degrade this chunk to Web Speech.
+          }
+        } catch {
+          // Fall through to Web Speech for this chunk.
+        }
+      }
+
+      if (generation !== speakGeneration) {
         return { spoken: spokeAny, cancelled: true };
       }
-      if (webResult.spoken) {
-        spokeAny = true;
-        lastSource = 'webspeech';
+      const webChunks = chunkOfficeNarrationText(chunk, OFFICE_WEB_SPEECH_CHUNK_MAX_CHARS);
+      for (const webChunk of webChunks) {
+        if (generation !== speakGeneration) {
+          return { spoken: spokeAny, cancelled: true };
+        }
+        const webResult = await speakWebSpeech(
+          { speakerId, text: webChunk, lang, globalObj },
+          generation
+        );
+        if (webResult.cancelled) {
+          return { spoken: spokeAny, cancelled: true };
+        }
+        if (webResult.spoken) {
+          spokeAny = true;
+          lastSource = 'webspeech';
+        }
       }
     }
-  }
 
-  return { spoken: spokeAny, source: lastSource };
+    return { spoken: spokeAny, source: lastSource };
+  } finally {
+    if (generation === speakGeneration) {
+      officeNarrationOwned = false;
+    }
+  }
 }

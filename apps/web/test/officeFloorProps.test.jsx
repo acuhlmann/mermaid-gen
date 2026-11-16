@@ -2,8 +2,16 @@
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import OfficeFloor from '../src/components/OfficeFloor.jsx';
-import { ALTAR_BEAT_MS } from '../src/components/officeFloor/useFloorAltarCameo.js';
-import { emitGodAltarEvent, resetGodAltarForTests } from '../src/features/god/godAltarStore.js';
+import {
+  ALTAR_BEAT_MS,
+  ALTAR_CAMEO_COOLDOWN_MS
+} from '../src/components/officeFloor/useFloorAltarCameo.js';
+import {
+  closeGodAltar,
+  emitGodAltarEvent,
+  openGodAltar,
+  resetGodAltarForTests
+} from '../src/features/god/godAltarStore.js';
 import { FloorPropCard } from '../src/components/officeFloor/FloorProps.jsx';
 import {
   isOfficeColleagueId,
@@ -937,10 +945,16 @@ describe('Altar shrine prop and divine floor cameos', () => {
     expect(screen.queryByTestId('office-floor-altar')).toBeNull();
   });
 
-  it('flashes divine glow and runs Gilfoyle then Dinesh sarcastic cameos on Altar judgment events', () => {
+  it('flashes divine glow and runs Gilfoyle then Dinesh cameos on major moments with cooldown, ignoring minor prayers', () => {
     vi.useFakeTimers();
     const onOpenGodAltar = vi.fn();
     renderFloor({ onOpenGodAltar }, { pinDeterminism: false });
+
+    // Minor 'pray' event never interrupts with a Gilfoyle/Dinesh cameo.
+    act(() => {
+      emitGodAltarEvent('pray', 'amused');
+    });
+    expect(screen.queryByTestId('office-floor-altar-cameo')).toBeNull();
 
     act(() => {
       emitGodAltarEvent('bless', 'benevolent');
@@ -959,10 +973,74 @@ describe('Altar shrine prop and divine floor cameos', () => {
     expect(second.textContent).toContain('Dinesh');
     expect(second.textContent).toMatch(/sprint velocity/i);
 
+    // Within 30s cooldown: another major event flashes the altar but suppresses a back-to-back cameo.
+    act(() => {
+      vi.advanceTimersByTime(ALTAR_BEAT_MS);
+    });
+    expect(screen.queryByTestId('office-floor-altar-cameo')).toBeNull();
+
     act(() => {
       emitGodAltarEvent('smite', 'wrathful');
     });
     expect(screen.getByTestId('office-floor').className).toContain('is-divine-smite');
+    expect(screen.queryByTestId('office-floor-altar-cameo')).toBeNull();
+
+    // After cooldown expires, the next major moment triggers a fresh cameo.
+    act(() => {
+      vi.advanceTimersByTime(ALTAR_CAMEO_COOLDOWN_MS);
+    });
+    act(() => {
+      emitGodAltarEvent('smite', 'wrathful');
+    });
+    expect(screen.getByTestId('office-floor-altar-cameo').textContent).toMatch(/lightning/i);
+
+    vi.useRealTimers();
+  });
+
+  it('queues major cameos while the Altar modal is open and plays the latest once it closes', () => {
+    vi.useFakeTimers();
+    const onOpenGodAltar = vi.fn();
+    renderFloor({ onOpenGodAltar }, { pinDeterminism: false });
+
+    act(() => {
+      openGodAltar();
+      emitGodAltarEvent('smote', 'wrathful');
+      emitGodAltarEvent('pr_filed', 'smitten');
+    });
+
+    // Completely silent on the floor while the Altar modal is open.
+    expect(screen.queryByTestId('office-floor-altar-cameo')).toBeNull();
+    expect(screen.getByTestId('office-floor').className).not.toContain('is-divine-smite');
+    expect(screen.getByTestId('office-floor').className).not.toContain('is-divine-bless');
+
+    act(() => {
+      closeGodAltar();
+    });
+    expect(screen.getByTestId('office-floor').className).toContain('is-divine-bless');
+    expect(screen.getByTestId('office-floor-altar-cameo').textContent).toContain('Gilfoyle');
+    expect(screen.getByTestId('office-floor-altar-cameo').textContent).toMatch(/omniscient deity/i);
+
+    vi.useRealTimers();
+  });
+
+  it('retains a major event when a minor pray event follows in the same batched update', () => {
+    vi.useFakeTimers();
+    const onOpenGodAltar = vi.fn();
+    renderFloor({ onOpenGodAltar }, { pinDeterminism: false });
+
+    act(() => {
+      openGodAltar();
+      emitGodAltarEvent('smote', 'wrathful');
+      emitGodAltarEvent('pray', 'amused');
+    });
+
+    expect(screen.queryByTestId('office-floor-altar-cameo')).toBeNull();
+
+    act(() => {
+      closeGodAltar();
+    });
+    expect(screen.getByTestId('office-floor').className).toContain('is-divine-smite');
+    expect(screen.getByTestId('office-floor-altar-cameo').textContent).toContain('Gilfoyle');
     expect(screen.getByTestId('office-floor-altar-cameo').textContent).toMatch(/lightning/i);
 
     vi.useRealTimers();

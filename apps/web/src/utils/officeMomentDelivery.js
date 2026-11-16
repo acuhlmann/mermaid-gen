@@ -616,6 +616,7 @@ export async function deliverLlmMoment(kind, ctx, options) {
     if (!response.ok) return false;
 
     const payload = await response.json();
+    if (!isAlive()) return true;
     const usage = payload?.usage;
     if (usage && typeof usage === 'object') {
       onUsage?.({
@@ -671,7 +672,7 @@ export async function deliverLlmMoment(kind, ctx, options) {
     return true;
   } catch {
     clearTimeout(timeoutId);
-    return false;
+    return !isAlive();
   } finally {
     registerAbort?.(null);
   }

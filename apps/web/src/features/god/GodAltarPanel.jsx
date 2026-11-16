@@ -8,16 +8,22 @@ import {
 import { disposeGodAudioContext, playGodJudgmentCue, stopGodSpeech } from './godAltarAudio.js';
 import { fetchGodCloudAudio } from './godSpeechClient.js';
 import { emitGodAltarEvent } from './godAltarStore.js';
-import {
-  dispatchGodWorkflow,
-  fetchGodCapabilities,
-  fileGodPetitionPr,
-  sendGodPrayer
-} from './godPetitionClient.js';
+import { fetchGodCapabilities, sendGodPrayer } from './godPetitionClient.js';
+import GodPrDecreeCard from './GodPrDecreeCard.jsx';
+import { useGodPetitionFiling } from './useGodPetitionFiling.js';
+import { getUxSessionReceipts } from '../../state/uxSignalsClient.js';
 import './GodAltar.css';
 
 const MAX_PRAYER_HISTORY_PAYLOAD = 24;
-const MAX_PRAYER_SUMMARY_CHARS = 1000;
+const SMITE_SHAKE_MS = 550;
+const TYPEWRITER_STEPS = 8;
+
+function prefersReducedMotion() {
+  return (
+    typeof globalThis.matchMedia === 'function' &&
+    globalThis.matchMedia('(prefers-reduced-motion: reduce)').matches
+  );
+}
 
 function CelestialHaloIcon() {
   return (
@@ -145,211 +151,77 @@ function DivineFavorMeter({ favor, mood, judgment }) {
   );
 }
 
+function GodTypewriterBody({ content, animate }) {
+  const [revealed, setRevealed] = useState(() =>
+    animate && !prefersReducedMotion() && typeof globalThis.requestAnimationFrame === 'function'
+      ? 0
+      : content.length
+  );
+
+  useEffect(() => {
+    if (
+      !animate ||
+      prefersReducedMotion() ||
+      typeof globalThis.requestAnimationFrame !== 'function'
+    ) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- (reason: immediately reveal full text when typewriter animation is disabled or reduced motion is active)
+      setRevealed(content.length);
+      return undefined;
+    }
+    let rafId = 0;
+    let cursor = 0;
+    const chunk = Math.max(1, Math.ceil(content.length / TYPEWRITER_STEPS));
+    setRevealed(0);
+    const step = () => {
+      cursor = Math.min(content.length, cursor + chunk);
+      setRevealed(cursor);
+      if (cursor < content.length) {
+        rafId = globalThis.requestAnimationFrame(step);
+      }
+    };
+    rafId = globalThis.requestAnimationFrame(step);
+    return () => {
+      if (rafId) globalThis.cancelAnimationFrame(rafId);
+    };
+  }, [content, animate]);
+
+  const text = animate && revealed < content.length ? content.slice(0, revealed) : content;
+  const typing = animate && revealed < content.length;
+
+  return (
+    <p className="god-altar-msg-body">
+      {text}
+      {typing ? <span className="god-altar-typewriter-cursor" aria-hidden="true" /> : null}
+    </p>
+  );
+}
+
 function PrayerThread({ messages, userName, threadEndRef }) {
+  const lastIndex = messages.length - 1;
   return (
     <div className="god-altar-thread" role="log" aria-live="polite">
-      {messages.map((msg) => (
-        <article key={msg.id} className={`god-altar-msg is-${msg.role}`}>
-          <div className="god-altar-msg-head">
-            <span>{msg.role === 'god' ? 'ArchiSlop God' : userName || 'Mortal'}</span>
-            {typeof msg.favorDelta === 'number' ? (
-              <span className={`god-altar-delta${msg.favorDelta < 0 ? ' is-neg' : ''}`}>
-                {msg.favorDelta >= 0 ? `+${msg.favorDelta}` : msg.favorDelta} Favor
-              </span>
-            ) : null}
-          </div>
-          <p className="god-altar-msg-body">{msg.content}</p>
-        </article>
-      ))}
+      {messages.map((msg, index) => {
+        const shouldAnimate = Boolean(msg.animate && index === lastIndex && msg.role === 'god');
+        return (
+          <article key={msg.id} className={`god-altar-msg is-${msg.role}`}>
+            <div className="god-altar-msg-head">
+              <span>{msg.role === 'god' ? 'ArchiSlop God' : userName || 'Mortal'}</span>
+              {typeof msg.favorDelta === 'number' ? (
+                <span className={`god-altar-delta${msg.favorDelta < 0 ? ' is-neg' : ''}`}>
+                  {msg.favorDelta >= 0 ? `+${msg.favorDelta}` : msg.favorDelta} Favor
+                </span>
+              ) : null}
+            </div>
+            {msg.role === 'god' ? (
+              <GodTypewriterBody content={msg.content} animate={shouldAnimate} />
+            ) : (
+              <p className="god-altar-msg-body">{msg.content}</p>
+            )}
+          </article>
+        );
+      })}
       <div ref={threadEndRef} />
     </div>
-  );
-}
-
-function WorkflowDispatchStatus({
-  dispatchInfo,
-  dispatching,
-  onManualDispatch,
-  copiedWorkflow,
-  onCopyWorkflow
-}) {
-  if (!dispatchInfo) return null;
-  const dispatched = Boolean(dispatchInfo.dispatched);
-  return (
-    <div className="god-altar-dispatch-box" data-testid="god-workflow-dispatch">
-      <div className="god-altar-dispatch-head">
-        <strong>
-          {dispatched
-            ? `⚙️ ${COPY.prCard.dispatchDispatched}`
-            : `🛠️ ${COPY.prCard.dispatchFallback}`}
-        </strong>
-        <span className="god-altar-pill">
-          focus: {dispatchInfo.focus} · ref: {dispatchInfo.ref}
-        </span>
-      </div>
-      <p className="god-altar-msg-body">{dispatchInfo.message}</p>
-      <div className="god-altar-pr-actions">
-        {dispatched && dispatchInfo.workflowUrl ? (
-          <a href={dispatchInfo.workflowUrl} target="_blank" rel="noreferrer">
-            {COPY.prCard.openWorkflowLink} →
-          </a>
-        ) : null}
-        {!dispatched ? (
-          <button
-            type="button"
-            className="god-altar-secondary-btn"
-            data-testid="god-dispatch-workflow-button"
-            disabled={dispatching}
-            onClick={onManualDispatch}
-          >
-            {dispatching ? COPY.prCard.dispatchingButton : COPY.prCard.dispatchButton}
-          </button>
-        ) : null}
-      </div>
-      {!dispatched && dispatchInfo.ghWorkflowCommand ? (
-        <>
-          <pre className="god-altar-gh-scroll">{dispatchInfo.ghWorkflowCommand}</pre>
-          <div>
-            <button type="button" className="god-altar-secondary-btn" onClick={onCopyWorkflow}>
-              {copiedWorkflow ? COPY.prCard.copiedWorkflowLabel : COPY.prCard.copyWorkflowLabel}
-            </button>
-          </div>
-        </>
-      ) : null}
-    </div>
-  );
-}
-
-function PrDecreeOutcome({
-  prOutcome,
-  dispatching,
-  onManualDispatch,
-  copiedGh,
-  copiedWorkflow,
-  onCopyGh,
-  onCopyWorkflow
-}) {
-  if (!prOutcome) return null;
-  return (
-    <div
-      className={`god-altar-pr-outcome${prOutcome.filed ? '' : ' is-unconfigured'}`}
-      data-testid="god-pr-outcome"
-      role="status"
-    >
-      <strong>{prOutcome.filed ? COPY.prCard.filedBanner : COPY.prCard.unconfiguredTitle}</strong>
-      <p className="god-altar-msg-body">{prOutcome.divineMessage}</p>
-      {prOutcome.prUrl ? (
-        <a href={prOutcome.prUrl} target="_blank" rel="noreferrer">
-          {COPY.prCard.openPrLink} #{prOutcome.prNumber ?? ''} →
-        </a>
-      ) : null}
-      {prOutcome.ghCommand && !prOutcome.filed ? (
-        <>
-          <pre className="god-altar-gh-scroll">{prOutcome.ghCommand}</pre>
-          <div>
-            <button type="button" className="god-altar-secondary-btn" onClick={onCopyGh}>
-              {copiedGh ? COPY.prCard.copiedGhLabel : COPY.prCard.copyGhLabel}
-            </button>
-          </div>
-        </>
-      ) : null}
-      <WorkflowDispatchStatus
-        dispatchInfo={prOutcome.workflowDispatch}
-        dispatching={dispatching}
-        onManualDispatch={onManualDispatch}
-        copiedWorkflow={copiedWorkflow}
-        onCopyWorkflow={onCopyWorkflow}
-      />
-    </div>
-  );
-}
-
-function PrDecreeCard({
-  proposal,
-  dispatchWorkflow,
-  onToggleDispatchWorkflow,
-  onTitleChange,
-  onFilePr,
-  onManualDispatch,
-  filing,
-  dispatching,
-  prOutcome
-}) {
-  const [copiedGh, setCopiedGh] = useState(false);
-  const [copiedWorkflow, setCopiedWorkflow] = useState(false);
-
-  const copyText = async (text, setter) => {
-    if (!text) return;
-    try {
-      await navigator.clipboard?.writeText(text);
-      setter(true);
-      window.setTimeout(() => setter(false), 2000);
-    } catch {
-      setter(false);
-    }
-  };
-
-  return (
-    <section className="god-altar-pr-card" data-testid="god-pr-decree">
-      <p className="god-altar-eyebrow">{COPY.prCard.eyebrow}</p>
-      <input
-        type="text"
-        className="god-altar-pr-title-input"
-        aria-label="Pull Request Title"
-        value={proposal.title}
-        onChange={(event) => onTitleChange(event.target.value)}
-        maxLength={120}
-      />
-      <p className="god-altar-msg-body">{proposal.summary}</p>
-      <div className="god-altar-pr-meta">
-        <span>
-          {COPY.prCard.branchLabel}: <code>god-petition/{proposal.branchSlug}</code>
-        </span>
-        <span>
-          {COPY.prCard.targetLabel}: <code>{proposal.targetArea}</code>
-        </span>
-      </div>
-      <div>
-        <span className="god-altar-section-label">{COPY.prCard.planLabel}</span>
-        <ol className="god-altar-pr-plan">
-          {proposal.implementationPlan.map((step, idx) => (
-            <li key={`${idx}-${step}`}>{step}</li>
-          ))}
-        </ol>
-      </div>
-      <p className="god-altar-pr-blessing">“{proposal.divineBlessing}”</p>
-      <label className="god-altar-dispatch-opt">
-        <input
-          type="checkbox"
-          data-testid="god-dispatch-checkbox"
-          checked={dispatchWorkflow}
-          onChange={(event) => onToggleDispatchWorkflow(event.target.checked)}
-        />
-        <span>{COPY.prCard.dispatchCheckbox}</span>
-      </label>
-      <div className="god-altar-pr-actions">
-        <button
-          type="button"
-          className="god-altar-strike-btn"
-          data-testid="god-file-pr-button"
-          disabled={filing}
-          onClick={onFilePr}
-        >
-          {filing ? COPY.prCard.filingButton : COPY.prCard.fileButton}
-        </button>
-      </div>
-      <PrDecreeOutcome
-        prOutcome={prOutcome}
-        dispatching={dispatching}
-        onManualDispatch={onManualDispatch}
-        copiedGh={copiedGh}
-        copiedWorkflow={copiedWorkflow}
-        onCopyGh={() => void copyText(prOutcome?.ghCommand, setCopiedGh)}
-        onCopyWorkflow={() =>
-          void copyText(prOutcome?.workflowDispatch?.ghWorkflowCommand, setCopiedWorkflow)
-        }
-      />
-    </section>
   );
 }
 
@@ -376,11 +248,20 @@ function OfferingsStrip({ offerings, offering, busy, onSelect }) {
   );
 }
 
-function QuickPrayersStrip({ busy, onPick }) {
+function QuickPrayersStrip({ busy, onPick, onJudgeDiagram }) {
   return (
     <div className="god-altar-offerings">
       <span className="god-altar-section-label">{COPY.quickPrayersLabel}</span>
       <div className="god-altar-chip-row">
+        <button
+          type="button"
+          className="god-altar-chip god-altar-chip--judge"
+          data-testid="god-judge-diagram-button"
+          disabled={busy}
+          onClick={onJudgeDiagram}
+        >
+          {COPY.judgeDiagramButton}
+        </button>
         {GOD_QUICK_PRAYERS.map((q) => (
           <button
             key={q.id}
@@ -466,8 +347,14 @@ function useGodCapabilities() {
 
 function classifyDivineEventKind(data) {
   if (data.prProposal || data.mood === 'benevolent' || data.mood === 'smitten') return 'bless';
-  if (data.mood === 'wrathful' || data.mood === 'unimpressed') return 'smite';
+  if (data.mood === 'wrathful') return 'smite';
   return 'pray';
+}
+
+function buildJudgeDiagramPrompt(diagramSource, contentType) {
+  const hasSource = typeof diagramSource === 'string' && diagramSource.trim().length > 0;
+  if (!hasSource) return COPY.judgeDiagramEmptyPrompt;
+  return COPY.judgeDiagramPrompt.replace('{contentType}', contentType || 'diagram');
 }
 
 function buildDiagramContextPayload(diagramSource, contentType) {
@@ -532,92 +419,6 @@ function useGodAltarAudioPrefs() {
   };
 }
 
-function usePetitionFiling({
-  proposal,
-  messages,
-  favor,
-  userName,
-  dispatchWorkflow,
-  mountedRef,
-  petitionEpochRef,
-  audio,
-  setError,
-  setThunderSeq
-}) {
-  const [filing, setFiling] = useState(false);
-  const [dispatching, setDispatching] = useState(false);
-  const [prOutcome, setPrOutcome] = useState(null);
-
-  const handleFilePr = async () => {
-    const currentProposal = proposal;
-    if (!currentProposal || filing) return;
-    const petitionEpoch = petitionEpochRef.current;
-    const lastPrayer = (
-      [...messages].reverse().find((m) => m.role === 'user')?.content ?? ''
-    ).slice(0, MAX_PRAYER_SUMMARY_CHARS);
-    const capturedFavor = favor;
-    const capturedDispatch = dispatchWorkflow;
-
-    setFiling(true);
-    setError(null);
-    const res = await fileGodPetitionPr({
-      proposal: currentProposal,
-      prayerSummary: lastPrayer,
-      favor: capturedFavor,
-      userName,
-      dispatchWorkflow: capturedDispatch
-    });
-    if (!mountedRef.current || petitionEpoch !== petitionEpochRef.current) return;
-    setFiling(false);
-    if (!res.ok) {
-      setError(res.error);
-      return;
-    }
-    setThunderSeq((n) => n + 1);
-    setPrOutcome(res.data);
-    emitGodAltarEvent('bless', 'smitten');
-    audio.playCue({
-      kind: 'file-pr',
-      mood: 'smitten',
-      hasProposal: true,
-      text: res.data.divineMessage
-    });
-  };
-
-  const handleManualDispatch = async () => {
-    const currentOutcome = prOutcome;
-    const currentProposal = proposal;
-    if (!currentOutcome || dispatching) return;
-    const petitionEpoch = petitionEpochRef.current;
-    const targetBranch = currentOutcome.branch;
-    const targetFocus = currentOutcome.workflowDispatch?.focus;
-
-    setDispatching(true);
-    const res = await dispatchGodWorkflow({
-      ref: targetBranch,
-      focus: targetFocus,
-      proposal: currentProposal
-    });
-    if (!mountedRef.current || petitionEpoch !== petitionEpochRef.current) return;
-    setDispatching(false);
-    if (!res.ok) {
-      setError(res.error);
-      return;
-    }
-    setPrOutcome((prev) =>
-      prev && prev.branch === targetBranch ? { ...prev, workflowDispatch: res.data } : prev
-    );
-  };
-
-  const resetFiling = () => {
-    setFiling(false);
-    setDispatching(false);
-    setPrOutcome(null);
-  };
-
-  return { filing, dispatching, prOutcome, handleFilePr, handleManualDispatch, resetFiling };
-}
-
 function useGodAltarState({ diagramSource, contentType, userName, modelProfile }) {
   const capabilities = useGodCapabilities();
   const audio = useGodAltarAudioPrefs();
@@ -632,6 +433,8 @@ function useGodAltarState({ diagramSource, contentType, userName, modelProfile }
   const [error, setError] = useState(null);
   const [proposal, setProposal] = useState(null);
   const [thunderSeq, setThunderSeq] = useState(0);
+  const [smiteShaking, setSmiteShaking] = useState(false);
+  const smiteTimerRef = useRef(null);
   const threadEndRef = useRef(null);
   const nextMsgIdRef = useRef(1);
   const mountedRef = useRef(true);
@@ -646,6 +449,7 @@ function useGodAltarState({ diagramSource, contentType, userName, modelProfile }
       mountedRef.current = false;
       prayerRef.current += 1;
       petitionRef.current += 1;
+      if (smiteTimerRef.current) clearTimeout(smiteTimerRef.current);
     };
   }, []);
 
@@ -653,7 +457,7 @@ function useGodAltarState({ diagramSource, contentType, userName, modelProfile }
     threadEndRef.current?.scrollIntoView?.({ block: 'nearest' });
   }, [messages.length, proposal]);
 
-  const petition = usePetitionFiling({
+  const petition = useGodPetitionFiling({
     proposal,
     messages,
     favor,
@@ -671,6 +475,15 @@ function useGodAltarState({ diagramSource, contentType, userName, modelProfile }
     return `${prefix}-${nextMsgIdRef.current}`;
   };
 
+  const triggerSmiteShake = () => {
+    if (smiteTimerRef.current) clearTimeout(smiteTimerRef.current);
+    setSmiteShaking(true);
+    smiteTimerRef.current = setTimeout(() => {
+      setSmiteShaking(false);
+      smiteTimerRef.current = null;
+    }, SMITE_SHAKE_MS);
+  };
+
   const applyPrayerSuccess = (data) => {
     if (!mountedRef.current) return;
     const nextMood = data.mood ?? mood;
@@ -679,6 +492,7 @@ function useGodAltarState({ diagramSource, contentType, userName, modelProfile }
     setMood(nextMood);
     setJudgment(data.judgment ?? judgment);
     setThunderSeq((n) => n + 1);
+    if (eventKind === 'smite') triggerSmiteShake();
     if (data.prProposal) setProposal(data.prProposal);
     setMessages((prev) => [
       ...prev,
@@ -687,7 +501,8 @@ function useGodAltarState({ diagramSource, contentType, userName, modelProfile }
         role: 'god',
         content: data.reply,
         favorDelta: data.favorDelta,
-        judgment: data.judgment
+        judgment: data.judgment,
+        animate: true
       }
     ]);
     emitGodAltarEvent(eventKind, nextMood);
@@ -699,7 +514,7 @@ function useGodAltarState({ diagramSource, contentType, userName, modelProfile }
     });
   };
 
-  const submitPrayer = async (textOverride, offeringOverride) => {
+  const submitPrayer = async (textOverride, offeringOverride, { mode = 'prayer' } = {}) => {
     const text = (textOverride ?? draft).trim();
     if (!text || busy) return;
     const prayerEpoch = ++prayerEpochRef.current;
@@ -711,6 +526,7 @@ function useGodAltarState({ diagramSource, contentType, userName, modelProfile }
     setError(null);
     petition.resetFiling();
 
+    const sessionReceipts = getUxSessionReceipts();
     const res = await sendGodPrayer({
       messages: nextMessages
         .slice(-MAX_PRAYER_HISTORY_PAYLOAD)
@@ -719,6 +535,8 @@ function useGodAltarState({ diagramSource, contentType, userName, modelProfile }
       currentFavor: favor,
       userName,
       modelProfile,
+      mode,
+      ...(sessionReceipts ? { sessionReceipts } : {}),
       diagramContext: buildDiagramContextPayload(diagramSource, contentType)
     });
     if (!mountedRef.current || prayerEpoch !== prayerEpochRef.current) return;
@@ -730,10 +548,17 @@ function useGodAltarState({ diagramSource, contentType, userName, modelProfile }
     applyPrayerSuccess(res.data);
   };
 
+  const judgeCurrentDiagram = () => {
+    const prompt = buildJudgeDiagramPrompt(diagramSource, contentType);
+    return submitPrayer(prompt, offering, { mode: 'judge_diagram' });
+  };
+
   const handleReset = () => {
     prayerEpochRef.current += 1;
     petitionEpochRef.current += 1;
     stopGodSpeech();
+    if (smiteTimerRef.current) clearTimeout(smiteTimerRef.current);
+    setSmiteShaking(false);
     setBusy(false);
     petition.resetFiling();
     setMessages(initialHistory());
@@ -758,19 +583,24 @@ function useGodAltarState({ diagramSource, contentType, userName, modelProfile }
     busy,
     filing: petition.filing,
     dispatching: petition.dispatching,
+    checkingStatus: petition.checkingStatus,
     dispatchWorkflow,
     setDispatchWorkflow,
     error,
     proposal,
     setProposal,
     prOutcome: petition.prOutcome,
+    runStatus: petition.runStatus,
     thunderSeq,
+    smiteShaking,
     soundEnabled: audio.soundEnabled,
     voiceEnabled: audio.voiceEnabled,
     threadEndRef,
     submitPrayer,
+    judgeCurrentDiagram,
     handleFilePr: petition.handleFilePr,
     handleManualDispatch: petition.handleManualDispatch,
+    handleRefreshStatus: petition.handleRefreshStatus,
     handleReset,
     toggleSound: audio.toggleSound,
     toggleVoice: audio.toggleVoice
@@ -794,7 +624,7 @@ export default function GodAltarPanel({
     : DEFAULT_GOD_OFFERINGS;
 
   return (
-    <div className="god-altar" data-testid="god-altar-panel">
+    <div className={`god-altar${s.smiteShaking ? ' is-smite' : ''}`} data-testid="god-altar-panel">
       {s.thunderSeq > 0 ? (
         <div key={s.thunderSeq} className="god-altar-thunder-flash" aria-hidden="true" />
       ) : null}
@@ -808,15 +638,18 @@ export default function GodAltarPanel({
       <DivineFavorMeter favor={s.favor} mood={s.mood} judgment={s.judgment} />
       <PrayerThread messages={s.messages} userName={userName} threadEndRef={s.threadEndRef} />
       {s.proposal ? (
-        <PrDecreeCard
+        <GodPrDecreeCard
           proposal={s.proposal}
           dispatchWorkflow={s.dispatchWorkflow}
           onToggleDispatchWorkflow={s.setDispatchWorkflow}
           onTitleChange={(title) => s.setProposal((prev) => (prev ? { ...prev, title } : prev))}
           onFilePr={s.handleFilePr}
           onManualDispatch={s.handleManualDispatch}
+          onRefreshStatus={s.handleRefreshStatus}
           filing={s.filing}
           dispatching={s.dispatching}
+          checkingStatus={s.checkingStatus}
+          runStatus={s.runStatus}
           prOutcome={s.prOutcome}
         />
       ) : null}
@@ -837,6 +670,7 @@ export default function GodAltarPanel({
           s.setOffering(q.offering);
           void s.submitPrayer(q.prompt, q.offering);
         }}
+        onJudgeDiagram={() => void s.judgeCurrentDiagram()}
       />
       <PrayerComposer
         draft={s.draft}

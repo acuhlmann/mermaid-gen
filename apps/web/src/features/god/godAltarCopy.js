@@ -88,6 +88,11 @@ export const GOD_ALTAR_COPY = {
   favorHint: 'Reach ~55+ Favor (or bring a worthy sacrifice + pitch) to earn a PR Decree.',
   offeringLabel: 'Sacrificial Offering (Bribe)',
   quickPrayersLabel: 'Quick incantations',
+  judgeDiagramButton: '⚖️ Judge My Diagram',
+  judgeDiagramEmptyPrompt:
+    'O Almighty ArchiSlop God, behold my barren empty canvas and deliver Thy divine judgment!',
+  judgeDiagramPrompt:
+    'O Almighty ArchiSlop God, gaze upon my active {contentType} diagram and deliver Thy immediate celestial critique—bless or smite it!',
   inputLabel: 'Speak unto the Almighty',
   inputPlaceholder: 'Confess thy spaghetti code, beg for mercy, or pitch a feature/fix for a PR…',
   submit: 'Send Prayer',
@@ -121,7 +126,10 @@ export const GOD_ALTAR_COPY = {
     dispatchingButton: 'Dispatching god.yml…',
     openWorkflowLink: 'View god.yml Runs',
     copyWorkflowLabel: 'Copy gh workflow command',
-    copiedWorkflowLabel: 'Workflow command copied!'
+    copiedWorkflowLabel: 'Workflow command copied!',
+    copyFailedLabel: 'Copy failed — select manually',
+    refreshStatusLabel: '↻ Check run',
+    checkingStatusLabel: 'Checking…'
   },
   oracleBadge: 'Stone-Tablet Oracle (No LLM key set — still judgmental)',
   llmBadge: 'Live Celestial LLM Connected',

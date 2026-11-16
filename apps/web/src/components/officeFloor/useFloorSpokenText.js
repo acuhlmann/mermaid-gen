@@ -8,8 +8,13 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { shouldShowSpokenText } from '../../utils/officeCaptions.js';
-import { cancelOfficeNarration, isOfficeNarrationBusy } from '../../utils/officeNarration.js';
+import {
+  cancelOfficeNarration,
+  isOfficeNarrationBusy,
+  isOfficeNarrationOwned
+} from '../../utils/officeNarration.js';
 import { deskWorkFor } from '../../utils/officeDeskWork.js';
+import { isGodSpeechBusy } from '../../features/god/godAltarAudio.js';
 
 /** Poll interval for lifted-scene TTS — only gates bubble visibility. */
 const NARRATION_BUSY_POLL_MS = 80;
@@ -50,7 +55,7 @@ function useNarratedAside(said, narrate) {
   }, [text, speakerId, narrate]);
 }
 
-function useNarratedAltarCameo(altarCameo, narrateLine) {
+function useNarratedAltarCameo(altarCameo, narrateLine, altarOpen) {
   const spokenRef = useRef('');
   const [altarVoice, setAltarVoice] = useState({ key: '', active: false });
   const text = altarCameo?.text ?? '';
@@ -62,9 +67,9 @@ function useNarratedAltarCameo(altarCameo, narrateLine) {
       spokenRef.current = '';
       return undefined;
     }
-    if (key === spokenRef.current) return undefined;
+    if (altarOpen || key === spokenRef.current) return undefined;
     spokenRef.current = key;
-    if (typeof narrateLine !== 'function' || isOfficeNarrationBusy()) {
+    if (typeof narrateLine !== 'function' || isOfficeNarrationBusy() || isGodSpeechBusy()) {
       return undefined;
     }
     let cancelled = false;
@@ -80,9 +85,9 @@ function useNarratedAltarCameo(altarCameo, narrateLine) {
     return () => {
       cancelled = true;
     };
-  }, [key, speakerId, text, narrateLine]);
+  }, [key, speakerId, text, narrateLine, altarOpen]);
 
-  return Boolean(key) && altarVoice.key === key && altarVoice.active;
+  return !altarOpen && Boolean(key) && altarVoice.key === key && altarVoice.active;
 }
 
 /**
@@ -102,6 +107,7 @@ function useNarratedAltarCameo(altarCameo, narrateLine) {
  */
 export function useFloorSpokenText({
   captions = false,
+  altarOpen = false,
   sceneHandlers = {},
   talkColleagueId = null,
   talkLine = '',
@@ -136,30 +142,38 @@ export function useFloorSpokenText({
   const prevTalkLineRef = useRef('');
   const prevPeekKeyRef = useRef('');
   const prevWalkByIdRef = useRef(null);
+  const talkOwnedRef = useRef(false);
+  const walkByOwnedRef = useRef(false);
 
-  const narrateTracked = useCallback(
-    (line) => {
+  const narrateTrackedFor = useCallback(
+    (line, ownerRef) => {
       const narrate = sceneHandlers?.narrateLine;
-      if (typeof narrate !== 'function') {
+      if (altarOpen || typeof narrate !== 'function' || isGodSpeechBusy()) {
+        if (ownerRef) ownerRef.current = false;
         setVoiceActive(false);
         return Promise.resolve({ spoken: false });
       }
       // Optimistic: hide while voice is in flight. A silent result flips this
       // back off so the line is still readable when TTS fails.
+      if (ownerRef) ownerRef.current = true;
       setVoiceActive(true);
       return Promise.resolve(narrate(line))
         .then((result) => {
+          if (ownerRef) ownerRef.current = false;
           const spoken = Boolean(result?.spoken);
           setVoiceActive(spoken);
           return result ?? { spoken: false };
         })
         .catch(() => {
+          if (ownerRef) ownerRef.current = false;
           setVoiceActive(false);
           return { spoken: false };
         });
     },
-    [sceneHandlers]
+    [sceneHandlers, altarOpen]
   );
+
+  const narrateTracked = useCallback((line) => narrateTrackedFor(line, null), [narrateTrackedFor]);
 
   const sceneHandlersWithVoice = useMemo(() => {
     if (!sceneHandlers?.narrateLine) return sceneHandlers;
@@ -167,11 +181,21 @@ export function useFloorSpokenText({
   }, [sceneHandlers, narrateTracked]);
 
   useEffect(() => {
+    if (!altarOpen) return;
+    if (!isGodSpeechBusy()) cancelOfficeNarration();
+    talkOwnedRef.current = false;
+    walkByOwnedRef.current = false;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- (reason: immediately clear active voice flag when the God Altar modal claims audio focus)
+    setVoiceActive(false);
+    setLiftedNarrationBusy(false);
+  }, [altarOpen]);
+
+  useEffect(() => {
     if (!hasActiveSpeech) setVoiceActive(false);
   }, [hasActiveSpeech]);
 
   useEffect(() => {
-    if (captions || !liftedSceneSpeech) {
+    if (captions || !liftedSceneSpeech || altarOpen) {
       setLiftedNarrationBusy(false);
       return undefined;
     }
@@ -186,19 +210,26 @@ export function useFloorSpokenText({
       cancelled = true;
       clearInterval(timer);
     };
-  }, [captions, liftedSceneSpeech]);
+  }, [captions, liftedSceneSpeech, altarOpen]);
 
   useEffect(() => {
     if (!talkColleagueId) {
-      if (prevTalkLineRef.current) cancelOfficeNarration();
+      if (
+        prevTalkLineRef.current &&
+        (talkOwnedRef.current || isOfficeNarrationOwned()) &&
+        !isGodSpeechBusy()
+      ) {
+        cancelOfficeNarration();
+      }
+      talkOwnedRef.current = false;
       prevTalkLineRef.current = '';
       return undefined;
     }
-    if (!talkLine || talkLine === prevTalkLineRef.current) return undefined;
+    if (altarOpen || !talkLine || talkLine === prevTalkLineRef.current) return undefined;
     prevTalkLineRef.current = talkLine;
-    void narrateTracked({ speakerId: talkColleagueId, text: talkLine });
+    void narrateTrackedFor({ speakerId: talkColleagueId, text: talkLine }, talkOwnedRef);
     return undefined;
-  }, [talkColleagueId, talkLine, narrateTracked]);
+  }, [talkColleagueId, talkLine, narrateTrackedFor, altarOpen]);
 
   const peekLine = peekColleagueId ? (deskWorkFor(peekColleagueId)?.line ?? '') : '';
   useEffect(() => {
@@ -206,18 +237,25 @@ export function useFloorSpokenText({
       prevPeekKeyRef.current = '';
       return undefined;
     }
-    if (!peekLine) return undefined;
+    if (altarOpen || !peekLine) return undefined;
     const key = `${peekColleagueId}:${peekLine}`;
     if (key === prevPeekKeyRef.current) return undefined;
     prevPeekKeyRef.current = key;
     void narrateTracked({ speakerId: peekColleagueId, text: peekLine });
     return undefined;
-  }, [peekColleagueId, peekLine, narrateTracked]);
+  }, [peekColleagueId, peekLine, narrateTracked, altarOpen]);
 
   useEffect(() => {
     const walkById = walkBy?.id ?? null;
     if (!walkById) {
-      if (prevWalkByIdRef.current) cancelOfficeNarration();
+      if (
+        prevWalkByIdRef.current &&
+        (walkByOwnedRef.current || isOfficeNarrationOwned()) &&
+        !isGodSpeechBusy()
+      ) {
+        cancelOfficeNarration();
+      }
+      walkByOwnedRef.current = false;
       prevWalkByIdRef.current = null;
       return undefined;
     }
@@ -231,16 +269,16 @@ export function useFloorSpokenText({
      * halves and this is the one that is not about copy.
      */
     const walkByKey = `${walkById}:${walkBy?.body ?? ''}`;
-    if (!walkBy?.body || walkByKey === prevWalkByIdRef.current) return undefined;
+    if (altarOpen || !walkBy?.body || walkByKey === prevWalkByIdRef.current) return undefined;
     prevWalkByIdRef.current = walkByKey;
     if (isOfficeNarrationBusy()) return undefined;
-    void narrateTracked({ speakerId: walkBy.colleagueId, text: walkBy.body });
+    void narrateTrackedFor({ speakerId: walkBy.colleagueId, text: walkBy.body }, walkByOwnedRef);
     return undefined;
-  }, [walkBy, narrateTracked]);
+  }, [walkBy, narrateTrackedFor, altarOpen]);
 
-  useNarratedAside(wandererSaid, narrateTracked);
-  useNarratedAside(dwellSaid, narrateTracked);
-  const altarVoiceActive = useNarratedAltarCameo(altarCameo, sceneHandlers?.narrateLine);
+  useNarratedAside(altarOpen ? null : wandererSaid, narrateTracked);
+  useNarratedAside(altarOpen ? null : dwellSaid, narrateTracked);
+  const altarVoiceActive = useNarratedAltarCameo(altarCameo, sceneHandlers?.narrateLine, altarOpen);
 
   // Paced coffee/battle lines are narrated in `OfficeLayer`. Prefer the
   // per-line spoken flag from pacing so a failed TTS falls back to bubbles;

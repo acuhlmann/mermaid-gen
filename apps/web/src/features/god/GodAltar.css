@@ -145,6 +145,58 @@
   color: var(--altar-gold);
 }
 
+.god-altar-pill.is-bad {
+  border-color: rgba(255, 123, 114, 0.55);
+  background: rgba(255, 123, 114, 0.14);
+  color: #ffb4ad;
+}
+
+.god-altar.is-smite {
+  animation: god-altar-smite-shake 0.45s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+
+@keyframes god-altar-smite-shake {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+  20% {
+    transform: translate3d(-5px, 2px, 0);
+  }
+  40% {
+    transform: translate3d(5px, -2px, 0);
+  }
+  60% {
+    transform: translate3d(-4px, -1px, 0);
+  }
+  80% {
+    transform: translate3d(3px, 1px, 0);
+  }
+}
+
+.god-altar-typewriter-cursor {
+  display: inline-block;
+  width: 0.45em;
+  height: 0.95em;
+  margin-left: 0.12em;
+  vertical-align: -0.1em;
+  background: var(--altar-gold);
+  animation: god-altar-caret 0.7s steps(2, start) infinite;
+}
+
+@keyframes god-altar-caret {
+  to {
+    opacity: 0;
+  }
+}
+
+.god-altar-chip--judge {
+  border-color: rgba(229, 193, 88, 0.6);
+  background: linear-gradient(135deg, rgba(229, 193, 88, 0.2), rgba(167, 139, 250, 0.16));
+  color: #fde68a;
+  font-weight: 700;
+}
+
 .god-altar-meter-card {
   display: grid;
   grid-template-columns: 1fr auto;
@@ -637,7 +689,9 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .god-altar-halo svg {
+  .god-altar-halo svg,
+  .god-altar.is-smite,
+  .god-altar-typewriter-cursor {
     animation: none;
   }
 

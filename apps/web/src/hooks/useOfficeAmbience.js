@@ -11,6 +11,7 @@ import {
   RECENT_MOMENTS_CAP
 } from '../utils/officeMomentDelivery.js';
 import { getOfficeSnapshot, shouldHoldAmbientOfficeMoments } from '../state/officeMomentStore.js';
+import { getGodAltarOpen, subscribeGodAltar } from '../features/god/godAltarStore.js';
 
 export const OFFICE_TICK_MS = 5_000;
 const FAILURE_BACKOFF_MS = 30_000;
@@ -61,6 +62,7 @@ export function useOfficeAmbience(params) {
     let alive = true;
     let inFlight = false;
     let abortController = null;
+    let cancelledByAltar = false;
     let failureUntil = 0;
     const sessionStartedAt = Date.now();
     const counters = {
@@ -74,6 +76,13 @@ export function useOfficeAmbience(params) {
     const memory = readOfficeCadenceMemory();
     /** @type {string[]} */
     const recentMoments = [];
+
+    const unsubscribeAltar = subscribeGodAltar(() => {
+      if (getGodAltarOpen() && inFlight) {
+        cancelledByAltar = true;
+        abortController?.abort();
+      }
+    });
 
     const random = () => (paramsRef.current.random ?? Math.random)();
 
@@ -96,9 +105,12 @@ export function useOfficeAmbience(params) {
       ...extra
     });
 
+    const isAltarOwned = () => getGodAltarOpen() || Boolean(paramsRef.current.pause);
+
     const shouldHoldFire = () => {
       const p = paramsRef.current;
       if (p.pause || p.advisorBusy || p.agentBusy || p.meetingActive) return true;
+      if (getGodAltarOpen()) return true;
       if (p.floorActive) return true;
       if (isHidden()) return true;
       if (getOfficeSnapshot().focusTime) return true;
@@ -126,6 +138,7 @@ export function useOfficeAmbience(params) {
       });
       if (!moment) return;
       inFlight = true;
+      cancelledByAltar = false;
       try {
         const ctx = readSlotContext(paramsRef.current, random);
         if (moment.useLlm) {
@@ -139,13 +152,13 @@ export function useOfficeAmbience(params) {
               onLlmSpent: () => {
                 counters.llmMomentCount += 1;
               },
-              isAlive: () => alive,
+              isAlive: () => alive && !cancelledByAltar && !isAltarOwned(),
               registerAbort: (controller) => {
                 abortController = controller;
               }
             })
           );
-          if (!alive) return;
+          if (!alive || cancelledByAltar || isAltarOwned()) return;
           if (!delivered) {
             failureUntil = Date.now() + FAILURE_BACKOFF_MS;
             deliverCannedMoment(moment.kind, ctx, deliveryOptions());
@@ -169,6 +182,7 @@ export function useOfficeAmbience(params) {
 
     return () => {
       alive = false;
+      unsubscribeAltar();
       clearInterval(interval);
       abortController?.abort();
       writeOfficeCadenceMemory(memory);

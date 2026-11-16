@@ -1,11 +1,16 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import express from 'express';
-import { buildOfflineOracleReply, parseGodPetitionReply } from '../src/god/godPetitionPrompt.js';
+import {
+  buildGodPetitionUserPrompt,
+  buildOfflineOracleReply,
+  parseGodPetitionReply
+} from '../src/god/godPetitionPrompt.js';
 import {
   buildManualGhCommand,
   dispatchPetitionWorkflow,
   filePetitionPr,
+  getPetitionWorkflowStatus,
   inferGodWorkflowFocus
 } from '../src/god/godPetitionPr.js';
 import { createGodPetitionRouter } from '../src/routes/godPetition.js';
@@ -481,6 +486,214 @@ test('GET /api/god/petition/capabilities is never rate-limited by the LLM bucket
       const res = await fetch(`${app.base}/api/god/petition/capabilities`);
       assert.equal(res.status, 200);
     }
+  } finally {
+    await app.close();
+  }
+});
+
+test('receipt-backed roasts feed sessionReceipts into prompt & offline oracle and support judge_diagram mode', async () => {
+  const receipts = {
+    runs: 5,
+    accepted: 2,
+    failed: 3,
+    retries: 4,
+    autofixFailed: 2,
+    manualEditsAfterAgent: 1,
+    lastFailureClass: 'syntax_exhausted'
+  };
+  const prompt = buildGodPetitionUserPrompt({
+    messages: [{ role: 'user', content: 'Judge my diagram' }],
+    offering: 'none',
+    currentFavor: 40,
+    mode: 'judge_diagram',
+    sessionReceipts: receipts,
+    diagramContext: { contentType: 'mermaid', diagramSource: 'flowchart TD\nA-->B\nB-->C' }
+  });
+  assert.match(prompt, /judge_diagram/);
+  assert.match(prompt, /5 runs \(2 accepted, 3 failed\)/);
+  assert.match(prompt, /4 retries/);
+  assert.match(prompt, /latest failure class: syntax_exhausted/);
+
+  const smiteOracle = buildOfflineOracleReply({
+    messages: [{ role: 'user', content: 'Judge my empty void' }],
+    offering: 'none',
+    currentFavor: 40,
+    mode: 'judge_diagram',
+    sessionReceipts: receipts
+  });
+  assert.equal(smiteOracle.mood, 'wrathful');
+  assert.equal(smiteOracle.judgment, 'SMITTEN ON SIGHT');
+  assert.match(smiteOracle.reply, /3 failed run\(s\), 4 retry plea\(s\), and 2 failed autofix/);
+  assert.match(smiteOracle.reply, /syntax_exhausted/);
+
+  const blessedOracle = buildOfflineOracleReply({
+    messages: [{ role: 'user', content: 'Judge my clean diagram' }],
+    offering: 'kubernetes_yaml',
+    currentFavor: 35,
+    mode: 'judge_diagram',
+    diagramContext: { contentType: 'mermaid', diagramSource: 'flowchart TD\nA-->B\nB-->C' },
+    sessionReceipts: { runs: 2, accepted: 2, failed: 0, retries: 0 }
+  });
+  assert.equal(blessedOracle.mood, 'benevolent');
+  assert.equal(blessedOracle.judgment, 'CANVAS BLESSED');
+
+  // Strict schema rejects arbitrary text keys on sessionReceipts.
+  const app = await bootApp({ petitionOptions: { env: {} } });
+  try {
+    const rejected = await fetch(`${app.base}/api/god/petition`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        messages: [{ role: 'user', content: 'Roast me' }],
+        sessionReceipts: { runs: 1, secretPrompt: 'leak' }
+      })
+    });
+    assert.equal(rejected.status, 400);
+
+    const valid = await fetch(`${app.base}/api/god/petition`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        messages: [{ role: 'user', content: 'Judge my diagram' }],
+        mode: 'judge_diagram',
+        sessionReceipts: receipts
+      })
+    });
+    assert.equal(valid.status, 200);
+    const body = await valid.json();
+    assert.equal(body.mood, 'wrathful');
+    assert.match(body.reply, /3 failed run\(s\)/);
+  } finally {
+    await app.close();
+  }
+});
+
+test('getPetitionWorkflowStatus & GET /api/god/petition/workflow-status report run state cleanly', async () => {
+  const unconfigured = await getPetitionWorkflowStatus({ env: {}, ref: 'main' });
+  assert.equal(unconfigured.available, false);
+  assert.equal(unconfigured.status, 'unconfigured');
+
+  const live = await getPetitionWorkflowStatus({
+    env: { GOD_PR_TOKEN: 'ghp_test' },
+    ref: 'god-petition/x',
+    since: '2026-11-16T00:00:00.000Z',
+    fetchImpl: async () => ({
+      ok: true,
+      status: 200,
+      text: async () =>
+        JSON.stringify({
+          workflow_runs: [
+            {
+              id: 888,
+              run_number: 42,
+              status: 'completed',
+              conclusion: 'success',
+              head_branch: 'god-petition/x',
+              html_url: 'https://github.com/acuhlmann/mermaid-gen/actions/runs/888',
+              created_at: '2026-11-16T00:01:00.000Z',
+              updated_at: '2026-11-16T00:04:00.000Z'
+            }
+          ]
+        })
+    })
+  });
+  assert.equal(live.available, true);
+  assert.equal(live.status, 'completed');
+  assert.equal(live.conclusion, 'success');
+  assert.equal(live.runNumber, 42);
+
+  const app = await bootApp({
+    petitionOptions: {
+      env: {},
+      getWorkflowStatus: async ({ ref }) => ({
+        available: true,
+        status: 'in_progress',
+        conclusion: null,
+        runNumber: 77,
+        headBranch: ref,
+        htmlUrl: 'https://github.com/acuhlmann/mermaid-gen/actions/runs/77',
+        message: 'god.yml #77: in_progress.'
+      })
+    }
+  });
+  try {
+    const res = await fetch(`${app.base}/api/god/petition/workflow-status?ref=god-petition/x`);
+    assert.equal(res.status, 200);
+    const body = await res.json();
+    assert.equal(body.status, 'in_progress');
+    assert.equal(body.runNumber, 77);
+  } finally {
+    await app.close();
+  }
+});
+
+test('dispatchPetitionWorkflow timestamps before dispatch and workflow-status excludes prior runs', async () => {
+  let clock = Date.parse('2026-11-16T05:00:00.750Z');
+  const dispatchRes = await dispatchPetitionWorkflow({
+    repo: 'acuhlmann/mermaid-gen',
+    ref: 'god-petition/fresh',
+    focus: 'ux',
+    env: { GOD_PR_TOKEN: 'ghp_test' },
+    nowMs: () => clock,
+    fetchImpl: async () => {
+      clock += 5_000;
+      return { ok: true, status: 204, text: async () => '' };
+    }
+  });
+  assert.equal(dispatchRes.dispatched, true);
+  assert.equal(dispatchRes.dispatchedAt, '2026-11-16T05:00:00.000Z');
+
+  // A run from 10s earlier (same minute!) must be ignored so status stays queued/pending.
+  const pending = await getPetitionWorkflowStatus({
+    env: { GOD_PR_TOKEN: 'ghp_test' },
+    ref: 'god-petition/fresh',
+    since: dispatchRes.dispatchedAt,
+    fetchImpl: async () => ({
+      ok: true,
+      status: 200,
+      text: async () =>
+        JSON.stringify({
+          workflow_runs: [
+            {
+              id: 100,
+              run_number: 10,
+              status: 'completed',
+              conclusion: 'success',
+              created_at: '2026-11-16T04:59:50Z'
+            }
+          ]
+        })
+    })
+  });
+  assert.equal(pending.status, 'queued');
+  assert.equal(pending.runId, undefined);
+});
+
+test('GET /api/god/petition/workflow-status uses its own rate limiter separate from writeRateLimit', async () => {
+  const app = await bootApp({
+    petitionOptions: {
+      env: {},
+      getWorkflowStatus: async () => ({
+        available: true,
+        status: 'queued',
+        conclusion: null,
+        htmlUrl: 'https://github.com/acuhlmann/mermaid-gen/actions/workflows/god.yml',
+        message: 'Queued.'
+      })
+    }
+  });
+  try {
+    // 35 status polls exceed the 30/min write budget, yet must not throttle write routes.
+    for (let i = 0; i < 35; i += 1) {
+      const statusRes = await fetch(`${app.base}/api/god/petition/workflow-status?ref=main`);
+      assert.equal(statusRes.status, 200);
+    }
+    const writeRes = await fetch(`${app.base}/api/god/petition/file-pr`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ proposal: PROPOSAL, favor: 70, userName: 'Jared' })
+    });
+    assert.equal(writeRes.status, 200);
   } finally {
     await app.close();
   }

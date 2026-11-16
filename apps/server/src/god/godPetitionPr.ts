@@ -168,7 +168,20 @@ export type GodWorkflowDispatchResult = {
   focus: GodWorkflowFocus;
   workflowUrl: string;
   ghWorkflowCommand: string;
+  dispatchedAt?: string;
   reason?: string;
+  message: string;
+};
+
+export type GodWorkflowRunStatusResult = {
+  available: boolean;
+  status: 'queued' | 'in_progress' | 'completed' | 'waiting' | 'unknown' | 'unconfigured' | 'error';
+  conclusion: string | null;
+  runId?: number;
+  runNumber?: number;
+  headBranch?: string;
+  updatedAt?: string;
+  htmlUrl: string;
   message: string;
 };
 
@@ -231,6 +244,7 @@ export type DispatchPetitionWorkflowOptions = {
   focus: GodWorkflowFocus;
   env?: Env;
   fetchImpl?: typeof fetch;
+  nowMs?: () => number;
 };
 
 function makeWorkflowDispatchBase(repo: string, ref: string, focus: GodWorkflowFocus) {
@@ -287,6 +301,8 @@ export async function dispatchPetitionWorkflow(
     });
 
   let activeRef = options.ref;
+  const dispatchStartMs = (options.nowMs ?? Date.now)();
+  const dispatchedAt = new Date(Math.floor(dispatchStartMs / 1000) * 1000).toISOString();
   let dispatchRes:
     { ok: true; data: Record<string, never> } | { ok: false; status: number; detail: string };
   try {
@@ -324,8 +340,127 @@ export async function dispatchPetitionWorkflow(
     attempted: true,
     dispatched: true,
     status: 'dispatched',
+    dispatchedAt,
     message: `Dispatched ${GOD_WORKFLOW_FILE} on ${activeRef} (tier: propose, focus: ${options.focus}) so God's harness can implement the decree.`
   };
+}
+
+type GitHubWorkflowRunRow = {
+  id?: number;
+  run_number?: number;
+  status?: string;
+  conclusion?: string | null;
+  html_url?: string;
+  head_branch?: string;
+  event?: string;
+  created_at?: string;
+  updated_at?: string;
+};
+
+function normalizeWorkflowRunStatus(raw: string | undefined): GodWorkflowRunStatusResult['status'] {
+  if (raw === 'queued' || raw === 'in_progress' || raw === 'completed' || raw === 'waiting') {
+    return raw;
+  }
+  return 'unknown';
+}
+
+function pickMatchingWorkflowRun(
+  runs: GitHubWorkflowRunRow[],
+  since?: string
+): GitHubWorkflowRunRow | null {
+  const sinceMs = since ? Date.parse(since) : Number.NaN;
+  const hasSince = Number.isFinite(sinceMs);
+  const found = runs.find((run) => {
+    if (!hasSince) return true;
+    if (!run.created_at) return false;
+    const createdMs = Date.parse(run.created_at);
+    return Number.isFinite(createdMs) && createdMs >= sinceMs;
+  });
+  return found ?? null;
+}
+
+function formatWorkflowRunStatus(
+  matching: GitHubWorkflowRunRow | null,
+  workflowUrl: string
+): GodWorkflowRunStatusResult {
+  if (!matching) {
+    return {
+      available: true,
+      status: 'queued',
+      conclusion: null,
+      htmlUrl: workflowUrl,
+      message: `Waiting for GitHub Actions to index the dispatched ${GOD_WORKFLOW_FILE} run.`
+    };
+  }
+  const status = normalizeWorkflowRunStatus(matching.status);
+  const conclusion = matching.conclusion ?? null;
+  const runLabel = matching.run_number ? `#${matching.run_number}` : '';
+  const suffix = conclusion ? ` (${conclusion})` : '';
+  return {
+    available: true,
+    status,
+    conclusion,
+    runId: matching.id,
+    runNumber: matching.run_number,
+    headBranch: matching.head_branch,
+    updatedAt: matching.updated_at,
+    htmlUrl: matching.html_url || workflowUrl,
+    message: `${GOD_WORKFLOW_FILE} ${runLabel}: ${status}${suffix}.`
+  };
+}
+
+export async function getPetitionWorkflowStatus(
+  options: {
+    repo?: string;
+    ref?: string;
+    since?: string;
+    env?: Env;
+    fetchImpl?: typeof fetch;
+  } = {}
+): Promise<GodWorkflowRunStatusResult> {
+  const env = options.env ?? process.env;
+  const fetchImpl = options.fetchImpl ?? fetch;
+  const repo =
+    options.repo && REPO_SLUG_RE.test(options.repo) ? options.repo : resolvePetitionRepo(env);
+  const workflowUrl = `https://github.com/${repo}/actions/workflows/${GOD_WORKFLOW_FILE}`;
+  const token = resolvePetitionGitHubToken(env);
+
+  if (!token) {
+    return {
+      available: false,
+      status: 'unconfigured',
+      conclusion: null,
+      htmlUrl: workflowUrl,
+      message: 'No GitHub token is configured on this server to poll workflow runs.'
+    };
+  }
+
+  const branchParam = options.ref ? `&branch=${encodeURIComponent(options.ref)}` : '';
+  const url = `https://api.github.com/repos/${repo}/actions/workflows/${GOD_WORKFLOW_FILE}/runs?event=workflow_dispatch&per_page=10${branchParam}`;
+
+  try {
+    const res = await githubJson<{ workflow_runs?: GitHubWorkflowRunRow[] }>(fetchImpl, url, token);
+    if (res.ok === false) {
+      return {
+        available: false,
+        status: 'error',
+        conclusion: null,
+        htmlUrl: workflowUrl,
+        message: `GitHub refused workflow status query (${res.status}: ${res.detail}).`
+      };
+    }
+    const runs = Array.isArray(res.data.workflow_runs) ? res.data.workflow_runs : [];
+    return formatWorkflowRunStatus(pickMatchingWorkflowRun(runs, options.since), workflowUrl);
+  } catch (error) {
+    const detail = redactSecrets(error instanceof Error ? error.message : String(error));
+    return {
+      available: false,
+      status: 'error',
+      conclusion: null,
+      htmlUrl: workflowUrl,
+      message: `Failed checking ${GOD_WORKFLOW_FILE} status (${detail}).`
+    };
+  }
 }
 
 export type FilePetitionPrOptions = {

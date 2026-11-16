@@ -21,9 +21,11 @@ import { isGodTtsEnabled, synthesizeGodSpeech } from '../agents/godTts.js';
 import { redactSecrets } from '../utils/redactSecrets.js';
 import {
   GOD_OFFERINGS,
+  GOD_PETITION_MODES,
   GodOfferingIdSchema,
   GodMoodSchema,
   GodPrProposalSchema,
+  GodSessionReceiptsSchema,
   buildGodPetitionSystemPrompt,
   buildGodPetitionUserPrompt,
   buildOfflineOracleReply,
@@ -35,6 +37,7 @@ import {
   GOD_WORKFLOW_FOCUSES,
   dispatchPetitionWorkflow,
   filePetitionPr,
+  getPetitionWorkflowStatus,
   inferGodWorkflowFocus,
   resolvePetitionBaseBranch,
   resolvePetitionGitHubToken,
@@ -42,7 +45,8 @@ import {
   type DispatchPetitionWorkflowOptions,
   type FilePetitionPrOptions,
   type GodPrActionResult,
-  type GodWorkflowDispatchResult
+  type GodWorkflowDispatchResult,
+  type GodWorkflowRunStatusResult
 } from '../god/godPetitionPr.js';
 
 type Env = Record<string, string | undefined>;
@@ -58,6 +62,8 @@ const PetitionBodySchema = z.object({
   currentFavor: z.number().min(0).max(100).default(35),
   userName: z.string().max(80).optional(),
   modelProfile: z.enum(['fast', 'quality']).optional(),
+  mode: z.enum(GOD_PETITION_MODES).optional().default('prayer'),
+  sessionReceipts: GodSessionReceiptsSchema.optional(),
   diagramContext: z
     .object({
       contentType: z.string().max(40).optional(),
@@ -85,6 +91,11 @@ const DispatchWorkflowBodySchema = z.object({
   proposal: GodPrProposalSchema.partial().optional()
 });
 
+const WorkflowStatusQuerySchema = z.object({
+  ref: z.string().trim().min(1).max(120).optional(),
+  since: z.string().trim().min(1).max(64).optional()
+});
+
 export const GOD_PETITION_ROUTE_BASE = '/petition';
 
 export type GodPetitionRouterOptions = {
@@ -102,6 +113,11 @@ export type GodPetitionRouterOptions = {
   dispatchWorkflow?: (
     options: DispatchPetitionWorkflowOptions
   ) => Promise<GodWorkflowDispatchResult>;
+  getWorkflowStatus?: (options: {
+    ref?: string;
+    since?: string;
+    env?: Env;
+  }) => Promise<GodWorkflowRunStatusResult>;
   nowMs?: () => number;
 };
 
@@ -154,7 +170,9 @@ function respondWithOracle(
     offering: payload.offering,
     currentFavor: clampFavor(payload.currentFavor),
     userName: payload.userName,
-    diagramContext: payload.diagramContext
+    diagramContext: payload.diagramContext,
+    sessionReceipts: payload.sessionReceipts,
+    mode: payload.mode
   });
   res.status(200).json({
     v: 1,
@@ -165,23 +183,28 @@ function respondWithOracle(
   });
 }
 
+function createPetitionIpRateLimit(maxHits: number) {
+  const limiter = createIpRateLimiter({
+    windowMs: 60_000,
+    maxHits,
+    keyFn: keyByRequestIp
+  });
+  return (req: Request, res: Response, next: express.NextFunction) => {
+    if (limiter.isLimited(req)) {
+      res.status(429).json({ error: 'Too many requests. Try again later.' });
+      return;
+    }
+    limiter.recordHit(req);
+    next();
+  };
+}
+
 export function createGodPetitionRouter(options: GodPetitionRouterOptions = {}) {
   const env = options.env ?? process.env;
   const router = express.Router();
   const llmRateLimit = createApiRateLimitMiddleware('llm');
-  const writeLimiter = createIpRateLimiter({
-    windowMs: 60_000,
-    maxHits: 30,
-    keyFn: keyByRequestIp
-  });
-  const writeRateLimit = (req: Request, res: Response, next: express.NextFunction) => {
-    if (writeLimiter.isLimited(req)) {
-      res.status(429).json({ error: 'Too many requests. Try again later.' });
-      return;
-    }
-    writeLimiter.recordHit(req);
-    next();
-  };
+  const writeRateLimit = createPetitionIpRateLimit(30);
+  const statusRateLimit = createPetitionIpRateLimit(120);
 
   router.get('/petition/capabilities', (_req: Request, res: Response) => {
     res.set('Cache-Control', 'no-store');
@@ -235,7 +258,9 @@ export function createGodPetitionRouter(options: GodPetitionRouterOptions = {}) 
       offering: payload.offering,
       currentFavor,
       userName: payload.userName,
-      diagramContext: payload.diagramContext
+      diagramContext: payload.diagramContext,
+      sessionReceipts: payload.sessionReceipts,
+      mode: payload.mode
     });
 
     try {
@@ -305,6 +330,31 @@ export function createGodPetitionRouter(options: GodPetitionRouterOptions = {}) 
         env
       });
       res.status(200).json({ v: 1, ...result });
+    } catch (error) {
+      res.status(502).json({ error: safeError(error) });
+    }
+  });
+
+  router.get('/petition/workflow-status', statusRateLimit, async (req: Request, res: Response) => {
+    res.set('Cache-Control', 'no-store');
+    const parsed = WorkflowStatusQuerySchema.safeParse({
+      ref: typeof req.query.ref === 'string' ? req.query.ref : undefined,
+      since: typeof req.query.since === 'string' ? req.query.since : undefined
+    });
+    if (!parsed.success) {
+      res
+        .status(400)
+        .json({ error: 'Invalid workflow status query', details: parsed.error.flatten() });
+      return;
+    }
+    const runner = options.getWorkflowStatus ?? getPetitionWorkflowStatus;
+    try {
+      const status = await runner({
+        ref: parsed.data.ref,
+        since: parsed.data.since,
+        env
+      });
+      res.status(200).json({ v: 1, ...status });
     } catch (error) {
       res.status(502).json({ error: safeError(error) });
     }

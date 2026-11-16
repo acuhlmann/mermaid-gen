@@ -10,6 +10,7 @@
 let altarOpen = false;
 let eventSeq = 0;
 let altarEvent = null;
+let majorAltarEvent = null;
 const listeners = new Set();
 
 function notify() {
@@ -22,6 +23,10 @@ export function getGodAltarOpen() {
 
 export function getGodAltarEvent() {
   return altarEvent;
+}
+
+export function getGodAltarMajorEvent() {
+  return majorAltarEvent;
 }
 
 export function subscribeGodAltar(listener) {
@@ -41,27 +46,53 @@ export function closeGodAltar() {
   notify();
 }
 
+function normalizeDivineEvent(rawKind) {
+  if (rawKind === 'pr_filed') {
+    return { kind: 'bless', moment: 'pr_filed', major: true };
+  }
+  if (rawKind === 'bless' || rawKind === 'blessed') {
+    return { kind: 'bless', moment: 'blessed', major: true };
+  }
+  if (rawKind === 'smite' || rawKind === 'smote') {
+    return { kind: 'smite', moment: 'smote', major: true };
+  }
+  return { kind: 'pray', moment: 'pray', major: false };
+}
+
 /**
  * Emit a transient divine reaction event when the user actively prays or petitions a PR.
- * @param {'pray' | 'bless' | 'smite'} kind
+ * @param {'pray' | 'bless' | 'blessed' | 'smite' | 'smote' | 'pr_filed'} kind
  * @param {string} [mood]
  */
 export function emitGodAltarEvent(kind, mood = 'amused') {
   eventSeq += 1;
-  altarEvent = { seq: eventSeq, kind, mood, at: Date.now() };
+  const normalized = normalizeDivineEvent(kind);
+  altarEvent = {
+    seq: eventSeq,
+    kind: normalized.kind,
+    moment: normalized.moment,
+    major: normalized.major,
+    mood,
+    at: Date.now()
+  };
+  if (normalized.major) {
+    majorAltarEvent = altarEvent;
+  }
   notify();
   return altarEvent;
 }
 
 export function clearGodAltarEvent() {
-  if (!altarEvent) return;
+  if (!altarEvent && !majorAltarEvent) return;
   altarEvent = null;
+  majorAltarEvent = null;
   notify();
 }
 
 export function resetGodAltarForTests() {
   altarOpen = false;
   altarEvent = null;
+  majorAltarEvent = null;
   eventSeq = 0;
   notify();
 }
