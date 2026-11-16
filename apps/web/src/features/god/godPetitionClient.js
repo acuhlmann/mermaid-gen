@@ -8,6 +8,7 @@ export const GOD_PETITION_PATH = '/api/god/petition';
 export const GOD_PETITION_CAPABILITIES_PATH = '/api/god/petition/capabilities';
 export const GOD_PETITION_FILE_PR_PATH = '/api/god/petition/file-pr';
 export const GOD_PETITION_DISPATCH_PATH = '/api/god/petition/dispatch';
+export const GOD_PETITION_WORKFLOW_STATUS_PATH = '/api/god/petition/workflow-status';
 
 async function readJsonSafe(res) {
   try {
@@ -107,4 +108,25 @@ export async function dispatchGodWorkflow(payload, { fetchImpl = fetch } = {}) {
     };
   }
   return { ok: true, data: body };
+}
+
+export async function fetchGodWorkflowStatus({ ref, since } = {}, { fetchImpl = fetch } = {}) {
+  const params = new URLSearchParams();
+  if (ref) params.set('ref', ref);
+  if (since) params.set('since', since);
+  const qs = params.toString();
+  const url = `${API_BASE_URL}${GOD_PETITION_WORKFLOW_STATUS_PATH}${qs ? `?${qs}` : ''}`;
+  try {
+    const res = await fetchImpl(url, {
+      method: 'GET',
+      credentials: 'same-origin',
+      cache: 'no-store'
+    });
+    if (!res.ok) return null;
+    const body = await readJsonSafe(res);
+    if (!body || typeof body.status !== 'string') return null;
+    return body;
+  } catch {
+    return null;
+  }
 }

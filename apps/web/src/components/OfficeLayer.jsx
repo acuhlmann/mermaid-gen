@@ -17,7 +17,8 @@ import MeetingOverlay from './MeetingOverlay.jsx';
 import OfficeBattleOverlay from './OfficeBattleOverlay.jsx';
 import OfficeFloor from './OfficeFloor.jsx';
 import { createOfficeFloorBridge } from './officeFloor/officeFloorBridge.js';
-import { openGodAltar } from '../features/god/godAltarStore.js';
+import { openGodAltar, getGodAltarOpen, subscribeGodAltar } from '../features/god/godAltarStore.js';
+import { isGodSpeechBusy } from '../features/god/godAltarAudio.js';
 import OfficeDeskArrival from './OfficeDeskArrival.jsx';
 import OfficeDeskSpeech from './OfficeDeskSpeech.jsx';
 import OfficeInboxDock from './OfficeInboxDock.jsx';
@@ -211,6 +212,7 @@ export default function OfficeLayer({
     getOfficeViewMode,
     getOfficeViewMode
   );
+  const altarOpen = useSyncExternalStore(subscribeGodAltar, getGodAltarOpen, getGodAltarOpen);
   const onFloor = viewMode === 'floor';
 
   // Cloud TTS ladder via POST /api/office/speak; null → Web Speech fallback.
@@ -239,7 +241,9 @@ export default function OfficeLayer({
    */
   const narrateLine = useCallback(
     (line) => {
-      if (!getOfficeSnapshot().narration) return Promise.resolve({ spoken: false });
+      if (!getOfficeSnapshot().narration || getGodAltarOpen() || isGodSpeechBusy()) {
+        return Promise.resolve({ spoken: false });
+      }
       const text = typeof line?.text === 'string' ? line.text : '';
       const speakerId = typeof line?.speakerId === 'string' ? line.speakerId : '';
       if (!text || !speakerId) return Promise.resolve({ spoken: false });
@@ -267,7 +271,7 @@ export default function OfficeLayer({
 
   const prefetchLine = useCallback(
     (line) => {
-      if (!getOfficeSnapshot().narration) return;
+      if (!getOfficeSnapshot().narration || getGodAltarOpen()) return;
       const text = typeof line?.text === 'string' ? line.text : '';
       const speakerId = typeof line?.speakerId === 'string' ? line.speakerId : '';
       if (!text || !speakerId) return;
@@ -329,7 +333,7 @@ export default function OfficeLayer({
   });
 
   useOfficeAmbience({
-    pause,
+    pause: pause || altarOpen,
     advisorBusy,
     agentBusy,
     meetingActive: Boolean(meeting || huddle),
@@ -384,10 +388,10 @@ export default function OfficeLayer({
   // Paused while Meet the Office is open so it doesn't compete with the tour.
   useOfficeWelcome({ getUserTitle, getUserName, pause });
 
-  // Kill in-flight speech when the user mutes narration or books Focus Time.
+  // Kill in-flight speech when the user mutes narration, books Focus Time, or enters the God Altar.
   useEffect(() => {
-    if (!snapshot.narration || snapshot.focusTime) cancelOfficeNarration();
-  }, [snapshot.narration, snapshot.focusTime]);
+    if (!snapshot.narration || snapshot.focusTime || altarOpen) cancelOfficeNarration();
+  }, [snapshot.narration, snapshot.focusTime, altarOpen]);
 
   // Office SFX: mail ding on new email ("You've got mail!" for the session's
   // first), pop on new IM, footsteps when a colleague walks up, calendar ding

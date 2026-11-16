@@ -15,6 +15,12 @@
  * All functions no-op gracefully in headless/jsdom environments or when muted.
  */
 
+import { cancelOfficeNarration } from '../../utils/officeNarration.js';
+
+const GOD_DECREE_MAX_CHARS = 400;
+const DEEP_VOICE_PRIMARY_RE = /baritone|deep|charon|daniel|george|david|thomas|alex|arthur/i;
+const DEEP_VOICE_SECONDARY_RE = /male|\buk\b|oliver|james|aaron|guy|ryan|christopher|eric|marcus/i;
+
 function resolveContext(audioContextRef) {
   if (!audioContextRef || audioContextRef.disposed) return null;
   const Ctor = globalThis.AudioContext || globalThis.webkitAudioContext;
@@ -176,17 +182,32 @@ export function playGodSmiteZap(audioContextRef) {
 const GOD_WEB_SPEECH_PROSODY = {
   wrathful: { pitch: 0.5, rate: 0.82 },
   unimpressed: { pitch: 0.6, rate: 0.88 },
-  amused: { pitch: 0.72, rate: 0.95 },
-  benevolent: { pitch: 0.8, rate: 0.97 },
-  smitten: { pitch: 0.85, rate: 1 }
+  amused: { pitch: 0.72, rate: 0.92 },
+  benevolent: { pitch: 0.74, rate: 0.92 },
+  smitten: { pitch: 0.78, rate: 0.95 }
 };
 
 /** @type {{ stop?: () => void } | null} */
 let activeCloudSource = null;
 /** @type {HTMLAudioElement | null} */
 let activeCloudAudioEl = null;
+/** @type {Array<{ stop?: () => void }>} */
+let activePadNodes = [];
+let cloudFetchPending = false;
+let godWebSpeechActive = false;
 /** Bumped on stop/replace so a late cloud fetch cannot speak over a newer decree. */
 let godSpeechGeneration = 0;
+
+function stopActivePadNodes() {
+  for (const node of activePadNodes) {
+    try {
+      node.stop?.();
+    } catch {
+      // Already stopped.
+    }
+  }
+  activePadNodes = [];
+}
 
 function stopActiveCloudPlayback() {
   if (activeCloudSource) {
@@ -199,6 +220,8 @@ function stopActiveCloudPlayback() {
   }
   if (activeCloudAudioEl) {
     try {
+      activeCloudAudioEl.onended = null;
+      activeCloudAudioEl.onerror = null;
       activeCloudAudioEl.pause();
       activeCloudAudioEl.removeAttribute('src');
     } catch {
@@ -208,9 +231,42 @@ function stopActiveCloudPlayback() {
   }
 }
 
+function isAudioElementPlaying(el) {
+  if (!el) return false;
+  try {
+    return !el.paused && !el.ended;
+  } catch {
+    return true;
+  }
+}
+
+function isWebSpeechActive() {
+  if (!godWebSpeechActive) return false;
+  try {
+    const synth = globalThis.speechSynthesis;
+    if (synth?.speaking || synth?.pending) return true;
+  } catch {
+    // Ignore.
+  }
+  godWebSpeechActive = false;
+  return false;
+}
+
+export function isGodSpeechBusy() {
+  return (
+    cloudFetchPending ||
+    Boolean(activeCloudSource) ||
+    isAudioElementPlaying(activeCloudAudioEl) ||
+    isWebSpeechActive()
+  );
+}
+
 export function stopGodSpeech() {
   godSpeechGeneration += 1;
+  cloudFetchPending = false;
+  godWebSpeechActive = false;
   stopActiveCloudPlayback();
+  stopActivePadNodes();
   try {
     globalThis.speechSynthesis?.cancel?.();
   } catch {
@@ -225,19 +281,93 @@ function getSpeechApi() {
   return { synth, Utterance };
 }
 
+function voiceNameBonus(label) {
+  if (DEEP_VOICE_PRIMARY_RE.test(label)) return 100;
+  return DEEP_VOICE_SECONDARY_RE.test(label) ? 45 : 0;
+}
+
+function scoreGodVoice(voice) {
+  const label = `${voice?.name ?? ''} ${voice?.voiceURI ?? ''}`;
+  const lang = String(voice?.lang ?? '').toLowerCase();
+  let score = /^en\b/.test(lang) ? 20 : 0;
+  score += voiceNameBonus(label);
+  if (/\ben-gb\b/i.test(lang)) score += 12;
+  if (voice?.localService) score += 4;
+  return score;
+}
+
+function readSynthVoices(synth) {
+  if (!synth || typeof synth.getVoices !== 'function') return [];
+  try {
+    const list = synth.getVoices();
+    return Array.isArray(list) ? list : [];
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Pick the deepest / most dramatic available browser SpeechSynthesis voice.
+ * @param {SpeechSynthesis | null | undefined} synth
+ * @returns {SpeechSynthesisVoice | null}
+ */
+export function pickGodWebSpeechVoice(synth = globalThis.speechSynthesis) {
+  const voices = readSynthVoices(synth);
+  if (voices.length === 0) return null;
+  let best = voices[0];
+  let bestScore = -1;
+  for (const voice of voices) {
+    const score = scoreGodVoice(voice);
+    if (score > bestScore) {
+      bestScore = score;
+      best = voice;
+    }
+  }
+  return best ?? null;
+}
+
+/** Subtle sub-bass + cathedral choir pad layered beneath spoken decrees. */
+export function playGodCathedralPad(audioContextRef, { mood = 'amused', durationSec = 2.6 } = {}) {
+  const ctx = resolveContext(audioContextRef);
+  if (!ctx || typeof ctx.createOscillator !== 'function') return;
+  const now = ctx.currentTime ?? 0;
+  const major = mood === 'benevolent' || mood === 'smitten';
+  const freqs = major ? [73.42, 110.0, 146.83, 185.0] : [73.42, 110.0, 146.83, 174.61];
+  stopActivePadNodes();
+
+  const started = [];
+  freqs.forEach((freq, idx) => {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = idx === 0 ? 'sine' : idx === 1 ? 'triangle' : 'sine';
+    osc.frequency.setValueAtTime(freq, now);
+    const peak = idx === 0 ? 0.032 : 0.015;
+    const attack = Math.min(0.24, durationSec * 0.2);
+    gain.gain.setValueAtTime(0.0001, now);
+    gain.gain.exponentialRampToValueAtTime(peak, now + attack);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + durationSec);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(now);
+    osc.stop(now + durationSec + 0.05);
+    started.push(osc);
+  });
+  activePadNodes = started;
+}
+
 function cleanGodDecreeText(text) {
   if (typeof text !== 'string') return '';
   return text
     .replace(/[`*_#>-]+/g, ' ')
     .replace(/\s+/g, ' ')
     .trim()
-    .slice(0, 320);
+    .slice(0, GOD_DECREE_MAX_CHARS);
 }
 
 /** Speak a divine decree via browser SpeechSynthesis — the final fallback rung. */
 export function speakGodDecree(
   text,
-  { enabled = true, mood = 'amused', pitch, rate, volume = 0.85 } = {}
+  { enabled = true, mood = 'amused', pitch, rate, volume = 0.88 } = {}
 ) {
   if (!enabled) return false;
   const cleaned = cleanGodDecreeText(text);
@@ -246,14 +376,25 @@ export function speakGodDecree(
   if (!api) return false;
   const prosody = GOD_WEB_SPEECH_PROSODY[mood] ?? GOD_WEB_SPEECH_PROSODY.amused;
   try {
+    cancelOfficeNarration();
     api.synth.cancel?.();
     const utterance = new api.Utterance(cleaned);
+    const voice = pickGodWebSpeechVoice(api.synth);
+    if (voice) utterance.voice = voice;
     utterance.pitch = pitch ?? prosody.pitch;
     utterance.rate = rate ?? prosody.rate;
     utterance.volume = volume;
+    godWebSpeechActive = true;
+    utterance.onend = () => {
+      godWebSpeechActive = false;
+    };
+    utterance.onerror = () => {
+      godWebSpeechActive = false;
+    };
     api.synth.speak(utterance);
     return true;
   } catch {
+    godWebSpeechActive = false;
     return false;
   }
 }
@@ -348,12 +489,46 @@ function playCloudAudioViaElement(audio, generation) {
     const el = new AudioCtor(`data:${audio.mimeType || 'audio/mpeg'};base64,${audio.audioBase64}`);
     el.volume = 0.9;
     activeCloudAudioEl = el;
+    el.onended = () => {
+      if (activeCloudAudioEl === el) activeCloudAudioEl = null;
+    };
+    el.onerror = () => {
+      if (activeCloudAudioEl === el) activeCloudAudioEl = null;
+    };
     const result = el.play();
-    if (result && typeof result.catch === 'function') result.catch(() => {});
+    if (result && typeof result.catch === 'function') {
+      result.catch(() => {
+        if (activeCloudAudioEl === el) activeCloudAudioEl = null;
+      });
+    }
     return true;
   } catch {
     return false;
   }
+}
+
+async function fetchCloudSafely(fetchCloudAudio, cleaned, mood, generation) {
+  if (typeof fetchCloudAudio !== 'function') return null;
+  cloudFetchPending = true;
+  try {
+    return await fetchCloudAudio({ text: cleaned, mood });
+  } catch {
+    return null;
+  } finally {
+    if (generation === godSpeechGeneration) cloudFetchPending = false;
+  }
+}
+
+async function speakViaCloud(fetchCloudAudio, cleaned, mood, generation, audioContextRef) {
+  const cloud = await fetchCloudSafely(fetchCloudAudio, cleaned, mood, generation);
+  if (generation !== godSpeechGeneration) return false;
+  if (cloud?.audioBase64) {
+    if (await playCloudAudioViaContext(cloud, audioContextRef, generation)) return true;
+    if (generation !== godSpeechGeneration) return false;
+    if (playCloudAudioViaElement(cloud, generation)) return true;
+  }
+  if (generation !== godSpeechGeneration) return false;
+  return speakGodDecree(cleaned, { enabled: true, mood });
 }
 
 /**
@@ -362,37 +537,27 @@ function playCloudAudioViaElement(audio, generation) {
  *
  * @returns {Promise<boolean>} true when any rung actually spoke
  */
-export async function speakGodDecreeWithCloud(
+export function speakGodDecreeWithCloud(
   text,
   { enabled = true, mood = 'amused', fetchCloudAudio, audioContextRef } = {}
 ) {
-  if (!enabled) return false;
+  if (!enabled) return Promise.resolve(false);
   const cleaned = cleanGodDecreeText(text);
-  if (!cleaned) return false;
+  if (!cleaned) return Promise.resolve(false);
   const generation = ++godSpeechGeneration;
+  cancelOfficeNarration();
   stopActiveCloudPlayback();
+  godWebSpeechActive = false;
   try {
     globalThis.speechSynthesis?.cancel?.();
   } catch {
     // Ignore.
   }
 
-  if (typeof fetchCloudAudio === 'function') {
-    let cloud = null;
-    try {
-      cloud = await fetchCloudAudio({ text: cleaned, mood });
-    } catch {
-      cloud = null;
-    }
-    if (generation !== godSpeechGeneration) return false;
-    if (cloud?.audioBase64) {
-      if (await playCloudAudioViaContext(cloud, audioContextRef, generation)) return true;
-      if (generation !== godSpeechGeneration) return false;
-      if (playCloudAudioViaElement(cloud, generation)) return true;
-    }
+  if (typeof fetchCloudAudio !== 'function') {
+    return Promise.resolve(speakGodDecree(cleaned, { enabled: true, mood }));
   }
-  if (generation !== godSpeechGeneration) return false;
-  return speakGodDecree(cleaned, { enabled: true, mood });
+  return speakViaCloud(fetchCloudAudio, cleaned, mood, generation, audioContextRef);
 }
 
 function isBlessingCue({ kind, mood, hasProposal }) {
@@ -452,6 +617,8 @@ export function playGodJudgmentCue({
   playGodThunderclap(audioContextRef);
   playReactionSting(audioContextRef, { kind, mood, hasProposal });
   if (voiceEnabled && text) {
+    cancelOfficeNarration();
+    playGodCathedralPad(audioContextRef, { mood });
     return speakGodDecreeWithCloud(text, { enabled: true, mood, fetchCloudAudio, audioContextRef });
   }
   return Promise.resolve(false);

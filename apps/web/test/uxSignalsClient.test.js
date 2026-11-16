@@ -5,6 +5,7 @@ import {
   UX_SIGNAL_SESSION_CAP,
   _resetUxSignalsForTests,
   flushUxSignals,
+  getUxSessionReceipts,
   installUxSignals,
   isUsageSignalsEnabled,
   noteManualEdit,
@@ -220,5 +221,42 @@ describe('uxSignalsClient', () => {
       { kind: 'client_error', source: 'window', errorName: 'RangeError' },
       { kind: 'client_error', source: 'unhandledrejection', errorName: 'TypeError' }
     ]);
+  });
+
+  it('aggregates read-only content-free session receipts without emitting network calls', () => {
+    expect(getUxSessionReceipts()).toBeNull();
+    const io = install();
+    noteRunOutcome({ contentType: 'mermaid', profile: 'fast', status: 'done', startedAt: 0 });
+    noteRunOutcome({
+      contentType: 'mermaid',
+      profile: 'fast',
+      status: 'failed',
+      failureClass: 'syntax_exhausted',
+      startedAt: 0
+    });
+    recordUxSignal(retry);
+    recordUxSignal({ kind: 'autofix', contentType: 'mermaid', path: 'intent', outcome: 'failed' });
+    recordUxSignal({ kind: 'mode_switch', from: 'mermaid', to: 'chart' });
+    noteManualEdit('mermaid');
+    recordUxSignal({ kind: 'critique_fix', contentType: 'mermaid', scope: 'all', itemCount: 2 });
+
+    expect(getUxSessionReceipts()).toEqual({
+      runs: 2,
+      accepted: 1,
+      failed: 1,
+      retries: 1,
+      autofixFired: 0,
+      autofixFailed: 1,
+      modeSwitches: 1,
+      manualEditsAfterAgent: 1,
+      critiqueFixes: 1,
+      clientErrors: 0,
+      lastFailureClass: 'timeout'
+    });
+    expect(io.fetchImpl).not.toHaveBeenCalled();
+    expect(io.sendBeacon).not.toHaveBeenCalled();
+
+    setUsageSignalsEnabled(false);
+    expect(getUxSessionReceipts()).toBeNull();
   });
 });

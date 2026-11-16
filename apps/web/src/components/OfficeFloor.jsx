@@ -79,6 +79,7 @@ import {
   getOfficeFloorAction,
   subscribeOfficeFloorAction
 } from '../state/officeFloorActionStore.js';
+import { getGodAltarOpen, subscribeGodAltar } from '../features/god/godAltarStore.js';
 import { useUiCopy } from '../i18n/useUiLocale.js';
 import { formatLocale } from '../i18n/formatLocale.js';
 
@@ -278,6 +279,8 @@ function OfficeFloorView({ bridge, viewPhase }) {
 
   const physicalMeeting = isPhysicalFloorMeeting(meeting);
   const remoteMeeting = Boolean(meeting && meeting.modality === MEETING_MODALITY_REMOTE);
+  const altarOpen = useSyncExternalStore(subscribeGodAltar, getGodAltarOpen, getGodAltarOpen);
+  const floorChatterSuspended = physicalMeeting || altarOpen;
 
   const activity = useFloorActivity({
     // Physical syncs claim the floor (you're in a chair in the glass room).
@@ -483,7 +486,7 @@ function OfficeFloorView({ bridge, viewPhase }) {
     floorState,
     active: activity.standingFree,
     imHistory,
-    suspended: physicalMeeting,
+    suspended: floorChatterSuspended,
     onRemark: onDwellRemark
   });
 
@@ -535,7 +538,7 @@ function OfficeFloorView({ bridge, viewPhase }) {
     floorState,
     copy,
     active: activity.standingFree && !hasOtherSpeech,
-    suspended: physicalMeeting,
+    suspended: floorChatterSuspended,
     narrateLine: sceneHandlers?.narrateLine
   });
 
@@ -683,6 +686,7 @@ function OfficeFloorView({ bridge, viewPhase }) {
 
   const { showSpokenText, sceneHandlersWithVoice } = useFloorSpokenText({
     captions: officeSnap.captions,
+    altarOpen,
     sceneHandlers,
     talkColleagueId: talkingColleagueId,
     talkLine: activity.talkLine,

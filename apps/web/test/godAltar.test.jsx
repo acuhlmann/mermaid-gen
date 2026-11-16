@@ -9,12 +9,20 @@ import {
   resetGodAltarForTests
 } from '../src/features/god/godAltarStore.js';
 import {
+  isGodSpeechBusy,
+  pickGodWebSpeechVoice,
   playGodJudgmentCue,
   speakGodDecree,
   speakGodDecreeWithCloud,
   stopGodSpeech
 } from '../src/features/god/godAltarAudio.js';
-import { _resetUxSignalsForTests, installUxSignals } from '../src/state/uxSignalsClient.js';
+import * as officeNarration from '../src/utils/officeNarration.js';
+import {
+  _resetUxSignalsForTests,
+  installUxSignals,
+  noteRunOutcome,
+  recordUxSignal
+} from '../src/state/uxSignalsClient.js';
 
 const PROPOSAL = {
   worthy: true,
@@ -535,5 +543,200 @@ describe('GodAltarPanel & GodAltarModal', () => {
     } finally {
       delete globalThis.AudioContext;
     }
+  });
+
+  it('picks the deepest Web Speech voice, cancels active office speech, and layers a cathedral pad under decrees', () => {
+    const cancelOfficeSpy = vi
+      .spyOn(officeNarration, 'cancelOfficeNarration')
+      .mockImplementation(() => {});
+    const oscStart = vi.fn();
+    globalThis.AudioContext = vi.fn(function MockCtx() {
+      return {
+        currentTime: 0,
+        sampleRate: 44100,
+        destination: {},
+        createOscillator: () => ({
+          type: 'sine',
+          frequency: { setValueAtTime: vi.fn(), exponentialRampToValueAtTime: vi.fn() },
+          connect: vi.fn(),
+          start: oscStart,
+          stop: vi.fn()
+        }),
+        createGain: () => ({
+          gain: { setValueAtTime: vi.fn(), exponentialRampToValueAtTime: vi.fn() },
+          connect: vi.fn()
+        })
+      };
+    });
+
+    const voices = [
+      { name: 'Samantha', lang: 'en-US', default: true },
+      { name: 'Daniel', lang: 'en-GB', localService: true }
+    ];
+    const speak = vi.fn();
+    globalThis.speechSynthesis = {
+      getVoices: () => voices,
+      speak,
+      cancel: vi.fn(),
+      speaking: false,
+      pending: false
+    };
+    globalThis.SpeechSynthesisUtterance = vi.fn(function MockUtterance(text) {
+      this.text = text;
+    });
+
+    try {
+      expect(pickGodWebSpeechVoice()?.name).toBe('Daniel');
+
+      playGodJudgmentCue({
+        audioContextRef: { current: null },
+        kind: 'pray',
+        mood: 'amused',
+        soundEnabled: true,
+        voiceEnabled: true,
+        text: 'HEAR MY DECREE.'
+      });
+
+      expect(cancelOfficeSpy).toHaveBeenCalled();
+      expect(oscStart).toHaveBeenCalled();
+      expect(speak).toHaveBeenCalledTimes(1);
+      const utterance = speak.mock.calls[0][0];
+      expect(utterance.voice?.name).toBe('Daniel');
+      expect(utterance.pitch).toBe(0.72);
+      expect(utterance.rate).toBe(0.92);
+      expect(isGodSpeechBusy()).toBe(false);
+    } finally {
+      cancelOfficeSpy.mockRestore();
+      delete globalThis.AudioContext;
+      delete globalThis.speechSynthesis;
+      delete globalThis.SpeechSynthesisUtterance;
+    }
+  });
+
+  it('supports one-click Judge My Diagram with session receipts, smite shake, and live workflow status polling', async () => {
+    const petitionPayloads = [];
+    const signalRequests = [];
+    const fetchMock = vi.fn(async (url, init = {}) => {
+      const u = String(url);
+      if (u.includes('/api/signals')) {
+        signalRequests.push(u);
+        return { ok: true, status: 204 };
+      }
+      if (u.includes('/api/god/petition/capabilities')) {
+        return jsonResponse({ v: 1, llmConfigured: true, githubPrConfigured: true });
+      }
+      if (u.includes('/api/god/petition/workflow-status')) {
+        return jsonResponse({
+          v: 1,
+          available: true,
+          status: 'completed',
+          conclusion: 'success',
+          runNumber: 84,
+          htmlUrl: 'https://github.com/acuhlmann/mermaid-gen/actions/runs/84',
+          message: 'god.yml #84: completed (success).'
+        });
+      }
+      if (u.includes('/api/god/petition/file-pr')) {
+        return jsonResponse({
+          v: 1,
+          filed: true,
+          mode: 'github_pr',
+          branch: 'god-petition/x',
+          prNumber: 901,
+          prUrl: 'https://github.com/acuhlmann/mermaid-gen/pull/901',
+          ghCommand: 'gh pr create',
+          divineMessage: 'PR #901 filed.',
+          workflowDispatch: {
+            attempted: true,
+            dispatched: true,
+            status: 'dispatched',
+            workflow: 'god.yml',
+            ref: 'god-petition/x',
+            focus: 'mermaid',
+            dispatchedAt: '2026-11-16T03:00:00.000Z',
+            workflowUrl: 'https://github.com/acuhlmann/mermaid-gen/actions/workflows/god.yml',
+            ghWorkflowCommand: 'gh workflow run god.yml',
+            message: 'Dispatched god.yml.'
+          }
+        });
+      }
+      if (u.includes('/api/god/petition/speak')) {
+        return jsonResponse({ audio: null, reason: 'disabled' });
+      }
+      if (u.includes('/api/god/petition')) {
+        const body = JSON.parse(init.body);
+        petitionPayloads.push(body);
+        if (body.mode === 'judge_diagram') {
+          return jsonResponse({
+            v: 1,
+            mode: 'llm',
+            reply: 'SMITTEN FOR THY RETRIES!',
+            favorDelta: -15,
+            favor: 20,
+            mood: 'wrathful',
+            judgment: 'SMITTEN ON SIGHT',
+            prProposal: null
+          });
+        }
+        return jsonResponse({
+          v: 1,
+          mode: 'llm',
+          reply: 'FINE, TAKE A BRANCH.',
+          favorDelta: 40,
+          favor: 60,
+          mood: 'benevolent',
+          judgment: 'WORTHY OF A BRANCH',
+          prProposal: PROPOSAL
+        });
+      }
+      return jsonResponse({});
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const uninstall = installUxSignals({
+      fetchImpl: fetchMock,
+      sendBeacon: () => true
+    });
+    noteRunOutcome({
+      contentType: 'mermaid',
+      profile: 'fast',
+      status: 'failed',
+      failureClass: 'syntax_exhausted',
+      startedAt: 0
+    });
+    recordUxSignal({ kind: 'retry', contentType: 'mermaid', failureClass: 'syntax_exhausted' });
+
+    render(
+      <GodAltarPanel diagramSource="flowchart TD\nA-->B" contentType="mermaid" userName="Dinesh" />
+    );
+
+    fireEvent.click(screen.getByTestId('god-judge-diagram-button'));
+    expect(await screen.findByText(/SMITTEN FOR THY RETRIES/)).toBeTruthy();
+    expect(petitionPayloads[0].mode).toBe('judge_diagram');
+    expect(petitionPayloads[0].sessionReceipts).toMatchObject({
+      runs: 1,
+      failed: 1,
+      retries: 1,
+      lastFailureClass: 'syntax_exhausted'
+    });
+    expect(screen.getByTestId('god-altar-panel').className).toContain('is-smite');
+    expect(getGodAltarEvent()?.kind).toBe('smite');
+
+    fireEvent.change(screen.getByTestId('god-altar-input'), {
+      target: { value: 'Okay fine, please grant me a PR for a dark theme' }
+    });
+    fireEvent.click(screen.getByTestId('god-altar-submit'));
+    await screen.findByTestId('god-pr-decree');
+
+    fireEvent.click(screen.getByTestId('god-file-pr-button'));
+    await screen.findByTestId('god-pr-outcome');
+    fireEvent.click(screen.getByTestId('god-workflow-refresh'));
+    const badge = await screen.findByTestId('god-workflow-run-badge');
+    expect(badge.textContent).toContain('#84');
+    expect(badge.textContent).toContain('completed');
+    expect(badge.textContent).toContain('success');
+    expect(signalRequests).toEqual([]);
+
+    uninstall();
   });
 });

@@ -7,6 +7,8 @@ import { getOfficeLiveMeeting } from '../state/officeLiveMeetingStore.js';
 import { getOfficeViewMode } from '../state/officeViewModeStore.js';
 import { isOfficeNarrationBusy } from '../utils/officeNarration.js';
 import { getRoomToneZone } from '../utils/officeRoomTone.js';
+import { getGodAltarOpen } from '../features/god/godAltarStore.js';
+import { isGodSpeechBusy } from '../features/god/godAltarAudio.js';
 
 export const SOUNDSCAPE_TICK_MS = 5_000;
 
@@ -58,7 +60,7 @@ export function useOfficeSoundscape(params) {
        * the room owed you arrives on a later tick. Same check the walk-by
        * surfaces already make, and for the same reason.
        */
-      if (isOfficeNarrationBusy()) return;
+      if (isOfficeNarrationBusy() || getGodAltarOpen() || isGodSpeechBusy()) return;
       const random = paramsRef.current.random ?? Math.random;
       const atDesk = getOfficeViewMode() === 'desk';
       const now = Date.now();

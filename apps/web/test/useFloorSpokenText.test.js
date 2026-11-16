@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
 import { useFloorSpokenText } from '../src/components/officeFloor/useFloorSpokenText.js';
 import * as officeNarration from '../src/utils/officeNarration.js';
+import * as godAltarAudio from '../src/features/god/godAltarAudio.js';
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -98,5 +99,54 @@ describe('useFloorSpokenText', () => {
 
     await waitFor(() => expect(result.current.showSpokenText).toBe(true));
     expect(narrateLine).toHaveBeenCalledTimes(1);
+  });
+
+  it('suppresses floor and cameo narration while altarOpen is true or God speech is busy', async () => {
+    const cancelSpy = vi
+      .spyOn(officeNarration, 'cancelOfficeNarration')
+      .mockImplementation(() => {});
+    const godBusySpy = vi.spyOn(godAltarAudio, 'isGodSpeechBusy').mockReturnValue(false);
+    const narrateLine = vi.fn(() => Promise.resolve({ spoken: true }));
+
+    const { rerender } = renderHook(
+      ({ altarOpen, altarCameo }) =>
+        useFloorSpokenText({
+          captions: false,
+          altarOpen,
+          sceneHandlers: { narrateLine },
+          peekColleagueId: 'greybeard',
+          altarCameo,
+          hasActiveSpeech: false
+        }),
+      {
+        initialProps: {
+          altarOpen: true,
+          altarCameo: { speakerId: 'gilfoyle', text: 'Should stay silent while altar open' }
+        }
+      }
+    );
+
+    expect(cancelSpy).toHaveBeenCalled();
+    expect(narrateLine).not.toHaveBeenCalled();
+
+    // Even once Altar closes, if God is still finishing a spoken decree, floor + cameo stay silent.
+    godBusySpy.mockReturnValue(true);
+    rerender({
+      altarOpen: false,
+      altarCameo: { speakerId: 'dinesh', text: 'Wait for God to finish speaking' }
+    });
+    expect(narrateLine).not.toHaveBeenCalled();
+
+    // Once God finishes speaking, floor speech resumes for a fresh cameo.
+    godBusySpy.mockReturnValue(false);
+    rerender({
+      altarOpen: false,
+      altarCameo: { speakerId: 'gilfoyle', text: 'Okay, God is done talking.' }
+    });
+    await waitFor(() =>
+      expect(narrateLine).toHaveBeenCalledWith(
+        expect.objectContaining({ speakerId: 'gilfoyle', text: 'Okay, God is done talking.' })
+      )
+    );
   });
 });

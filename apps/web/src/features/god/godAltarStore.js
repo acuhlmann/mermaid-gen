@@ -41,14 +41,35 @@ export function closeGodAltar() {
   notify();
 }
 
+function normalizeDivineEvent(rawKind) {
+  if (rawKind === 'pr_filed') {
+    return { kind: 'bless', moment: 'pr_filed', major: true };
+  }
+  if (rawKind === 'bless' || rawKind === 'blessed') {
+    return { kind: 'bless', moment: 'blessed', major: true };
+  }
+  if (rawKind === 'smite' || rawKind === 'smote') {
+    return { kind: 'smite', moment: 'smote', major: true };
+  }
+  return { kind: 'pray', moment: 'pray', major: false };
+}
+
 /**
  * Emit a transient divine reaction event when the user actively prays or petitions a PR.
- * @param {'pray' | 'bless' | 'smite'} kind
+ * @param {'pray' | 'bless' | 'blessed' | 'smite' | 'smote' | 'pr_filed'} kind
  * @param {string} [mood]
  */
 export function emitGodAltarEvent(kind, mood = 'amused') {
   eventSeq += 1;
-  altarEvent = { seq: eventSeq, kind, mood, at: Date.now() };
+  const normalized = normalizeDivineEvent(kind);
+  altarEvent = {
+    seq: eventSeq,
+    kind: normalized.kind,
+    moment: normalized.moment,
+    major: normalized.major,
+    mood,
+    at: Date.now()
+  };
   notify();
   return altarEvent;
 }
