@@ -999,6 +999,29 @@ today'` (`officeBoardRecall.js`), `'you said:'` / `'they said:'` for the quotes 
   equal means the probe cannot see the subject; arms flat with the control lower means the change is
   inert inside a block that does work.
 
+- **There is no OS chrome on the floor, so every desk comms verb is unreachable from a page that
+  does not mount the taskbar.** `DeskOsTaskbar.jsx` returns null while you are standing ("the floor
+  is the physical world"), and it is also the component that registers the element
+  `OfficeLayer` portals the comms cluster into (`deskSlotStore.js`, via `useDeskSlotRef`). So mail,
+  Slop Chat and _call a meeting_ are **desk-world verbs twice over**: once by the floor rule, once
+  by where the anchor lives. The consequence that cost a night to notice: a harness or test that
+  mounts `OfficeLayer` alone has **no DOM path to the inbox at all** — not an unvisited surface, an
+  unreachable one — and it fails by rendering nothing rather than by throwing. `OfficeLayer` also
+  needs `deskActionsAnchorReady` before it portals, so an anchor on its own is not enough. The
+  tenth step of `apps/web/test/officeVisitTrace.mjs` (2026-11-16) is the worked answer: a
+  `DeskChromeAnchor` that registers through the product's own hook **and mirrors the floor rule
+  rather than simplifying it**, because an anchor that stayed mounted would put a mail icon on the
+  floor, where the product offers none — a stand-in that presses a control nobody can press is a
+  fiction, not an instrument.
+- **An email is never voiced and the inbox is not a floor surface, so nothing mail produces reaches
+  `speech`.** `harvest()` selects `.office-floor-bubble-body`, `[data-testid$="-line"]` and the
+  narration node; a reply lands in `officeMomentStore`'s `emails`. Read it off the store or it is
+  invisible — and read it by **id**, not by count or position: the visit arrives at the desk with
+  the welcome email already in the tray, so "the newest message from that colleague" is only the
+  reply once the ids that were already there are excluded. That is also what makes this step free:
+  `speech.count`, `byChannel`, `bySource` and `throughStep7` are **unchanged in 3 of 3** by a step
+  that sends mail and gets an answer, so no baseline was retired to add it.
+
 ## Full findings
 
 - **Office sound is one posture, not four checkboxes.** Menu bar **Admin** carries 🎧 **Headphones**
@@ -2700,3 +2723,69 @@ byte-identical to English in each zh bundle and **all 30 are legitimately untran
 "every leaf differs from English" sweep is therefore buildable, needs a 30-path exemption list, and
 is a later slice: the exemptions are not derivable from the value, so it would be a sensor naming
 members rather than the class.
+
+### The visit grew a tenth step, and mail was unreachable rather than unvisited
+
+**2026-11-16, spec'd in the ledger as `visit-has-no-email-step` since 2026-11-09 and re-read twice
+since as "the only surface-shaped blindness left."** Nine steps and none composed an email, so the
+inbox was the last office surface the nightly instrument had never opened — while three slices had
+shipped onto it regardless (the reply bank § 14 sharpened, `emailSomeone`'s missing working-memory
+write, and 2026-11-09's said-line nesting, which landed squarely on this path), every one measured
+by a sweep because there was no axis here to read.
+
+**The reason was not an unlucky visit, and it is the finding worth keeping.** Mail is a desk-world
+verb twice over: `DeskOsTaskbar.jsx` returns null on the floor, _and_ it is the component that
+registers the anchor `OfficeLayer` portals `DeskActionsDock` into. A harness that mounts
+`OfficeLayer` alone therefore has no DOM path to the inbox at all — the cluster is not hidden, it is
+not rendered — and the failure mode is silence, not an error. That is one step past the
+2026-09-06 shape: `visit-cannot-see-afterwards` was a missing _observation_, the peek was a missing
+_verb_, and this was a missing _world_.
+
+**So the step sits down, and it presses the floor's own way back.** `.office-floor-sit` on
+`FloorTopBar`, not `sitDown()` — step 9's rule, because a store call reports a working wire on a
+night the control has come unhooked. Every later control is found by **what it says**: the inbox
+footer's three actions share one class and their order is a layout decision, so the compose verb is
+matched against `officeChromeCopy().inbox.compose` read out of the module (hard-coding English would
+make the step quietly locale-dependent) and the recipient against `officeSenderInfo(id).name`. The
+send button is clicked in **page context**: the compose panel is a `FloatingWindow`, and an
+element-handle click there waits on hit-testing that times out in a way that reads exactly like an
+unwired button — measured, it did, for 30 s. A disabled send button is reported as its own state,
+because `handleComposeSend` refuses an empty form: disabled means the `fill` failed, not the click.
+
+**The compose window closing _is_ the delivery.** `handleComposeSend` awaits `emailSomeone` before
+`cancelCompose`, so waiting for `.office-email-compose` to detach covers `replyDelayMs('email')`
+(1.2–3.1 s) **plus** a model turn. A fixed wait would report a missing reply on a slow night, which
+is the one failure an instrument may not invent.
+
+**`roomDelta` is cut at the floor exit, and that is not protecting a number.** The field answers
+"what did the room look like at the end that did not look like that at the start", and the room is
+the **floor**; sitting down unmounts every figure, seat and surface in it, so diffing against the end
+of the process would report "the floor is gone" and silently retire nine weeks of comparable room
+shots. The step takes the floor's last shot before it sits and `roomDelta.cutAt` says which shot was
+used. Measured: `roomDelta` is **byte-identical across all six runs**, before and after.
+
+**`facilities` is the fixture for two reasons, and the second is what makes the block literal.** He
+is the last colleague no step touches — steps 3, 4, 7, 8 and 9 leave rows on `intern`, `dinesh`,
+`gilfoyle` and `greybeard` — so a beat on his row is unambiguous. And he has a reply template of his
+own (`email-reply-facilities`), so the canned arm is attributable to a **named** bank entry:
+`email.isTheBankSubject` compares the drawn subject with `'Re: facilities matter'`, a string the bank
+actually holds, which is `peek.isTheBankLine`'s trick rather than a judgement. Whether a reply
+_engages_ the subject is semantic and this file does not answer those (§ 14) —
+`quotesWhatYouWrote` is containment and the block's `rule` says so out loud.
+
+**Two arms and a probe, because an axis that cannot go red is decoration.** The generated arm:
+`replied` **true**, `source` **model**, `isTheBankSubject` **false**, `quotesWhatYouWrote` **false**
+in 3 of 3, with `/api/office/moment` **2 → 3**. The `--no-llm` arm: the same step, `source` **bank**,
+`isTheBankSubject` **true**, `quotesWhatYouWrote` **true** — so every field distinguishes the arms
+and none of them is vacuous. The probe is `emailSomeone`'s own historical bug, re-armed: with
+`recordWorkingMemory` flipped to `false` on the canned branch, the step still reports **ok**, the
+reply still lands, `logDigest` still gains its `email` entry — and `email.beatWritten` goes
+**true → false**, `promptLines` **3 → 0**, and `facilities` disappears from
+`afterwards.workingMemory`. That is the defect the module's own doc comment describes ("you could
+write somebody three paragraphs, read their reply, walk over to their desk, and be a stranger") and
+nothing in the instrument could see it before tonight.
+
+**What it cost, measured.** `speech.count` **20**, `byChannel`, `bySource` **model 2 / bank 18** and
+`speech.throughStep7` **12 / model 2, bank 10** are unchanged in 3 of 3 — an email is never voiced
+and the inbox is not a floor surface, so no total was retired to add a step. `afterwards.logDigest`
+goes 7 → **8** and `workingMemory` gains a fifth row. The visit runs **54 s → 60 s**.
