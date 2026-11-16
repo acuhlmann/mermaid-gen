@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { emitGodAltarEvent } from './godAltarStore.js';
 import {
   dispatchGodWorkflow,
@@ -32,19 +32,43 @@ export function useGodPetitionFiling({
   const [checkingStatus, setCheckingStatus] = useState(false);
   const [prOutcome, setPrOutcome] = useState(null);
   const [runStatus, setRunStatus] = useState(null);
+  const pollSeqRef = useRef(0);
+  const checkingRef = useRef(false);
 
   const pollRunStatus = useCallback(
     async (dispatchInfo, epoch) => {
       if (!dispatchInfo?.dispatched || !dispatchInfo.ref) return null;
+      const pollSeq = ++pollSeqRef.current;
+      checkingRef.current = true;
       setCheckingStatus(true);
-      const status = await fetchGodWorkflowStatus({
-        ref: dispatchInfo.ref,
-        since: dispatchInfo.dispatchedAt
-      });
-      if (!mountedRef.current || epoch !== petitionEpochRef.current) return null;
-      setCheckingStatus(false);
-      if (status) setRunStatus(status);
-      return status;
+      try {
+        const status = await fetchGodWorkflowStatus({
+          ref: dispatchInfo.ref,
+          since: dispatchInfo.dispatchedAt
+        });
+        if (
+          !mountedRef.current ||
+          epoch !== petitionEpochRef.current ||
+          pollSeq !== pollSeqRef.current
+        ) {
+          return null;
+        }
+        checkingRef.current = false;
+        setCheckingStatus(false);
+        if (status) setRunStatus(status);
+        return status;
+      } catch {
+        if (
+          !mountedRef.current ||
+          epoch !== petitionEpochRef.current ||
+          pollSeq !== pollSeqRef.current
+        ) {
+          return null;
+        }
+        checkingRef.current = false;
+        setCheckingStatus(false);
+        return null;
+      }
     },
     [mountedRef, petitionEpochRef]
   );
@@ -60,10 +84,10 @@ export function useGodPetitionFiling({
     const epoch = petitionEpochRef.current;
     const info = { dispatched: true, ref: dispatchedRef, dispatchedAt };
     const initialTimer = setTimeout(() => {
-      void pollRunStatus(info, epoch);
+      if (!checkingRef.current) void pollRunStatus(info, epoch);
     }, WORKFLOW_INITIAL_POLL_MS);
     const interval = setInterval(() => {
-      void pollRunStatus(info, epoch);
+      if (!checkingRef.current) void pollRunStatus(info, epoch);
     }, WORKFLOW_POLL_INTERVAL_MS);
     return () => {
       clearTimeout(initialTimer);
@@ -81,6 +105,9 @@ export function useGodPetitionFiling({
     const capturedFavor = favor;
     const capturedDispatch = dispatchWorkflow;
 
+    pollSeqRef.current += 1;
+    checkingRef.current = false;
+    setCheckingStatus(false);
     setFiling(true);
     setError(null);
     setRunStatus(null);
@@ -116,6 +143,9 @@ export function useGodPetitionFiling({
     const targetBranch = currentOutcome.branch;
     const targetFocus = currentOutcome.workflowDispatch?.focus;
 
+    pollSeqRef.current += 1;
+    checkingRef.current = false;
+    setCheckingStatus(false);
     setDispatching(true);
     setRunStatus(null);
     const res = await dispatchGodWorkflow({
@@ -140,6 +170,8 @@ export function useGodPetitionFiling({
   };
 
   const resetFiling = () => {
+    pollSeqRef.current += 1;
+    checkingRef.current = false;
     setFiling(false);
     setDispatching(false);
     setCheckingStatus(false);

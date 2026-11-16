@@ -183,18 +183,18 @@ function respondWithOracle(
   });
 }
 
-function createPetitionWriteRateLimit() {
-  const writeLimiter = createIpRateLimiter({
+function createPetitionIpRateLimit(maxHits: number) {
+  const limiter = createIpRateLimiter({
     windowMs: 60_000,
-    maxHits: 30,
+    maxHits,
     keyFn: keyByRequestIp
   });
   return (req: Request, res: Response, next: express.NextFunction) => {
-    if (writeLimiter.isLimited(req)) {
+    if (limiter.isLimited(req)) {
       res.status(429).json({ error: 'Too many requests. Try again later.' });
       return;
     }
-    writeLimiter.recordHit(req);
+    limiter.recordHit(req);
     next();
   };
 }
@@ -203,7 +203,8 @@ export function createGodPetitionRouter(options: GodPetitionRouterOptions = {}) 
   const env = options.env ?? process.env;
   const router = express.Router();
   const llmRateLimit = createApiRateLimitMiddleware('llm');
-  const writeRateLimit = createPetitionWriteRateLimit();
+  const writeRateLimit = createPetitionIpRateLimit(30);
+  const statusRateLimit = createPetitionIpRateLimit(120);
 
   router.get('/petition/capabilities', (_req: Request, res: Response) => {
     res.set('Cache-Control', 'no-store');
@@ -334,7 +335,7 @@ export function createGodPetitionRouter(options: GodPetitionRouterOptions = {}) 
     }
   });
 
-  router.get('/petition/workflow-status', async (req: Request, res: Response) => {
+  router.get('/petition/workflow-status', statusRateLimit, async (req: Request, res: Response) => {
     res.set('Cache-Control', 'no-store');
     const parsed = WorkflowStatusQuerySchema.safeParse({
       ref: typeof req.query.ref === 'string' ? req.query.ref : undefined,

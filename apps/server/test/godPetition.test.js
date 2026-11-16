@@ -626,3 +626,75 @@ test('getPetitionWorkflowStatus & GET /api/god/petition/workflow-status report r
     await app.close();
   }
 });
+
+test('dispatchPetitionWorkflow timestamps before dispatch and workflow-status excludes prior runs', async () => {
+  let clock = Date.parse('2026-11-16T05:00:00.750Z');
+  const dispatchRes = await dispatchPetitionWorkflow({
+    repo: 'acuhlmann/mermaid-gen',
+    ref: 'god-petition/fresh',
+    focus: 'ux',
+    env: { GOD_PR_TOKEN: 'ghp_test' },
+    nowMs: () => clock,
+    fetchImpl: async () => {
+      clock += 5_000;
+      return { ok: true, status: 204, text: async () => '' };
+    }
+  });
+  assert.equal(dispatchRes.dispatched, true);
+  assert.equal(dispatchRes.dispatchedAt, '2026-11-16T05:00:00.000Z');
+
+  // A run from 10s earlier (same minute!) must be ignored so status stays queued/pending.
+  const pending = await getPetitionWorkflowStatus({
+    env: { GOD_PR_TOKEN: 'ghp_test' },
+    ref: 'god-petition/fresh',
+    since: dispatchRes.dispatchedAt,
+    fetchImpl: async () => ({
+      ok: true,
+      status: 200,
+      text: async () =>
+        JSON.stringify({
+          workflow_runs: [
+            {
+              id: 100,
+              run_number: 10,
+              status: 'completed',
+              conclusion: 'success',
+              created_at: '2026-11-16T04:59:50Z'
+            }
+          ]
+        })
+    })
+  });
+  assert.equal(pending.status, 'queued');
+  assert.equal(pending.runId, undefined);
+});
+
+test('GET /api/god/petition/workflow-status uses its own rate limiter separate from writeRateLimit', async () => {
+  const app = await bootApp({
+    petitionOptions: {
+      env: {},
+      getWorkflowStatus: async () => ({
+        available: true,
+        status: 'queued',
+        conclusion: null,
+        htmlUrl: 'https://github.com/acuhlmann/mermaid-gen/actions/workflows/god.yml',
+        message: 'Queued.'
+      })
+    }
+  });
+  try {
+    // 35 status polls exceed the 30/min write budget, yet must not throttle write routes.
+    for (let i = 0; i < 35; i += 1) {
+      const statusRes = await fetch(`${app.base}/api/god/petition/workflow-status?ref=main`);
+      assert.equal(statusRes.status, 200);
+    }
+    const writeRes = await fetch(`${app.base}/api/god/petition/file-pr`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ proposal: PROPOSAL, favor: 70, userName: 'Jared' })
+    });
+    assert.equal(writeRes.status, 200);
+  } finally {
+    await app.close();
+  }
+});

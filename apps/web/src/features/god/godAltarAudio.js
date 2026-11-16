@@ -476,6 +476,7 @@ async function playCloudAudioViaContext(audio, audioContextRef, generation) {
     source.start();
     return true;
   } catch {
+    if (activeCloudSource === source) activeCloudSource = null;
     return false;
   }
 }
@@ -507,28 +508,30 @@ function playCloudAudioViaElement(audio, generation) {
   }
 }
 
-async function fetchCloudSafely(fetchCloudAudio, cleaned, mood, generation) {
+async function fetchCloudSafely(fetchCloudAudio, cleaned, mood) {
   if (typeof fetchCloudAudio !== 'function') return null;
-  cloudFetchPending = true;
   try {
     return await fetchCloudAudio({ text: cleaned, mood });
   } catch {
     return null;
-  } finally {
-    if (generation === godSpeechGeneration) cloudFetchPending = false;
   }
 }
 
 async function speakViaCloud(fetchCloudAudio, cleaned, mood, generation, audioContextRef) {
-  const cloud = await fetchCloudSafely(fetchCloudAudio, cleaned, mood, generation);
-  if (generation !== godSpeechGeneration) return false;
-  if (cloud?.audioBase64) {
-    if (await playCloudAudioViaContext(cloud, audioContextRef, generation)) return true;
+  cloudFetchPending = true;
+  try {
+    const cloud = await fetchCloudSafely(fetchCloudAudio, cleaned, mood);
     if (generation !== godSpeechGeneration) return false;
-    if (playCloudAudioViaElement(cloud, generation)) return true;
+    if (cloud?.audioBase64) {
+      if (await playCloudAudioViaContext(cloud, audioContextRef, generation)) return true;
+      if (generation !== godSpeechGeneration) return false;
+      if (playCloudAudioViaElement(cloud, generation)) return true;
+    }
+    if (generation !== godSpeechGeneration) return false;
+    return speakGodDecree(cleaned, { enabled: true, mood });
+  } finally {
+    if (generation === godSpeechGeneration) cloudFetchPending = false;
   }
-  if (generation !== godSpeechGeneration) return false;
-  return speakGodDecree(cleaned, { enabled: true, mood });
 }
 
 /**

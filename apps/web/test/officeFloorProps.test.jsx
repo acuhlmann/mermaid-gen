@@ -1023,6 +1023,29 @@ describe('Altar shrine prop and divine floor cameos', () => {
     vi.useRealTimers();
   });
 
+  it('retains a major event when a minor pray event follows in the same batched update', () => {
+    vi.useFakeTimers();
+    const onOpenGodAltar = vi.fn();
+    renderFloor({ onOpenGodAltar }, { pinDeterminism: false });
+
+    act(() => {
+      openGodAltar();
+      emitGodAltarEvent('smote', 'wrathful');
+      emitGodAltarEvent('pray', 'amused');
+    });
+
+    expect(screen.queryByTestId('office-floor-altar-cameo')).toBeNull();
+
+    act(() => {
+      closeGodAltar();
+    });
+    expect(screen.getByTestId('office-floor').className).toContain('is-divine-smite');
+    expect(screen.getByTestId('office-floor-altar-cameo').textContent).toContain('Gilfoyle');
+    expect(screen.getByTestId('office-floor-altar-cameo').textContent).toMatch(/lightning/i);
+
+    vi.useRealTimers();
+  });
+
   it('clears divineFlash and cameo when suspended by a meeting and keeps them cleared afterwards', () => {
     vi.useFakeTimers();
     const onOpenGodAltar = vi.fn();

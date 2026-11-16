@@ -18,7 +18,7 @@
 
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import {
-  getGodAltarEvent,
+  getGodAltarMajorEvent,
   getGodAltarOpen,
   subscribeGodAltar
 } from '../../features/god/godAltarStore.js';
@@ -61,9 +61,13 @@ function clearTimerSet(timers) {
  * @returns {{ divineFlash: string | null, cameo: { speakerId: string, text: string } | null }}
  */
 export function useFloorAltarCameo({ copy, suspended = false, suppressed = false }) {
-  const event = useSyncExternalStore(subscribeGodAltar, getGodAltarEvent, getGodAltarEvent);
+  const majorEvent = useSyncExternalStore(
+    subscribeGodAltar,
+    getGodAltarMajorEvent,
+    getGodAltarMajorEvent
+  );
   const altarOpen = useSyncExternalStore(subscribeGodAltar, getGodAltarOpen, getGodAltarOpen);
-  const handledSeqRef = useRef(event?.seq ?? 0);
+  const handledMajorSeqRef = useRef(majorEvent?.seq ?? 0);
   const pendingMajorRef = useRef(null);
   const lastCameoAtRef = useRef(-Infinity);
   const timersRef = useRef({ flash: null, dinesh: null, clear: null });
@@ -88,11 +92,10 @@ export function useFloorAltarCameo({ copy, suspended = false, suppressed = false
       return;
     }
 
-    const hasNewEvent = Boolean(event && event.seq > handledSeqRef.current);
-    if (hasNewEvent) {
-      handledSeqRef.current = event.seq;
-      if (isMajorAltarEvent(event)) {
-        pendingMajorRef.current = event;
+    if (majorEvent && majorEvent.seq > handledMajorSeqRef.current) {
+      handledMajorSeqRef.current = majorEvent.seq;
+      if (isMajorAltarEvent(majorEvent)) {
+        pendingMajorRef.current = majorEvent;
       }
     }
 
@@ -131,7 +134,7 @@ export function useFloorAltarCameo({ copy, suspended = false, suppressed = false
       setCameo(null);
       timersRef.current.clear = null;
     }, ALTAR_BEAT_MS * 2);
-  }, [event, altarOpen, suspended]);
+  }, [majorEvent, altarOpen, suspended]);
 
   if (suspended || altarOpen) {
     return { divineFlash: null, cameo: null };

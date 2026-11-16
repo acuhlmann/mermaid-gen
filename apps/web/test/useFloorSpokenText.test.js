@@ -149,4 +149,74 @@ describe('useFloorSpokenText', () => {
       )
     );
   });
+
+  it('clears dedupe refs on empty talk/walkBy without cancelling Altar speech on the shared synthesizer', async () => {
+    const cancelSpy = vi
+      .spyOn(officeNarration, 'cancelOfficeNarration')
+      .mockImplementation(() => {});
+    const godBusySpy = vi.spyOn(godAltarAudio, 'isGodSpeechBusy').mockReturnValue(false);
+    const narrateLine = vi.fn(() => new Promise(() => {}));
+
+    const { rerender } = renderHook(
+      ({ altarOpen, talkColleagueId, talkLine, walkBy }) =>
+        useFloorSpokenText({
+          captions: false,
+          altarOpen,
+          sceneHandlers: { narrateLine },
+          talkColleagueId,
+          talkLine,
+          walkBy,
+          hasActiveSpeech: Boolean(talkColleagueId || walkBy)
+        }),
+      {
+        initialProps: {
+          altarOpen: false,
+          talkColleagueId: 'gilfoyle',
+          talkLine: 'Same talk line',
+          walkBy: { id: 'wb-1', colleagueId: 'dinesh', body: 'Same walk-by line' }
+        }
+      }
+    );
+
+    await waitFor(() => expect(narrateLine).toHaveBeenCalledTimes(2));
+
+    // Altar opens (cancels office narration once) and God starts speaking.
+    rerender({
+      altarOpen: true,
+      talkColleagueId: 'gilfoyle',
+      talkLine: 'Same talk line',
+      walkBy: { id: 'wb-1', colleagueId: 'dinesh', body: 'Same walk-by line' }
+    });
+    expect(cancelSpy).toHaveBeenCalledTimes(1);
+    cancelSpy.mockClear();
+
+    // Talk and walk-by clear while God owns the shared synthesizer: refs reset, NO cancelOfficeNarration.
+    godBusySpy.mockReturnValue(true);
+    rerender({
+      altarOpen: true,
+      talkColleagueId: null,
+      talkLine: '',
+      walkBy: null
+    });
+    expect(cancelSpy).not.toHaveBeenCalled();
+
+    // After Altar closes and God finishes, the exact same talkLine can narrate again (ref was cleared),
+    // and leaving talk while office owns playback DOES call cancelOfficeNarration.
+    godBusySpy.mockReturnValue(false);
+    rerender({
+      altarOpen: false,
+      talkColleagueId: 'gilfoyle',
+      talkLine: 'Same talk line',
+      walkBy: null
+    });
+    await waitFor(() => expect(narrateLine).toHaveBeenCalledTimes(3));
+
+    rerender({
+      altarOpen: false,
+      talkColleagueId: null,
+      talkLine: '',
+      walkBy: null
+    });
+    expect(cancelSpy).toHaveBeenCalledTimes(1);
+  });
 });

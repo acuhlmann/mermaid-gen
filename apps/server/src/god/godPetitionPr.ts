@@ -244,6 +244,7 @@ export type DispatchPetitionWorkflowOptions = {
   focus: GodWorkflowFocus;
   env?: Env;
   fetchImpl?: typeof fetch;
+  nowMs?: () => number;
 };
 
 function makeWorkflowDispatchBase(repo: string, ref: string, focus: GodWorkflowFocus) {
@@ -300,6 +301,8 @@ export async function dispatchPetitionWorkflow(
     });
 
   let activeRef = options.ref;
+  const dispatchStartMs = (options.nowMs ?? Date.now)();
+  const dispatchedAt = new Date(Math.floor(dispatchStartMs / 1000) * 1000).toISOString();
   let dispatchRes:
     { ok: true; data: Record<string, never> } | { ok: false; status: number; detail: string };
   try {
@@ -337,7 +340,7 @@ export async function dispatchPetitionWorkflow(
     attempted: true,
     dispatched: true,
     status: 'dispatched',
-    dispatchedAt: new Date().toISOString(),
+    dispatchedAt,
     message: `Dispatched ${GOD_WORKFLOW_FILE} on ${activeRef} (tier: propose, focus: ${options.focus}) so God's harness can implement the decree.`
   };
 }
@@ -366,10 +369,12 @@ function pickMatchingWorkflowRun(
   since?: string
 ): GitHubWorkflowRunRow | null {
   const sinceMs = since ? Date.parse(since) : Number.NaN;
+  const hasSince = Number.isFinite(sinceMs);
   const found = runs.find((run) => {
-    if (!Number.isFinite(sinceMs) || !run.created_at) return true;
+    if (!hasSince) return true;
+    if (!run.created_at) return false;
     const createdMs = Date.parse(run.created_at);
-    return !Number.isFinite(createdMs) || createdMs >= sinceMs - 60_000;
+    return Number.isFinite(createdMs) && createdMs >= sinceMs;
   });
   return found ?? null;
 }

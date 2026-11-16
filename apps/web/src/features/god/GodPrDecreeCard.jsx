@@ -1,6 +1,51 @@
 import { useState } from 'react';
 import { GOD_ALTAR_COPY as COPY } from './godAltarCopy.js';
 
+function copyViaExecCommand(text) {
+  if (
+    typeof document === 'undefined' ||
+    typeof document.createElement !== 'function' ||
+    typeof document.execCommand !== 'function' ||
+    !document.body
+  ) {
+    return false;
+  }
+  const textarea = document.createElement('textarea');
+  textarea.value = text;
+  textarea.setAttribute('readonly', '');
+  textarea.style.position = 'fixed';
+  textarea.style.left = '-9999px';
+  textarea.style.top = '0';
+  document.body.appendChild(textarea);
+  textarea.focus();
+  textarea.select();
+  try {
+    return document.execCommand('copy') === true;
+  } catch {
+    return false;
+  } finally {
+    textarea.remove();
+  }
+}
+
+async function copyCommandText(text) {
+  if (typeof navigator !== 'undefined' && typeof navigator.clipboard?.writeText === 'function') {
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch {
+      // Fall back to execCommand below when clipboard write fails.
+    }
+  }
+  return copyViaExecCommand(text);
+}
+
+function copyButtonLabel(state, idleLabel, copiedLabel) {
+  if (state === 'copied') return copiedLabel;
+  if (state === 'failed') return COPY.prCard.copyFailedLabel;
+  return idleLabel;
+}
+
 function formatWorkflowBadgeText(runStatus) {
   if (!runStatus) return '';
   const num = runStatus.runNumber ? `#${runStatus.runNumber} ` : '';
@@ -114,7 +159,11 @@ function WorkflowDispatchStatus({
           <pre className="god-altar-gh-scroll">{dispatchInfo.ghWorkflowCommand}</pre>
           <div>
             <button type="button" className="god-altar-secondary-btn" onClick={onCopyWorkflow}>
-              {copiedWorkflow ? COPY.prCard.copiedWorkflowLabel : COPY.prCard.copyWorkflowLabel}
+              {copyButtonLabel(
+                copiedWorkflow,
+                COPY.prCard.copyWorkflowLabel,
+                COPY.prCard.copiedWorkflowLabel
+              )}
             </button>
           </div>
         </>
@@ -154,7 +203,7 @@ function PrDecreeOutcome({
           <pre className="god-altar-gh-scroll">{prOutcome.ghCommand}</pre>
           <div>
             <button type="button" className="god-altar-secondary-btn" onClick={onCopyGh}>
-              {copiedGh ? COPY.prCard.copiedGhLabel : COPY.prCard.copyGhLabel}
+              {copyButtonLabel(copiedGh, COPY.prCard.copyGhLabel, COPY.prCard.copiedGhLabel)}
             </button>
           </div>
         </>
@@ -187,18 +236,14 @@ export default function GodPrDecreeCard({
   runStatus,
   prOutcome
 }) {
-  const [copiedGh, setCopiedGh] = useState(false);
-  const [copiedWorkflow, setCopiedWorkflow] = useState(false);
+  const [copiedGh, setCopiedGh] = useState('idle');
+  const [copiedWorkflow, setCopiedWorkflow] = useState('idle');
 
   const copyText = async (text, setter) => {
     if (!text) return;
-    try {
-      await navigator.clipboard?.writeText(text);
-      setter(true);
-      window.setTimeout(() => setter(false), 2000);
-    } catch {
-      setter(false);
-    }
+    const ok = await copyCommandText(text);
+    setter(ok ? 'copied' : 'failed');
+    window.setTimeout(() => setter('idle'), ok ? 2000 : 3000);
   };
 
   return (

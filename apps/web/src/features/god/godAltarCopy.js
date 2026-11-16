@@ -127,6 +127,7 @@ export const GOD_ALTAR_COPY = {
     openWorkflowLink: 'View god.yml Runs',
     copyWorkflowLabel: 'Copy gh workflow command',
     copiedWorkflowLabel: 'Workflow command copied!',
+    copyFailedLabel: 'Copy failed — select manually',
     refreshStatusLabel: '↻ Check run',
     checkingStatusLabel: 'Checking…'
   },

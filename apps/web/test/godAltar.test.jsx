@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import GodAltarPanel from '../src/features/god/GodAltarPanel.jsx';
 import GodAltarHost from '../src/features/god/GodAltarModal.jsx';
 import {
@@ -738,5 +738,270 @@ describe('GodAltarPanel & GodAltarModal', () => {
     expect(signalRequests).toEqual([]);
 
     uninstall();
+  });
+
+  it('keeps isGodSpeechBusy true across async decodeAudioData until playback owns busy state', async () => {
+    let resolveDecode;
+    const source = {
+      buffer: null,
+      playbackRate: { value: 1 },
+      connect: vi.fn(),
+      start: vi.fn(),
+      stop: vi.fn(),
+      onended: null
+    };
+    const ctx = {
+      currentTime: 0,
+      sampleRate: 44100,
+      destination: {},
+      createGain: () => ({
+        gain: { setValueAtTime: vi.fn(), exponentialRampToValueAtTime: vi.fn(), value: 0 },
+        connect: vi.fn()
+      }),
+      createBuffer: () => ({ getChannelData: () => new Float32Array(8) }),
+      createConvolver: () => ({ buffer: null, connect: vi.fn() }),
+      createBufferSource: () => source,
+      decodeAudioData: () =>
+        new Promise((resolve) => {
+          resolveDecode = resolve;
+        })
+    };
+    globalThis.AudioContext = vi.fn(function MockCtx() {
+      return ctx;
+    });
+
+    try {
+      const speakPromise = speakGodDecreeWithCloud('WAIT FOR DECODE.', {
+        mood: 'amused',
+        fetchCloudAudio: async () => ({
+          audioBase64: btoa('fake-mp3'),
+          mimeType: 'audio/mpeg'
+        }),
+        audioContextRef: { current: ctx }
+      });
+
+      await waitFor(() => expect(resolveDecode).toBeTypeOf('function'));
+      // Fetch finished, decodeAudioData is still pending -> God speech MUST still report busy!
+      expect(isGodSpeechBusy()).toBe(true);
+
+      resolveDecode({ duration: 1 });
+      await expect(speakPromise).resolves.toBe(true);
+      expect(source.start).toHaveBeenCalledTimes(1);
+      expect(isGodSpeechBusy()).toBe(true);
+
+      source.onended?.();
+      expect(isGodSpeechBusy()).toBe(false);
+    } finally {
+      stopGodSpeech();
+      delete globalThis.AudioContext;
+    }
+  });
+
+  it('reports copy failure instead of false success when clipboard API and execCommand are unavailable', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url) => {
+        const u = String(url);
+        if (u.includes('/api/god/petition/capabilities')) {
+          return jsonResponse({ v: 1, llmConfigured: false, githubPrConfigured: false });
+        }
+        if (u.includes('/api/god/petition/file-pr')) {
+          return jsonResponse({
+            v: 1,
+            filed: false,
+            mode: 'unconfigured',
+            branch: 'god-petition/x',
+            ghCommand: 'git checkout -b god-petition/x && gh pr create',
+            divineMessage: 'NO GITHUB TOKEN.',
+            workflowDispatch: {
+              attempted: false,
+              dispatched: false,
+              status: 'unconfigured',
+              workflow: 'god.yml',
+              ref: 'god-petition/x',
+              focus: 'ux',
+              workflowUrl: 'https://github.com/acuhlmann/mermaid-gen/actions/workflows/god.yml',
+              ghWorkflowCommand: 'gh workflow run god.yml',
+              message: 'No GitHub token configured.'
+            }
+          });
+        }
+        return jsonResponse({
+          v: 1,
+          mode: 'offline-oracle',
+          llmConfigured: false,
+          reply: 'STONE TABLETS ACCEPT THY WISH.',
+          favorDelta: 25,
+          favor: 60,
+          mood: 'amused',
+          judgment: 'WORTHY OF A BRANCH',
+          prProposal: PROPOSAL
+        });
+      })
+    );
+
+    const originalClipboard = navigator.clipboard;
+    Object.defineProperty(navigator, 'clipboard', { configurable: true, value: undefined });
+    const originalExec = document.execCommand;
+    document.execCommand = undefined;
+
+    try {
+      render(<GodAltarPanel />);
+      fireEvent.change(screen.getByTestId('god-altar-input'), {
+        target: { value: 'I wish for a PR to add tooltips' }
+      });
+      fireEvent.click(screen.getByTestId('god-altar-submit'));
+      await screen.findByTestId('god-pr-decree');
+      fireEvent.click(screen.getByTestId('god-file-pr-button'));
+      await screen.findByTestId('god-pr-outcome');
+
+      fireEvent.click(screen.getByRole('button', { name: /Copy gh \/ git decree/i }));
+      fireEvent.click(screen.getByRole('button', { name: /Copy gh workflow command/i }));
+
+      const failedButtons = await screen.findAllByRole('button', {
+        name: /Copy failed — select manually/i
+      });
+      expect(failedButtons).toHaveLength(2);
+      expect(screen.queryByText(/Decree copied!/i)).toBeNull();
+      expect(screen.queryByText(/Workflow command copied!/i)).toBeNull();
+    } finally {
+      Object.defineProperty(navigator, 'clipboard', {
+        configurable: true,
+        value: originalClipboard
+      });
+      document.execCommand = originalExec;
+    }
+  });
+
+  it('ignores stale overlapping workflow-status poll responses so badge and terminal state never regress', async () => {
+    let resolvePoll1;
+    let resolvePoll2;
+    let pollCount = 0;
+
+    const fetchMock = vi.fn((url) => {
+      const u = String(url);
+      if (u.includes('/api/god/petition/capabilities')) {
+        return Promise.resolve(
+          jsonResponse({ v: 1, llmConfigured: true, githubPrConfigured: true })
+        );
+      }
+      if (u.includes('/api/god/petition/workflow-status')) {
+        pollCount += 1;
+        if (pollCount === 1) {
+          return new Promise((resolve) => {
+            resolvePoll1 = resolve;
+          });
+        }
+        return new Promise((resolve) => {
+          resolvePoll2 = resolve;
+        });
+      }
+      if (u.includes('/api/god/petition/file-pr')) {
+        return Promise.resolve(
+          jsonResponse({
+            v: 1,
+            filed: true,
+            mode: 'github_pr',
+            branch: 'god-petition/x',
+            prNumber: 902,
+            prUrl: 'https://github.com/acuhlmann/mermaid-gen/pull/902',
+            ghCommand: 'gh pr create',
+            divineMessage: 'PR #902 filed.',
+            workflowDispatch: {
+              attempted: true,
+              dispatched: true,
+              status: 'dispatched',
+              workflow: 'god.yml',
+              ref: 'god-petition/x',
+              focus: 'ux',
+              dispatchedAt: '2026-11-16T03:00:00.000Z',
+              workflowUrl: 'https://github.com/acuhlmann/mermaid-gen/actions/workflows/god.yml',
+              ghWorkflowCommand: 'gh workflow run god.yml',
+              message: 'Dispatched god.yml.'
+            }
+          })
+        );
+      }
+      if (u.includes('/api/god/petition/speak')) {
+        return Promise.resolve(jsonResponse({ audio: null, reason: 'disabled' }));
+      }
+      return Promise.resolve(
+        jsonResponse({
+          v: 1,
+          mode: 'llm',
+          reply: 'GRANTED.',
+          favorDelta: 30,
+          favor: 65,
+          mood: 'benevolent',
+          judgment: 'WORTHY OF A BRANCH',
+          prProposal: PROPOSAL
+        })
+      );
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(<GodAltarPanel />);
+    fireEvent.change(screen.getByTestId('god-altar-input'), {
+      target: { value: 'Grant me a PR' }
+    });
+    fireEvent.click(screen.getByTestId('god-altar-submit'));
+    await screen.findByTestId('god-pr-decree');
+
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'setInterval', 'clearInterval'] });
+    try {
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('god-file-pr-button'));
+        await Promise.resolve();
+        await Promise.resolve();
+      });
+      expect(screen.getByTestId('god-pr-outcome')).toBeTruthy();
+
+      // Initial auto-poll starts at 800ms. Advance timer before React commits disabled state,
+      // then click manual refresh so poll #1 and poll #2 genuinely overlap in flight.
+      vi.advanceTimersByTime(900);
+      expect(pollCount).toBe(1);
+      fireEvent.click(screen.getByTestId('god-workflow-refresh'));
+      expect(pollCount).toBe(2);
+
+      // Newer poll #2 resolves first with completed/success.
+      await act(async () => {
+        resolvePoll2(
+          jsonResponse({
+            v: 1,
+            available: true,
+            status: 'completed',
+            conclusion: 'success',
+            runNumber: 50,
+            message: 'god.yml #50: completed (success).'
+          })
+        );
+        await Promise.resolve();
+        await Promise.resolve();
+      });
+      expect(screen.getByTestId('god-workflow-run-badge').textContent).toContain('completed');
+
+      // Stale poll #1 resolves late with in_progress — must NOT regress badge or restart polling!
+      await act(async () => {
+        resolvePoll1(
+          jsonResponse({
+            v: 1,
+            available: true,
+            status: 'in_progress',
+            conclusion: null,
+            runNumber: 50,
+            message: 'god.yml #50: in_progress.'
+          })
+        );
+        await Promise.resolve();
+        await Promise.resolve();
+      });
+      expect(screen.getByTestId('god-workflow-run-badge').textContent).toContain('completed');
+      expect(screen.getByTestId('god-workflow-run-badge').textContent).not.toContain('in_progress');
+
+      await vi.advanceTimersByTimeAsync(12_500);
+      expect(pollCount).toBe(2);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

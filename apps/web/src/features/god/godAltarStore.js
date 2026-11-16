@@ -10,6 +10,7 @@
 let altarOpen = false;
 let eventSeq = 0;
 let altarEvent = null;
+let majorAltarEvent = null;
 const listeners = new Set();
 
 function notify() {
@@ -22,6 +23,10 @@ export function getGodAltarOpen() {
 
 export function getGodAltarEvent() {
   return altarEvent;
+}
+
+export function getGodAltarMajorEvent() {
+  return majorAltarEvent;
 }
 
 export function subscribeGodAltar(listener) {
@@ -70,19 +75,24 @@ export function emitGodAltarEvent(kind, mood = 'amused') {
     mood,
     at: Date.now()
   };
+  if (normalized.major) {
+    majorAltarEvent = altarEvent;
+  }
   notify();
   return altarEvent;
 }
 
 export function clearGodAltarEvent() {
-  if (!altarEvent) return;
+  if (!altarEvent && !majorAltarEvent) return;
   altarEvent = null;
+  majorAltarEvent = null;
   notify();
 }
 
 export function resetGodAltarForTests() {
   altarOpen = false;
   altarEvent = null;
+  majorAltarEvent = null;
   eventSeq = 0;
   notify();
 }
