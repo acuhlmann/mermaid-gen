@@ -6,9 +6,9 @@
  * nightly (`benchMetaphor.js`, `benchAnything.js`). The office's number is a
  * **fixed visit**: enter the floor, walk to a named colleague, step into their
  * path, stand beside them for six seconds, use the printer, open the
- * whiteboard, say one sentence in the composer, read somebody's screen, and
- * wave away an idea somebody brought over. It prints **one JSON object**, and
- * that object is what goes in the ledger row.
+ * whiteboard, say one sentence in the composer, read somebody's screen, wave
+ * away an idea somebody brought over, and sit back down to write one email. It
+ * prints **one JSON object**, and that object is what goes in the ledger row.
  *
  * ## Run it
  *
@@ -85,8 +85,8 @@
  * made an ambient errand's destination depend on what the player had just
  * done, and no field here named where a wanderer was going.
  *
- * **The step count has moved twice — seven to eight, then eight to nine — and
- * the rule that forbade it is narrowed rather than dropped.** For eight weeks this header
+ * **The step count has moved three times — seven to eight, eight to nine, then
+ * nine to ten — and the rule that forbade it is narrowed rather than dropped.** For eight weeks this header
  * said a run "may never add, reorder or retime a step", full stop, and that
  * sentence was doing two jobs: keeping a run from editing the visit to move a
  * number, and keeping eight nights of traces comparable. The first job is
@@ -124,6 +124,20 @@
  * paid the same way — version-6 totals, `speech.throughStep7` unchanged, and
  * the step placed last because a walk-by writes into the office log and working
  * memory that every earlier step's prompt reads from.
+ *
+ * **The tenth step, 2026-11-16, is the rule's third and plainest application,
+ * and the only one that leaves the floor.** Spec'd in the ledger as
+ * `visit-has-no-email-step` a week before it was built and re-read twice since
+ * as "the only surface-shaped blindness left"; appended after step 9 so no
+ * earlier step moves; taken in a run that wanted nothing from the number. What
+ * it buys is a whole **surface**, not an axis: mail is a desk-world verb (no OS
+ * chrome on the floor), so the inbox was unreachable from this page rather than
+ * merely unvisited, and three slices have shipped onto it measured only by
+ * sweeps. It costs less than its two predecessors did — an email is never
+ * voiced and the inbox is not a floor surface, so **`speech` does not move at
+ * all** and no total is retired. The one field that changes meaning is
+ * `roomDelta`, which is now cut at the floor exit so that it keeps answering
+ * the question it has always answered; see the step's own point 2.
  *
  * The harness page it writes into `apps/web/.office-visit/` is scratch and is
  * deleted on the way out. It never reaches a commit.
@@ -180,6 +194,35 @@ const WALKBY_FIXTURE = Object.freeze({
   colleagueId: 'greybeard',
   body: 'Saw your funnel on the way past. Intake straight into Ship is going to bite you by Q3.',
   actionPrompt: 'Add a rejection edge from Triage back to Intake'
+});
+
+/**
+ * The one email the tenth step composes, fixed the way `COMPOSER_LINE` and
+ * `WALKBY_FIXTURE` are. Three choices in it are load-bearing.
+ *
+ * - **`facilities` is the last colleague no step touches.** Steps 3, 4, 7, 8
+ *   and 9 leave working-memory rows on `intern`, `dinesh`, `gilfoyle` and
+ *   `greybeard`, and the beat `emailSomeone` writes is half of what this step
+ *   is for — a fixture sharing any of those names would hide a writer that
+ *   wrote onto the wrong person, which is exactly the trap the ninth step
+ *   picked `greybeard` to avoid.
+ * - **He has a bank entry of his own** (`email-reply-facilities` in
+ *   `officeEmailReplyFallbacks.js`), so the canned arm is attributable to a
+ *   named template rather than to "something that is not the model". That is
+ *   what lets `email.isTheBankSubject` be a literal comparison instead of a
+ *   judgement, the way `peek.isTheBankLine` is.
+ * - **The subject is about the fixture diagram**, so a reply has something of
+ *   the user's to engage with and `{label}` has a node to name. Whether it
+ *   *does* engage is a semantic question and this file does not answer those
+ *   (§ 14: score a register property with a judge, never with a phrase regex)
+ *   — the block reports what it can literally see and says so in its `rule`.
+ */
+const EMAIL_FIXTURE = Object.freeze({
+  colleagueId: 'facilities',
+  subject: 'Triage sends everything straight to Ship',
+  body:
+    'The funnel on my screen runs Intake into Triage and then Triage into Ship, with no way back. ' +
+    'Before I add a rejection path, is there anything on your side that makes that worse?'
 });
 
 const STEP_TIMEOUT_MS = 20_000;
@@ -283,10 +326,16 @@ async function resolveChromium() {
  * its own questions and `llmConfigured` would mean nothing. `OfficeLayer` owns
  * the real plumbing, so the visit's office calls are the app's office calls.
  */
-const HARNESS_JSX = `import { createRoot } from 'react-dom/client';
+const HARNESS_JSX = `import { useSyncExternalStore } from 'react';
+import { createRoot } from 'react-dom/client';
 import OfficeLayer from '../src/components/OfficeLayer.jsx';
-import { standUp } from '../src/state/officeViewModeStore.js';
+import {
+  getOfficeViewMode,
+  standUp,
+  subscribe as subscribeOfficeViewMode
+} from '../src/state/officeViewModeStore.js';
 import { setOfficeCaptions } from '../src/state/officeMomentStore.js';
+import { useDeskSlotRef } from '../src/hooks/useDeskSlotRef.js';
 import '../src/index.css';
 import '../src/App.css';
 /* Trap 2: ArchiSlop.jsx is this stylesheet's only importer. Without it every
@@ -301,8 +350,40 @@ const FIXTURE = ${JSON.stringify(FIXTURE_DIAGRAM)};
 setOfficeCaptions(true);
 standUp();
 
+/*
+ * **The shell's taskbar anchor, and nothing else of the shell** — added with
+ * the tenth step, which is the first one that needs a desk-world control.
+ *
+ * \`OfficeLayer\` portals the desk comms cluster (mail / Slop Chat / meeting)
+ * into whatever element \`deskSlotStore\` is holding, and in the app that
+ * element belongs to \`DeskOsTaskbar\`, which this harness deliberately does
+ * not mount. So the inbox was not merely unvisited, it was **unreachable**: no
+ * DOM control on the page could open it, and an email step would have had to
+ * call the store, which is the one thing steps 8 and 9 both refuse to do.
+ *
+ * It registers through the product's own \`useDeskSlotRef\`, and it **mirrors
+ * the taskbar's floor rule rather than simplifying it**: \`DeskOsTaskbar.jsx\`
+ * returns null while you are standing ("the floor is the physical world — no
+ * OS chrome while you are standing"), so an anchor that stayed mounted would
+ * put a mail icon on the floor, where the product offers none. That would make
+ * the tenth step press a control nobody can press, which is the stand-in
+ * turning into a fiction.
+ */
+function DeskChromeAnchor() {
+  const viewMode = useSyncExternalStore(
+    subscribeOfficeViewMode,
+    getOfficeViewMode,
+    getOfficeViewMode
+  );
+  const deskSlotRef = useDeskSlotRef();
+  if (viewMode === 'floor') return null;
+  return <div id="office-desk-bottom-slot" ref={deskSlotRef} />;
+}
+
 createRoot(document.getElementById('root')).render(
+  <>
   <OfficeLayer
+    deskActionsAnchorReady
     pause={false}
     advisorBusy={false}
     getDiagramSource={() => FIXTURE}
@@ -320,6 +401,8 @@ createRoot(document.getElementById('root')).render(
     onCheckHrProgression={() => {}}
     playChime={() => {}}
   />
+  <DeskChromeAnchor />
+  </>
 );
 `;
 
@@ -410,7 +493,16 @@ function installInstrument(config) {
     read: [],
     /* The model's own words, read off the responses the room is about to
        render. See `recordDelivered` below for why this exists. */
-    delivered: []
+    delivered: [],
+    /* Marks the tenth step leaves for the report: what it put in the compose
+       form, and the floor's own last room shot — taken before it sits down,
+       because `roomDelta` is a fact about the floor. */
+    emailSent: null,
+    /* The floor's own last DOM facts — see `peekShot` for why three
+       observations cannot be read after the tenth step sits down. */
+    floorExitShot: null,
+    floorExitPeek: null,
+    floorExitSurfaces: null
   };
 
   /*
@@ -663,8 +755,28 @@ function installInstrument(config) {
      * figure's viewport rect in the same tick — which a pixel key reads as the
      * entire cast moving simultaneously, and `firstMover` then reports a
      * reflow instead of whoever actually took a step.
+     *
+     * **Which is also why this closes at the floor exit, and why a missing
+     * stage is not `document.body`.** Both are the same trap — "never diff two
+     * frames across a remount" — and the tenth step is what sprang it: leaving
+     * the floor is a *camera move* (`docs/office-isometric-mode.md` § 1a), so
+     * the stage legitimately changes size and position on the way out and
+     * every normalised key changes in one tick. Measured without the close:
+     * one run reported **all sixteen seated colleagues gaining exactly one
+     * move**, which is the mass-reflow signature this normalisation was
+     * written to prevent, and `firstMover` flipped with it. So `movement` is a
+     * fact about the floor visit and is closed at the same mark `roomDelta`,
+     * `peek` and `endSurfaces` are — one mark, four observations. The stage
+     * guard stays as the second half: without a stage there is no measurement,
+     * and `document.body` is not a stage.
+     *
+     * `sampleWanderers` deliberately does **not** close here: it reads
+     * attributes rather than geometry, so a camera move cannot move a row, and
+     * once the floor is gone there is no node left to add one.
      */
-    const stage = document.querySelector('.office-floor-stage') ?? document.body;
+    if (state.floorExitShot) return;
+    const stage = document.querySelector('.office-floor-stage');
+    if (!stage) return;
     const stageRect = stage.getBoundingClientRect();
     const figures = [
       ...document.querySelectorAll('.office-floor-person:not(.is-you)'),
@@ -797,6 +909,29 @@ function installInstrument(config) {
     return out;
   }
 
+  /**
+   * **The floor's own DOM facts, taken while the floor still exists.** Three
+   * of the report's observations are end-of-visit `document.querySelector`
+   * reads — the peek line, the peek card and the visible speech surfaces — and
+   * all three are facts about the **floor**. The tenth step is the first one
+   * that leaves it, and before this existed it blinded all three: `peek.drawn`
+   * read `null`, `peek.isTheBankLine` went `true → null` in 3 of 3, and
+   * `endSurfaces` came back empty, none of which is a change in the room.
+   *
+   * So the step hands them over the way it hands over `roomShot()`, and the
+   * observations prefer the held copy. `peek.readAt` and
+   * `speech.endSurfacesReadAt` say which was used, so a reader never has to
+   * infer it.
+   */
+  function peekShot() {
+    const surface = document.querySelector('[data-testid="office-floor-peek-line"]');
+    const node = surface?.querySelector('.office-floor-bubble-body') ?? surface;
+    return {
+      drawn: node ? (node.textContent ?? '').trim().slice(0, 400) : null,
+      standingThere: Boolean(document.querySelector('[data-testid="office-floor-peek-card"]'))
+    };
+  }
+
   /** What the visible prop card is showing — not speech, and not in `harvest()`. */
   function readPropCardNow() {
     const card = document.querySelector('[data-testid="office-floor-prop-card"]');
@@ -810,6 +945,7 @@ function installInstrument(config) {
   window.__visit = {
     state,
     speechSurfacesNow,
+    peekShot,
     readPropCardNow,
     recordRead(entry) {
       state.read.push({ atMs: elapsed(), ...entry });
@@ -1215,6 +1351,175 @@ async function walkTheVisit(page) {
     );
   });
 
+  /*
+   * **The tenth step, appended 2026-11-16 — read the header's rule before
+   * touching it.** Spec'd in the ledger as `visit-has-no-email-step` since
+   * 2026-11-09 and re-read twice since as "the only surface-shaped blindness
+   * left": nine steps and not one of them composes an email, so the inbox is
+   * the last office surface the nightly instrument has never seen. Three
+   * slices have landed on that surface regardless — the reply bank § 14
+   * sharpened, `emailSomeone`'s missing working-memory write, and 2026-11-09's
+   * said-line nesting, which landed squarely on this path — and every one was
+   * measured by a sweep because there was no axis here to read.
+   *
+   * Five things in it are load-bearing.
+   *
+   * 1. **It sits down, and that is the product's rule rather than a shortcut.**
+   *    `DeskOsTaskbar.jsx` returns null on the floor — "the floor is the
+   *    physical world — no OS chrome while you are standing" — so mail is a
+   *    desk-world verb and there is no floor affordance to reach it with. The
+   *    step presses the floor's **own** way back (`.office-floor-sit`, the top
+   *    bar's button) rather than calling `sitDown()`, for step 9's reason: a
+   *    store call would report a working wire on a night the control had come
+   *    unhooked. The anchor the comms cluster portals into is `DeskChromeAnchor`
+   *    in the harness page, which mirrors the same floor rule.
+   * 2. **`roomDelta` is cut here, not at the end.** It answers "what did the
+   *    room look like at the end that did not look like that at the start", and
+   *    the room is the floor; sitting down unmounts every figure, seat and
+   *    surface in it, which would turn nine weeks of end-of-visit room shots
+   *    into "the floor is gone". So the floor's exit shot is taken before the
+   *    sit and `roomDelta.cutAt` says which shot was used — the same trick
+   *    `speech.throughStep7` plays on the totals, for the same reason.
+   * 3. **Every control is pressed in the DOM, and found by what it says.** The
+   *    inbox footer's three actions share one class and their order is a layout
+   *    decision, so the compose verb is matched against `officeChromeCopy()`'s
+   *    own label read out of the module — not hard-coded English, which would
+   *    make the step silently locale-dependent — and the recipient against
+   *    `officeSenderInfo(id).name`, which is step 8's rule applied twice.
+   * 4. **The compose window closing is the delivery.** `handleComposeSend`
+   *    awaits `emailSomeone` before it calls `cancelCompose`, so the panel
+   *    detaching means the reply has landed. A fixed wait would have to cover
+   *    `replyDelayMs('email')` (1.2–3.1 s) *plus* a model turn and would report
+   *    a missing reply on a slow night, which is the one failure an instrument
+   *    must not invent.
+   * 5. **It is last, and the reply is read as the record rather than as
+   *    speech.** An email is never voiced (`isSpokenLine`) and the inbox is not
+   *    a floor surface, so nothing it produces reaches `speech` at all — which
+   *    is why the `email` block exists and why a run reading `speech.count` for
+   *    this step would read zero for ever.
+   */
+  await step(steps, 'email-a-colleague', async () => {
+    await page.evaluate(() => {
+      window.__visit.state.floorExitShot = window.__visit.roomShot();
+      window.__visit.state.floorExitPeek = window.__visit.peekShot();
+      window.__visit.state.floorExitSurfaces = window.__visit.speechSurfacesNow();
+    });
+    const sat = await page.evaluate(() => {
+      const button = document.querySelector('.office-floor-sit');
+      button?.click();
+      return Boolean(button);
+    });
+    if (!sat) throw new Error('the floor top bar had no way back to the desk');
+    const leftTheFloor = await page
+      .waitForSelector('.office-floor', { state: 'detached', timeout: STEP_TIMEOUT_MS })
+      .then(() => true)
+      .catch(() => false);
+    if (!leftTheFloor) throw new Error('pressing the sit button never left the floor');
+    const mail = await page
+      .waitForSelector('[data-testid="desk-comms-inbox"]', { timeout: STEP_TIMEOUT_MS })
+      .catch(() => null);
+    if (!mail) throw new Error('the desk comms cluster never arrived at the desk');
+    await mail.click();
+    const composeLabel = await page.evaluate(() =>
+      import('/src/utils/officeCast.js').then((cast) => {
+        const label = String(cast.officeChromeCopy().inbox.compose ?? '').trim();
+        const button = [...document.querySelectorAll('.office-inbox-footer-action')].find(
+          (node) => (node.textContent ?? '').trim() === label
+        );
+        button?.click();
+        return button ? label : null;
+      })
+    );
+    if (!composeLabel) throw new Error('the inbox drew no compose action');
+    const picked = await page.evaluate(
+      (fixture) =>
+        import('/src/utils/officeCast.js').then((cast) => {
+          const name = String(cast.officeSenderInfo(fixture.colleagueId)?.name ?? '').trim();
+          const button = [...document.querySelectorAll('.office-colleague-picker-person')].find(
+            (node) =>
+              (
+                node.querySelector('.office-colleague-picker-person-name')?.textContent ?? ''
+              ).trim() === name
+          );
+          button?.click();
+          return button ? name : null;
+        }),
+      EMAIL_FIXTURE
+    );
+    if (!picked) {
+      throw new Error(`${EMAIL_FIXTURE.colleagueId} is not in the compose directory`);
+    }
+    const subjectField = await page
+      .waitForSelector('.office-email-compose-field input[type="text"]', {
+        timeout: STEP_TIMEOUT_MS
+      })
+      .catch(() => null);
+    const bodyField = await page
+      .waitForSelector('.office-email-compose-field textarea', { timeout: STEP_TIMEOUT_MS })
+      .catch(() => null);
+    if (!subjectField || !bodyField) throw new Error('the compose form never drew its fields');
+    await subjectField.fill(EMAIL_FIXTURE.subject);
+    await bodyField.fill(EMAIL_FIXTURE.body);
+    /*
+     * **Ids, not a count.** The visit arrives at the desk with mail already in
+     * the tray (the welcome email), so "the newest message from that
+     * colleague" is only the reply if nothing of theirs was there first — and
+     * a block that assumed so would report a reply on a night none arrived,
+     * which is the one error an instrument may not make.
+     */
+    const inboxBeforeIds = await page.evaluate(() =>
+      import('/src/state/officeMomentStore.js').then((store) =>
+        (store.getOfficeSnapshot().emails ?? []).map((entry) => entry.id)
+      )
+    );
+    await page.evaluate(
+      (sent) => {
+        window.__visit.state.emailSent = { atMs: window.__visit.now(), ...sent };
+      },
+      { ...EMAIL_FIXTURE, inboxBefore: inboxBeforeIds.length, inboxBeforeIds }
+    );
+    /*
+     * **Pressed in page context, for steps 8 and 9's reason.** The compose
+     * window is a `FloatingWindow` — transformed, layered and animated — and
+     * an element-handle click there waits on hit-testing that reads exactly
+     * like the button not being wired when it misses. The disabled state is
+     * reported separately because it means something specific: `handleComposeSend`
+     * refuses an empty form, so a disabled send button is a failed `fill`,
+     * not a failed click.
+     */
+    const sendState = await page
+      .waitForSelector('.office-email-compose-send', { timeout: STEP_TIMEOUT_MS })
+      .then(() =>
+        page.evaluate(() => {
+          const button = document.querySelector('.office-email-compose-send');
+          if (!button) return 'missing';
+          if (button.disabled) return 'disabled';
+          button.click();
+          return 'pressed';
+        })
+      )
+      .catch(() => 'missing');
+    if (sendState !== 'pressed') {
+      throw new Error(`the compose form's send button was ${sendState}`);
+    }
+    /* Generous on purpose, and it is the only wait in the file that has to
+       cover a model turn *behind* a jittered pause — see point 4 above. */
+    const delivered = await page
+      .waitForSelector('.office-email-compose', { state: 'detached', timeout: 40_000 })
+      .then(() => true)
+      .catch(() => false);
+    const inboxAfter = await page.evaluate(() =>
+      import('/src/state/officeMomentStore.js').then(
+        (store) => (store.getOfficeSnapshot().emails ?? []).length
+      )
+    );
+    return (
+      `sat down off the floor; wrote ${EMAIL_FIXTURE.colleagueId} “${EMAIL_FIXTURE.subject}”; ` +
+      `${delivered ? 'the compose window closed on delivery' : 'the compose window never closed'}; ` +
+      `inbox ${inboxBeforeIds.length} → ${inboxAfter}`
+    );
+  });
+
   return steps;
 }
 
@@ -1460,16 +1765,19 @@ async function main() {
                Gilfoyle · Systems Architect, UnimpressedI already fixed it…"),
                which is the same shape the harvest's innermost-match filter
                exists to drop — and reporting it here would make `drawn` a
-               string no bank holds. */
-            const surface = document.querySelector('[data-testid="office-floor-peek-line"]');
-            const node = surface?.querySelector('.office-floor-bubble-body') ?? surface;
+               string no bank holds.
+
+               Read off the floor's own exit snapshot when the tenth step took
+               one — `peekShot` has the argument, and `readAt` says which it
+               was rather than leaving a reader to infer a null. */
+            const held = window.__visit.state.floorExitPeek;
+            const shot = held ?? window.__visit.peekShot();
             const work = peeked ? deskWork.deskWorkFor(peeked) : null;
             return {
               colleagueId: peeked ?? null,
-              standingThere: Boolean(
-                document.querySelector('[data-testid="office-floor-peek-card"]')
-              ),
-              drawn: node ? (node.textContent ?? '').trim().slice(0, 400) : null,
+              standingThere: shot.standingThere,
+              drawn: shot.drawn,
+              readAt: held ? 'floor-exit' : 'end-of-visit',
               bankLine: work?.line ?? null,
               doing: work?.doing ?? null,
               look: work?.look ?? null
@@ -1515,9 +1823,72 @@ async function main() {
       )
       .catch((err) => ({ error: String(err?.message ?? err).split('\n')[0] }));
 
+    /*
+     * **What the email produced, read out of the inbox rather than out of
+     * `speech`.** An email is never voiced and the inbox is not a floor
+     * surface, so nothing this step produces is harvested — a run that read
+     * `speech` for it would read zero for ever, which is the 2026-09-06 shape
+     * (`visit-cannot-see-afterwards`) one surface further on.
+     *
+     * Three facts, all literal. The **newest inbound mail from the fixture's
+     * colleague** is the reply, found by colleague rather than by position
+     * because the ambient director can push mail of its own; the **bank
+     * template for that colleague** ships beside it, so `isTheBankSubject`
+     * compares the drawn subject with a string the bank actually holds rather
+     * than inferring a source; and the **beat** `emailSomeone` claims to write
+     * is read off the record, not off `promptLines`, for the reason
+     * `visit-trace-reads-promptlines-not-the-record` states.
+     *
+     * Whether the reply *engages* the subject is semantic and is deliberately
+     * not answered here (§ 14). `quotesWhatYouWrote` is containment and
+     * nothing more, and the block's `rule` says so out loud.
+     */
+    const email = await page
+      .evaluate(
+        (fixture) =>
+          Promise.all([
+            import('/src/state/officeMomentStore.js'),
+            import('/src/state/officeWorkingMemoryStore.js'),
+            import('/src/utils/officeEmailReplyFallbacks.js')
+          ]).then(([store, memory, bank]) => {
+            const emails = store.getOfficeSnapshot().emails ?? [];
+            const before = new Set(window.__visit.state.emailSent?.inboxBeforeIds ?? []);
+            const reply =
+              emails.find(
+                (entry) => entry.colleagueId === fixture.colleagueId && !before.has(entry.id)
+              ) ?? null;
+            const template =
+              bank
+                .officeEmailReplyFallbacks()
+                .find((row) => row.colleagueId === fixture.colleagueId) ?? null;
+            const beats = memory.getWorkingMemoryWith(fixture.colleagueId)?.beats ?? [];
+            return {
+              colleagueId: fixture.colleagueId,
+              inboxAtEnd: emails.length,
+              reply: reply
+                ? {
+                    subject: String(reply.subject ?? '').slice(0, 200),
+                    body: String(reply.body ?? '').slice(0, 400),
+                    read: Boolean(reply.read),
+                    offeredAPrompt: Boolean(reply.actionPrompt)
+                  }
+                : null,
+              bank: template
+                ? { templateId: template.id, subject: template.subject }
+                : { templateId: null, subject: null },
+              beats: beats.length,
+              promptLines: memory.workingMemoryPromptLines(fixture.colleagueId)
+            };
+          }),
+        EMAIL_FIXTURE
+      )
+      .catch((err) => ({ error: String(err?.message ?? err).split('\n')[0] }));
+
     const collected = await page.evaluate(() => ({
       speech: window.__visit.state.speech,
       eighthStepAtMs: window.__visit.state.eighthStepAtMs ?? null,
+      emailSent: window.__visit.state.emailSent ?? null,
+      floorExitShot: window.__visit.state.floorExitShot ?? null,
       read: window.__visit.state.read,
       fetches: window.__visit.state.fetches,
       notes: window.__visit.state.notes,
@@ -1525,7 +1896,10 @@ async function main() {
       errors: window.__visit.state.errors,
       figures: window.__visit.figures(),
       wanderers: window.__visit.wanderers(),
-      endSurfaces: window.__visit.speechSurfacesNow()
+      /* The floor's surfaces, read while the floor existed when the tenth step
+         left it — same argument as `peek.readAt`. */
+      endSurfaces: window.__visit.state.floorExitSurfaces ?? window.__visit.speechSurfacesNow(),
+      endSurfacesReadAt: window.__visit.state.floorExitSurfaces ? 'floor-exit' : 'end-of-visit'
     }));
 
     const trace = buildTrace({
@@ -1535,7 +1909,7 @@ async function main() {
       steps,
       before,
       after,
-      collected: { ...collected, imHistoryAtEnd, afterwards, peek, walkby }
+      collected: { ...collected, imHistoryAtEnd, afterwards, peek, walkby, email }
     });
     const json = JSON.stringify(trace, null, 2);
     console.log(json);
@@ -1684,6 +2058,44 @@ function buildTrace({ args, startedAt, t0, steps, before, after, collected }) {
           'different questions — a canned line and an unasked-for one both read `bank`'
       };
 
+  /*
+   * Derived here rather than in the page, the way `peek` and `walkby` are, so
+   * the raw strings ship beside every verdict and a later run can disagree
+   * with a reading without re-running the visit.
+   */
+  const email = collected.email?.error
+    ? collected.email
+    : (() => {
+        const sent = collected.emailSent ?? null;
+        const reply = collected.email?.reply ?? null;
+        /* The first clause of what the user typed, long enough that
+           containment is not a coincidence — the same `MIN_LOOSE_MATCH`
+           argument `attribute` makes about a truncated surface. */
+        const typed = loose(sent?.subject ?? '').slice(0, 24);
+        return {
+          ...(collected.email ?? {}),
+          sent: sent ? { atMs: sent.atMs, subject: sent.subject, body: sent.body } : null,
+          inbox: { before: sent?.inboxBefore ?? null, after: collected.email?.inboxAtEnd ?? null },
+          replied: Boolean(reply),
+          isTheBankSubject:
+            reply && collected.email?.bank?.subject
+              ? loose(reply.subject) === loose(collected.email.bank.subject)
+              : null,
+          source: reply ? attribute({ text: reply.body }) : null,
+          quotesWhatYouWrote:
+            reply && typed.length >= MIN_LOOSE_MATCH
+              ? loose(reply.body).includes(typed) || loose(reply.subject).includes(typed)
+              : null,
+          beatWritten: (collected.email?.beats ?? 0) > 0,
+          rule:
+            'observed: the newest inbound mail from the fixture colleague, read off the inbox ' +
+            '(an email is never voiced, so it never reaches `speech`); `isTheBankSubject` is a ' +
+            "literal comparison with that colleague's own reply template and `source` is the " +
+            'same attribution `speech.bySource` uses; `quotesWhatYouWrote` is containment of ' +
+            'the subject you typed and is **not** a verdict on whether the reply engaged it'
+        };
+      })();
+
   const figures = collected.figures
     .map((figure) => ({
       id: figure.id,
@@ -1717,12 +2129,29 @@ function buildTrace({ args, startedAt, t0, steps, before, after, collected }) {
      * `afterwards…beats[].pitchDeclined`, and the `walkby` channel — mapped
      * since version 1 and never once fired — finally has a step that provokes
      * it.
+     * 7: a **tenth step** sits down off the floor, writes one email to a named
+     * colleague and waits for the answer, so the inbox — the last office
+     * surface no step had ever opened — is observable. `speech` totals are
+     * unaffected (an email is never voiced and the inbox is not a floor
+     * surface, so nothing it produces is harvested), and `speech.throughStep7`
+     * remains the field to read against every version from 4 onward. The
+     * report gained `email`, and **four observations that were silently
+     * end-of-visit DOM reads now say when they were taken**: `roomDelta.cutAt`,
+     * `peek.readAt` and `speech.endSurfacesReadAt` are `floor-exit` whenever a
+     * tenth step ran, because the tenth step leaves the room all three are
+     * facts about. A version-7 `roomDelta`, `peek` and `endSurfaces` are
+     * therefore directly comparable with every earlier version; without the
+     * snapshots `peek.isTheBankLine` went `true → null` in 3 of 3 and
+     * `endSurfaces` came back empty, neither of which is a change in the room.
+     * `movement` is comparable for a related reason — `sampleFigures` now
+     * refuses to measure without a stage instead of falling back to
+     * `document.body`.
      * Version 1 attributed `bySource` by an 8 s clock window, which over-credits any
      * bank line drawn behind a mid-visit model call — so a v1 `bySource.model`
      * from a run whose call was not the last thing to happen has to be re-read
      * against `modelTurns`, and this field is how a reader can tell which.
      */
-    version: 6,
+    version: 7,
     startedAt,
     durationMs: Date.now() - t0,
     mode: {
@@ -1762,6 +2191,7 @@ function buildTrace({ args, startedAt, t0, steps, before, after, collected }) {
       modelTurns,
       delivered: collected.delivered ?? [],
       endSurfaces: collected.endSurfaces,
+      endSurfacesReadAt: collected.endSurfacesReadAt ?? 'end-of-visit',
       imHistoryAtEnd: collected.imHistoryAtEnd,
       sourceRule:
         'derived: a line whose text matches text a 2xx /api/office response delivered is the ' +
@@ -1782,6 +2212,7 @@ function buildTrace({ args, startedAt, t0, steps, before, after, collected }) {
             '`beatWritten` is the refusal `officeWalkByMemory.js` writes, and ' +
             '`wroteTheTwinInstead` catches the Do it path firing from the dismiss button'
         },
+    email,
     read: {
       cards: collected.read ?? [],
       rule:
@@ -1809,15 +2240,26 @@ function buildTrace({ args, startedAt, t0, steps, before, after, collected }) {
         'observed: one row per errand (seat + prop, off `data-wander-prop`); `settledAtMs` is ' +
         'null when they never stood at the thing, which is what an interrupted trip looks like'
     },
-    roomDelta: diffRoom(before, after),
+    /* Cut at the floor exit when the tenth step took one — see that step's
+       point 2 and `diffRoom`'s own note. */
+    roomDelta: diffRoom(before, collected.floorExitShot ?? after, {
+      cutAt: collected.floorExitShot ? 'floor-exit' : 'end-of-visit'
+    }),
     afterwards: collected.afterwards,
     pageErrors: collected.errors,
     notes: collected.notes
   };
 }
 
-/** What the room looked like at the end that did not look like that at the start. */
-function diffRoom(before, after) {
+/**
+ * What the room looked like at the end that did not look like that at the
+ * start — where "the room" is the **floor**, which is why the tenth step hands
+ * over its own shot. Sitting down unmounts every figure, seat and surface on
+ * the floor, so diffing against the end of the *process* would report "the
+ * room is gone" and silently retire nine weeks of comparable room shots.
+ * `cutAt` is reported so a reader never has to infer which shot was used.
+ */
+function diffRoom(before, after, { cutAt = 'end-of-visit' } = {}) {
   const changed = {};
   for (const key of ['viewPhase', 'dayPhase', 'people']) {
     if (before[key] !== after[key]) changed[key] = { before: before[key], after: after[key] };
@@ -1836,7 +2278,8 @@ function diffRoom(before, after) {
     surfaces,
     seatsVacated: after.vacantSeats.filter((seat) => !seatsBefore.has(seat)),
     seatsRefilled: before.vacantSeats.filter((seat) => !seatsAfter.has(seat)),
-    cards: { before: before.cards, after: after.cards }
+    cards: { before: before.cards, after: after.cards },
+    cutAt
   };
 }
 
