@@ -216,6 +216,10 @@ test('validateChartStrict surfaces Flint errors', () => {
 
 test('every chart type in the Flint prompt compiles from the installed library', () => {
   const types = listFlintChartTypes().map((t) => t.chart);
+  assert.ok(
+    types.length > 0,
+    'listFlintChartTypes must not be empty — the sweep below would pass on nothing'
+  );
   assert.ok(types.includes('Line Chart'));
   assert.ok(!types.includes('Choropleth'));
   for (const chart of types) assert.ok(CHART_FLINT_SYSTEM_PROMPT.includes(`- ${chart}:`), chart);

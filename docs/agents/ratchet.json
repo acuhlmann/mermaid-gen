@@ -94,9 +94,9 @@
         "reason": "2026-11-15: 461→465 — measured suite file growth on main since 2026-11-12."
       },
       "cases": {
-        "budget": 5443,
+        "budget": 5458,
         "initial": 3675,
-        "reason": "2026-11-15: 5399→5443 — measured case growth on main since 2026-11-12 (office-life + CI tests)."
+        "reason": "2026-11-16: 5443→5458 — measured suite case growth on main since 2026-11-15 (god/office-life tests)."
       }
     }
   }

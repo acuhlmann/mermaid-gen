@@ -344,7 +344,10 @@ describe('looking closer at a prop', () => {
   });
 
   it('every usable prop has something to find', () => {
-    for (const kind of usablePropKinds()) {
+    const kinds = usablePropKinds();
+    // Companion non-empty assertion: a sweep over an emptied prop list passes while examining nothing.
+    expect(kinds.length).toBeGreaterThan(0);
+    for (const kind of kinds) {
       expect(propCopy().items[kind]?.details?.length ?? 0).toBeGreaterThan(0);
     }
   });
