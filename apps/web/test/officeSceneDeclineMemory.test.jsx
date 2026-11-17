@@ -28,10 +28,10 @@ import {
   _resetForTests,
   acceptOfficeCoffee,
   getOfficeSnapshot,
-  joinOfficeCoffee,
   pushOfficeBattleInvite,
   pushOfficeCoffeeInvite
 } from '../src/state/officeMomentStore.js';
+import { joinOfficeCoffeeWithMemory } from '../src/utils/officeSceneJoinMemory.js';
 import {
   _resetOfficeWorkingMemoryForTests,
   hasWorkingMemoryFact,
@@ -201,15 +201,23 @@ describe('noticed, never chased', () => {
 
   /*
    * Changing your mind does not erase the fact that you said no first. That is
-   * the honest reading — the room saw both — and it is also what stops a join
-   * from needing to know about memory at all.
+   * the honest reading — the room saw both.
+   *
+   * It is also all this suite claims. The case used to assert the refusal was
+   * the *only* line afterwards and read that as "a join need not know about
+   * memory at all", which was a second claim nobody had argued: the refusal left
+   * standing alone was then the office's whole record of an episode that ended
+   * with you in the kitchen. The yes is `officeSceneJoinMemory.js`'s, and its
+   * own suite pins the pair; what belongs here is that the no survives it.
    */
   it('keeps the beat when you later walk over and join after all', () => {
     pushOfficeCoffeeInvite({ lines: COFFEE_CAST });
-    declineOfficeCoffeeWithMemory();
+    const declined = declineOfficeCoffeeWithMemory();
 
-    expect(joinOfficeCoffee({ speakerId: 'gary', text: '…anyway. Oh — hello.' })).toBe(true);
-    expect(workingMemoryPromptLines('gary')).toEqual([COFFEE_LINE]);
+    expect(joinOfficeCoffeeWithMemory(declined, { speakerId: 'gary', text: '…Oh — hello.' })).toBe(
+      true
+    );
+    expect(workingMemoryPromptLines('gary')[0]).toBe(COFFEE_LINE);
   });
 });
 
@@ -317,17 +325,24 @@ describe('end to end, through OfficeLayer', () => {
   });
 
   /*
-   * Accepting is the negative case that keeps both lines honest. It is the same
-   * panel and the same scene, and it is not a refusal — a beat here would tell
-   * the next `/moment` you skipped a break you walked into.
+   * Accepting is the negative case that keeps both *decline* lines honest: it is
+   * the same panel and the same scene, and it is not a refusal — a refusal beat
+   * here would tell the next `/moment` you skipped a break you walked into.
+   *
+   * What it is not is "no mark at all". That was this case's assertion until
+   * `officeSceneJoinMemory.js` shipped, and it was pinning an absence rather
+   * than the rule — the rule is about *which* answer the room recorded. So it
+   * now asserts the refusal lines are the ones that stay away, and the join
+   * suite owns what arrives instead.
    */
-  it('taking the break leaves no mark', () => {
+  it('taking the break leaves no refusal behind', () => {
     pushOfficeCoffeeInvite({ lines: COFFEE_CAST });
     render(<OfficeLayer {...BASE_PROPS} />);
 
     fireEvent.click(screen.getByRole('button', { name: OFFICE_CHROME_COPY.coffee.accept }));
 
     expect(getOfficeSnapshot().coffee.accepted).toBe(true);
-    expect(hasWorkingMemoryFact('gary')).toBe(false);
+    expect(workingMemoryPromptLines('gary')).not.toContain(COFFEE_LINE);
+    expect(workingMemoryPromptLines('gary')).not.toContain(BATTLE_LINE);
   });
 });

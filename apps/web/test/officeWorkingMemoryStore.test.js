@@ -10,6 +10,7 @@ import {
   OFFICE_WORKING_MEMORY_INTERRUPTIONS,
   OFFICE_WORKING_MEMORY_MEDIUMS,
   OFFICE_WORKING_MEMORY_SCENE_DECLINES,
+  OFFICE_WORKING_MEMORY_SCENE_JOINS,
   OFFICE_WORKING_MEMORY_STORAGE_KEY,
   readOfficeWorkingMemory,
   writeOfficeWorkingMemory
@@ -678,6 +679,79 @@ describe('a suggestion of theirs you did not take', () => {
  * another string literal: a twelfth bank added in the user's voice fails here
  * without anybody having to think of it.
  */
+/**
+ * A set piece you came to (`officeSceneJoinMemory.js`).
+ *
+ * The eighth aimed edge, and the second one whose opposite was already
+ * recorded — but the pair sat the other way round from the walk-by's. Every
+ * refusal in this room wrote a fact; the only acceptance that did was
+ * `pitchTaken`. So the office kept every no about a coffee break and forgot
+ * that you turned up, and because a declined scene keeps running and keeps
+ * offering you the way in, the refusal was left standing as the whole record of
+ * an episode it had stopped being true about.
+ *
+ * Four properties decide it, and the first two are why the field is not simply
+ * `sceneDeclined` inverted: it is an **enum over the same two kinds**, aliased
+ * rather than copied so a third joinable scene cannot be refusable and not
+ * joinable; it is **independent of the decline**, because "no, then yes" is a
+ * path the floor invites and both facts are true in order; the value is
+ * **bounded**, so a floor cannot put a sentence of its own into a prompt; and
+ * it survives a reload, which the write side alone cannot promise.
+ */
+describe('a set piece you came to', () => {
+  const COFFEE_JOINED = 'the user came along to your coffee break';
+  const COFFEE_DECLINED =
+    'you asked the user along for a coffee; they stayed at their desk and you went anyway';
+
+  it('is on its own enough of a fact, and reads as the answer you gave', async () => {
+    const { hasWorkingMemoryFact, rememberWorkingMemoryBeat, workingMemoryPromptLines } =
+      await freshStore();
+    rememberWorkingMemoryBeat('gary', { sceneJoined: 'coffee', now: at(10, 0) });
+
+    expect(hasWorkingMemoryFact('gary')).toBe(true);
+    expect(workingMemoryPromptLines('gary')).toEqual([COFFEE_JOINED]);
+  });
+
+  it('has a sentence for every kind the floor can offer, and no other value gets in', async () => {
+    const { rememberWorkingMemoryBeat, workingMemoryPromptLines } = await freshStore();
+
+    expect(OFFICE_WORKING_MEMORY_SCENE_JOINS.length).toBeGreaterThan(0);
+    for (const kind of OFFICE_WORKING_MEMORY_SCENE_JOINS) {
+      const id = `seat-${kind}`;
+      rememberWorkingMemoryBeat(id, { sceneJoined: kind, now: at(10, 0) });
+      const [line] = workingMemoryPromptLines(id);
+      expect(line, kind).toMatch(/^the user came/);
+    }
+
+    rememberWorkingMemoryBeat('nope', { sceneJoined: 'retro', now: at(10, 0) });
+    expect(workingMemoryPromptLines('nope')).toEqual([]);
+  });
+
+  /*
+   * The whole argument for a field of its own rather than a third value on
+   * `sceneDeclined`. The floor leaves a declined scene running and keeps
+   * offering the way in, so saying no and then coming anyway is a path it
+   * invites — and the pair in order is the history. An enum covering both would
+   * have had to delete one half of what the room actually saw.
+   */
+  it('coexists with the refusal it followed, in the order the room saw them', async () => {
+    const { rememberWorkingMemoryBeat, workingMemoryPromptLines } = await freshStore();
+    rememberWorkingMemoryBeat('gary', { sceneDeclined: 'coffee', now: at(10, 0) });
+    rememberWorkingMemoryBeat('gary', { sceneJoined: 'coffee', now: at(10, 2) });
+
+    expect(workingMemoryPromptLines('gary')).toEqual([COFFEE_DECLINED, COFFEE_JOINED]);
+  });
+
+  it('is still there after a reload, which the write side alone cannot promise', async () => {
+    const first = await freshStore();
+    first.rememberWorkingMemoryBeat('gary', { sceneJoined: 'coffee' });
+    const second = await freshStore();
+
+    expect(second.hasWorkingMemoryFact('gary')).toBe(true);
+    expect(second.workingMemoryPromptLines('gary')).toEqual([COFFEE_JOINED]);
+  });
+});
+
 describe("every prompt line is written in the speaker's second person", () => {
   /*
    * One beat field per colleague, because `workingMemoryPromptLines` caps at six
@@ -710,6 +784,7 @@ describe("every prompt line is written in the speaker's second person", () => {
 
     for (const reaction of OFFICE_WORKING_MEMORY_INTERRUPTIONS) push({ interrupted: reaction });
     for (const scene of OFFICE_WORKING_MEMORY_SCENE_DECLINES) push({ sceneDeclined: scene });
+    for (const scene of OFFICE_WORKING_MEMORY_SCENE_JOINS) push({ sceneJoined: scene });
     for (const medium of OFFICE_WORKING_MEMORY_MEDIUMS) {
       push({ yours: 'does billing read the ledger?', theirs: 'no.', medium });
     }

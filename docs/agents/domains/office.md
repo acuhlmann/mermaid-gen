@@ -1021,6 +1021,33 @@ today'` (`officeBoardRecall.js`), `'you said:'` / `'they said:'` for the quotes 
   reply once the ids that were already there are excluded. That is also what makes this step free:
   `speech.count`, `byChannel`, `bySource` and `throughStep7` are **unchanged in 3 of 3** by a step
   that sends mail and gets an answer, so no baseline was retired to add it.
+- **Every refusal in this room writes a fact; until 2026-11-17 only one acceptance did, and a set
+  piece inverted the walk-by's asymmetry in the worse direction.** The walk-by kept its hits and
+  forgot its misses; a coffee break and a cubicle battle kept every no and forgot that you turned
+  up — and because `declineOfficeCoffee` leaves the scene running and `sceneJoinOfferFor` keeps
+  offering the way back in, "no, then yes" is a path the floor actively **invites**. Walk it and the
+  asker carried _"they stayed at their desk and you went anyway"_ into the next thing they said to
+  you, which is not an absent fact but a stated circumstance the room contradicted — the
+  fabrication the situation rule was measured on at 8 of 12, arriving through memory instead of
+  through a prompt. `apps/web/src/utils/officeSceneJoinMemory.js` is the writer (`sceneJoined`, the
+  eighth aimed edge), on the **first participant** and nobody else, with **one sentence per scene
+  that names the scene and never the door** — an accept on the invite and the floor's _Join in_ are
+  the same answer, and when it was the second door the decline beat sits directly above it in the
+  same ordered list, so the history reads itself. The field is an enum over
+  `OFFICE_WORKING_MEMORY_SCENE_JOINS`, which **is** `OFFICE_WORKING_MEMORY_SCENE_DECLINES` (the same
+  frozen array, aliased not copied: a third joinable set piece must not be refusable and not
+  joinable). And it is **independent** of `sceneDeclined` rather than a third value on it, for
+  `pitchTaken`/`pitchDeclined`'s reason — both true of one colleague is a history, not a
+  contradiction.
+- **`acceptOfficeCoffee` is `dismissOfficeMeetingInvite` at a different door: two callers, one
+  answer.** `handleAcceptCoffee` is a press on an invite somebody sent you; `useDeskActions.getCoffee`
+  is you walking to the machine on your own (_"no invite pill, you're already standing there"_),
+  which pushes a scripted break and accepts it in the same breath. A beat written inside the store
+  would tell that scene's cast they had invited you somewhere they never invited you to. So the
+  store returns the accepted scene and writes nothing, the caller that knows it was an answer owns
+  the write, and the negative case is pinned beside the positive one — **measured**: moving the write
+  into the mutator turns `writes nothing when the bare store call accepts it` red, which is exactly
+  where a wiring mistake would put it.
 
 ## Full findings
 
@@ -2789,3 +2816,75 @@ nothing in the instrument could see it before tonight.
 `speech.throughStep7` **12 / model 2, bank 10** are unchanged in 3 of 3 — an email is never voiced
 and the inbox is not a floor surface, so no total was retired to add a step. `afterwards.logDigest`
 goes 7 → **8** and `workingMemory` gains a fifth row. The visit runs **54 s → 60 s**.
+
+### Coming to a set piece: the acceptance the room forgot, and why forgetting it was worse than silence
+
+The refusal sweep that ran from 2026-10-25 to 2026-11-13 closed five ✕s — a dropped errand, a
+declined calendar invite, a declined coffee break, a walked-away-from argument, a waved-off walk-by —
+and each row said the same thing about why it mattered: a room that notices nothing you refuse is
+keeping a script with a pause in it. What none of them noticed is that the office had only ever
+recorded **one** acceptance in the whole building. `pitchTaken` has been written on whoever's
+suggestion you used since working memory existed. Every other yes was invisible.
+
+**On a set piece that inverts the walk-by's asymmetry, and the inversion is the worse one.** The
+walk-by kept its hits and forgot its misses, which is a room flattering itself. A set piece kept
+every no and forgot every yes — and `declineOfficeCoffee` deliberately leaves the scene standing
+while `sceneJoinOfferFor` keeps offering you the way back in, so declining and then walking over is
+not an edge case, it is the path slice 28 built on purpose and the floor puts a card in front of you
+to suggest. Take it and Gary has one fact about the morning: _"you asked the user along for a coffee;
+they stayed at their desk and you went anyway."_ You are the person who crossed the room and stood in
+his kitchen while he trailed off at you. **That is not a gap in the record — it is the record stating
+a circumstance the room went on to contradict**, which is the fabrication failure this domain
+measured at 8 of 12 under the situation rule, arriving through memory rather than through a prompt.
+The general form is worth keeping separate from the refusal sweep's: _an absent beat costs you a line
+the colleague could have spoken; a **stale** beat spends a line saying something untrue._
+
+**One field, two doors, one sentence per scene.** A join is reachable from the accept on the invite
+and from the floor's _Join in_ after a decline. `sceneJoined` names the scene and never the door, for
+the reason the meeting invite's single line covers its two refusals: a sentence saying which one
+needs a field the beat does not carry, and `INTERRUPTION_PROMPT_LINES`' failure mode is a line that
+guesses. It is also unnecessary — when it was the second door the decline beat is sitting directly
+above this one in the same ordered list, so the pair reads as the history it is. The lines state the
+circumstance and stop (`the user came along to your coffee break`, `the user came in on your
+argument`): not that the break was good company, and above all not that you settled the argument,
+because `voteOfficeBattle` has not run when the beat is written and a line claiming an outcome would
+be claiming one that may never arrive.
+
+**The enum is aliased, not copied.** `OFFICE_WORKING_MEMORY_SCENE_JOINS` **is**
+`OFFICE_WORKING_MEMORY_SCENE_DECLINES` — the same frozen array, exported under a second name. A
+second literal holding the same two strings is a list that can drift from the one above it, and the
+drift has a specific shape: add a third joinable set piece to one and the office would remember
+refusing it and forget joining it, which is the asymmetry the field exists to close. Aliasing makes
+"the kinds are the same kinds" a property instead of a convention. The field itself is **separate
+from** `sceneDeclined` rather than a third value on it, for `pitchTaken`/`pitchDeclined`'s reason:
+both true of one colleague is correct and an enum would have had to delete half of what the room saw.
+
+**Where the write must not go, and it is a rule this domain has already paid for once.**
+`acceptOfficeCoffee` has two callers and only one of them is an answer — `handleAcceptCoffee` is a
+press on an invite, and `useDeskActions.getCoffee` is you walking to the machine with nobody having
+asked you, which pushes a scripted break and accepts it in one go. This is
+`dismissOfficeMeetingInvite`'s finding at a different door (four callers, one refusal), and the same
+resolution: the store returns the scene it put you in and writes nothing, and the caller that knows
+owns the write. **Measured rather than argued** — a throwaway probe moving the write into the mutator
+turned `writes nothing when the bare store call accepts it` red along with three cases that then
+double-wrote, so the negative case goes red exactly where a wiring mistake would put the write, which
+is the only thing that makes it evidence rather than decoration.
+
+**Five red directions, because they localize five different claims.** Revert all of `apps/web/src` →
+**15 red**. Revert **only** `OfficeLayer.jsx` → **exactly 2**, both of them the end-to-end wiring
+cases, so the writer and its wiring are independent halves. Revert **only** `officeMomentStore.js` →
+**exactly 7**, every one of them the accept door, with all four join-door cases staying green —
+the two doors are independently wired. Revert **only** `officeAmbienceStorage.js` → **13** (the
+field is dropped on the way in and the way back off disk). Revert **only**
+`officeWorkingMemoryStore.js` → **13** (the field is stored and has no sentence). Two cases are green
+in both directions on purpose and carry the claim: the bare-store-call negative above, and the
+withheld-verb case, where a blank closing line makes the store refuse the join and no memory of a
+join that did not happen may survive it.
+
+**The visit is structurally blind to this, and that is the visit's subject rather than its report.**
+The ten fixed steps never receive a set-piece invite — the ambient director is held while a surface
+is open, by design — so three generated traces are the regression check and nothing more: identical
+to each other and to 2026-11-16's merged baseline on steps, `speech`, `peek`, `walkby`, `email`,
+`roomDelta`, the five `workingMemory` rows and `logDigest` 8, differing only in a model-written
+subject line and in millisecond timestamps. Same rule as 2026-09-09 and 2026-10-31: say which
+measurement replaced the trace, and keep the runs.
