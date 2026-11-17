@@ -1,14 +1,21 @@
+/** Subset of insight entry fields this helper reads (kept local — utils must not import components). */
+export type ExplainEntryMarkdownInput = {
+  content?: string;
+  explainSections?: {
+    preamble?: string;
+    sections?: { heading?: string; body?: string }[];
+  };
+};
+
 /**
  * Serialize a thinking-panel explain entry back to markdown for dumb-down requests.
  * Prefer structured explainSections when present — that is what the UI renders.
- *
- * @param {{ content?: string, explainSections?: { preamble?: string, sections?: { heading: string, body?: string }[] } }} entry
  */
-export function explainEntryMarkdown(entry) {
+export function explainEntryMarkdown(entry: ExplainEntryMarkdownInput | null | undefined): string {
   const es = entry?.explainSections;
   const sections = Array.isArray(es?.sections) ? es.sections : [];
   if (sections.length > 0) {
-    const lines = [];
+    const lines: string[] = [];
     if (typeof es?.preamble === 'string' && es.preamble.trim()) {
       lines.push(es.preamble.trim(), '');
     }

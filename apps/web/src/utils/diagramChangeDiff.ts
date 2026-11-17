@@ -5,14 +5,23 @@
 import { diffChartSources, diffInfographicSources, diffMetaphorSources } from '@archislop/shared';
 import { diffMermaidFlowcharts } from './mermaidFlowchartDiff.js';
 
-const EMPTY_DIFF = { addedIds: [], modifiedIds: [], removedIds: [] };
+export type DiagramStructuralDiff = {
+  addedIds: string[];
+  modifiedIds: string[];
+  removedIds: string[];
+};
 
-/**
- * @param {string | null | undefined} contentType
- * @param {string | null | undefined} baselineSource
- * @param {string | null | undefined} afterSource
- */
-export function computeDiagramStructuralDiff(contentType, baselineSource, afterSource) {
+export const EMPTY_DIFF: DiagramStructuralDiff = {
+  addedIds: [],
+  modifiedIds: [],
+  removedIds: []
+};
+
+export function computeDiagramStructuralDiff(
+  contentType: string | null | undefined,
+  baselineSource: string | null | undefined,
+  afterSource: string | null | undefined
+): DiagramStructuralDiff | null {
   if (typeof baselineSource !== 'string' || typeof afterSource !== 'string') return null;
   try {
     if (contentType === 'mermaid') {
@@ -32,5 +41,3 @@ export function computeDiagramStructuralDiff(contentType, baselineSource, afterS
   }
   return null;
 }
-
-export { EMPTY_DIFF };

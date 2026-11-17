@@ -45,6 +45,8 @@
     "src/utils/insightStatusLocale.ts",
     "src/utils/officeCanvasGrace.ts",
     "src/utils/seededHash.ts",
+    "src/utils/diagramChangeDiff.ts",
+    "src/utils/explainEntryMarkdown.ts",
     "src/utils/useDelayedUnmount.ts",
     "src/utils/viewportBounds.ts",
     "src/utils/thinkingProseEnrich.tsx",
