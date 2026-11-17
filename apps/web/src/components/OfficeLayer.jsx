@@ -39,10 +39,6 @@ import { useOfficeBoard } from '../hooks/useOfficeBoard.js';
 import { useOfficeRunReactions } from '../hooks/useOfficeRunReactions.js';
 import { useOfficeWelcome } from '../hooks/useOfficeWelcome.js';
 import {
-  acceptOfficeBattle,
-  acceptOfficeCoffee,
-  joinOfficeBattle,
-  joinOfficeCoffee,
   dismissOfficeBattle,
   dismissOfficeCoffee,
   dismissDeskArrival,
@@ -108,6 +104,12 @@ import {
   declineOfficeBattleWithMemory,
   declineOfficeCoffeeWithMemory
 } from '../utils/officeSceneDeclineMemory.js';
+import {
+  acceptOfficeBattleWithMemory,
+  acceptOfficeCoffeeWithMemory,
+  joinOfficeBattleWithMemory,
+  joinOfficeCoffeeWithMemory
+} from '../utils/officeSceneJoinMemory.js';
 import { formatLocale } from '../i18n/formatLocale.js';
 import {
   cancelOfficeNarration,
@@ -912,8 +914,14 @@ export default function OfficeLayer({
     if (coffee.accepted) onOfficeEvent?.('coffeeBreak');
   }, [onOfficeEvent]);
 
+  /*
+   * Through `officeSceneJoinMemory.js` rather than the bare store call, for
+   * `handleDeclineCoffee`'s reason read the other way round: the person who
+   * asked you along is entitled to remember that you came, and until that
+   * writer existed the only answer this room recorded was the no.
+   */
   const handleAcceptCoffee = useCallback(() => {
-    acceptOfficeCoffee();
+    acceptOfficeCoffeeWithMemory();
   }, []);
 
   /*
@@ -936,11 +944,17 @@ export default function OfficeLayer({
     const text = officeChromeCopy().floor?.sceneJoin?.line;
     if (!text) return;
     cancelOfficeNarration();
-    joinOfficeCoffee({ speakerId, text });
+    /*
+     * The scene goes in alongside the line because the store swaps the script
+     * for that one closing beat — read the cast afterwards and the beat would
+     * land on whoever speaks last rather than on whoever asked.
+     */
+    joinOfficeCoffeeWithMemory(coffee, { speakerId, text });
   }, []);
 
+  /* Same writer as `handleAcceptCoffee`, with the battle's own beat. */
   const handleAcceptBattle = useCallback(() => {
-    acceptOfficeBattle();
+    acceptOfficeBattleWithMemory();
   }, []);
 
   /*
@@ -985,7 +999,7 @@ export default function OfficeLayer({
     const text = officeChromeCopy().floor?.sceneJoinBattle?.line;
     if (!text) return;
     cancelOfficeNarration();
-    joinOfficeBattle({ speakerId, text });
+    joinOfficeBattleWithMemory(battle, { speakerId, text });
   }, []);
 
   // Settling a battle (voting) is the XP moment; walking away earns nothing

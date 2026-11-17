@@ -20,10 +20,11 @@
  * everyone on a board-sample edge would be omniscience.
  *
  * "Few" is a rule about the *edge*, not a count — each writer is a moment the
- * user aimed at one named person, which is why the set has grown six times
+ * user aimed at one named person, which is why the set has grown seven times
  * since v1's dwell-and-talk pair (an interruption, an email, a dropped errand,
- * a declined invite, a declined set piece, then reading somebody's screen)
- * without the rule moving. An ambient moment must still never write here.
+ * a declined invite, a declined set piece, reading somebody's screen, then
+ * coming to a set piece after all) without the rule moving. An ambient moment
+ * must still never write here.
  *
  * The newest one is the clearest statement of what the rule is *for*: a peek
  * costs nobody anything and refuses nobody anything, and it is still the most
@@ -42,6 +43,16 @@
  * walks to the machine and plays out; the floor is still offering you a way in.
  * The memory is the *entire* consequence, which is as pure a statement of
  * record-never-trigger as this file contains.
+ *
+ * And the newest writer is that one's other half, which is why it arrived last
+ * and should have arrived with it: **taking** the offer is as aimed as refusing
+ * it, through either door — the accept on the invite, or walking across the room
+ * to the _Join in_ on the floor. Until it existed, the only acceptance this
+ * store recorded was `pitchTaken`, and a set piece was the inverse of the
+ * walk-by's asymmetry: every no kept, every yes forgotten. Worse than
+ * unbalanced, because a refusal beat left standing alone after you came anyway
+ * is not a gap in the record — it is the record saying something that stopped
+ * being true.
  */
 
 import { boardRecallLine } from '../utils/officeBoardRecall.js';
@@ -196,6 +207,40 @@ const SCENE_DECLINED_PROMPT_LINES = Object.freeze({
 });
 
 /**
+ * What **coming** to their set piece reads like to the model — the other answer
+ * to the question `SCENE_DECLINED_PROMPT_LINES` above already records.
+ *
+ * The pair was the exact inverse of the walk-by's: there, the office kept every
+ * idea of theirs you used and forgot every one you waved away. Here it kept
+ * every refusal and forgot that you turned up. The second is worse, because the
+ * refusal beat does not merely go unaccompanied — it goes on being the office's
+ * **whole** record of an episode it is no longer true about. Gary asks you for a
+ * coffee, you say no, you change your mind, you walk to the kitchen and stand
+ * there while he trails off at you — and the only thing he carries into the next
+ * exchange is *"they stayed at their desk and you went anyway"*. That is a
+ * circumstance the prompt states and the room contradicted, which is the
+ * fabrication failure the situation rule was measured on, arriving through
+ * memory rather than through a situation.
+ *
+ * **One line per scene, true of both doors.** A join is reachable two ways — the
+ * accept on the invite, and the floor's _Join in_ after a decline — and a
+ * sentence naming which one would need a field the beat deliberately does not
+ * carry (`INTERRUPTION_PROMPT_LINES`' stated failure mode, and the same reading
+ * that gave the meeting invite one line for its two refusals). It is also
+ * unnecessary: when you came the second way, the decline beat is sitting right
+ * above this one in the same list, in order, so the history reads itself.
+ *
+ * **Both state the circumstance and stop.** Not that the break was good company
+ * or that you settled the argument — a vote is `battleSettled`'s business and
+ * `voteOfficeBattle` has not run when this is written, so a line claiming an
+ * outcome would be claiming one that may never arrive.
+ */
+const SCENE_JOINED_PROMPT_LINES = Object.freeze({
+  coffee: 'the user came along to your coffee break',
+  battle: 'the user came in on your argument'
+});
+
+/**
  * What reading their screen over their shoulder reads like to the model
  * (`docs/automations/office-life.md` question 1 — the first thing its own list
  * names, *"click them"*).
@@ -262,7 +307,7 @@ const PITCH_PROMPT_LINES = Object.freeze({
   declined: 'you came over with a suggestion; the user did not take it'
 });
 
-/** @typedef {{ at: number, theirs?: string, yours?: string, pitchTaken?: boolean, pitchDeclined?: boolean, errandDropped?: boolean, inviteDeclined?: boolean, interrupted?: 'gotIt' | 'gaveUp', interruptedProp?: string, sceneDeclined?: 'coffee' | 'battle', peeked?: boolean, medium?: 'email' }} WorkingMemoryBeat */
+/** @typedef {{ at: number, theirs?: string, yours?: string, pitchTaken?: boolean, pitchDeclined?: boolean, errandDropped?: boolean, inviteDeclined?: boolean, interrupted?: 'gotIt' | 'gaveUp', interruptedProp?: string, sceneDeclined?: 'coffee' | 'battle', sceneJoined?: 'coffee' | 'battle', peeked?: boolean, medium?: 'email' }} WorkingMemoryBeat */
 /** @typedef {{ beats: WorkingMemoryBeat[], boardFingerprint?: string }} WorkingMemoryRow */
 
 /** @type {{ [colleagueId: string]: WorkingMemoryRow }} */
@@ -486,6 +531,7 @@ export function workingMemoryPromptLines(colleagueId, { boardNow = '' } = {}) {
     if (beat.errandDropped) lines.push(ERRAND_DROPPED_PROMPT_LINE);
     if (beat.inviteDeclined) lines.push(INVITE_DECLINED_PROMPT_LINE);
     if (beat.sceneDeclined) lines.push(SCENE_DECLINED_PROMPT_LINES[beat.sceneDeclined]);
+    if (beat.sceneJoined) lines.push(SCENE_JOINED_PROMPT_LINES[beat.sceneJoined]);
     if (beat.peeked) lines.push(PEEKED_PROMPT_LINE);
     const quote = MEDIUM_PROMPT_LINES[beat.medium] ?? SPOKEN_PROMPT_LINES;
     if (beat.yours) lines.push(`${quote.yours} ${beat.yours}`);

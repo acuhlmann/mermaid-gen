@@ -907,9 +907,37 @@ export function pushOfficeCoffeeInvite({ lines }) {
   return coffee.id;
 }
 
+/**
+ * Saying yes on the invite — the first of the two doors into a set piece.
+ *
+ * Returns the scene you walked into, for `declineOfficeCoffee`'s reason and no
+ * other: the cast is in `lines`, an acceptance is aimed at whoever asked you
+ * along, and the store must not be the thing that writes that down
+ * (`officeSceneJoinMemory.js` is).
+ *
+ * **And here the store writing it would be wrong rather than merely misplaced**,
+ * which is `dismissOfficeMeetingInvite`'s lesson at a different door: this has
+ * two callers and only one of them is an answer. `handleAcceptCoffee` is a press
+ * on an invite somebody sent you. `useDeskActions.getCoffee` is you walking to
+ * the machine on your own — *"no invite pill, you're already standing there"* —
+ * which pushes a scripted break and accepts it in the same breath, so a beat
+ * written in here would tell a colleague they had invited you somewhere they
+ * never invited you to. That is the fabrication the situation rule in
+ * `docs/agents/domains/office.md` was measured on. The caller that knows it was
+ * an answer owns the write; the other one keeps calling this.
+ *
+ * **Still not a payout** — nothing here writes memory, awards anything or
+ * speaks; `handleCoffeeDone` pays `coffeeBreak` when the scene ends. The `null`
+ * is the idempotent case, so a second press is not a second arrival.
+ *
+ * @returns {{id: string, lines: Array<{speakerId: string, text: string}>,
+ *   accepted: boolean, declined: boolean, createdAt: number} | null}
+ */
 export function acceptOfficeCoffee() {
-  if (!state.coffee || state.coffee.accepted) return;
-  update({ coffee: { ...state.coffee, accepted: true } });
+  if (!state.coffee || state.coffee.accepted) return null;
+  const accepted = { ...state.coffee, accepted: true };
+  update({ coffee: accepted });
+  return accepted;
 }
 
 /**
@@ -1025,9 +1053,18 @@ export function pushOfficeBattleInvite({ topic, lines, verdicts }) {
   return battle.id;
 }
 
+/**
+ * Taking a side — the battle's half of `acceptOfficeCoffee` above, returning
+ * the scene it put you in for the same reason and with the same limits.
+ *
+ * @returns {{id: string, lines: Array<{speakerId: string, text: string}>,
+ *   accepted: boolean, declined: boolean, createdAt: number} | null}
+ */
 export function acceptOfficeBattle() {
-  if (!state.battle || state.battle.accepted) return;
-  update({ battle: { ...state.battle, accepted: true } });
+  if (!state.battle || state.battle.accepted) return null;
+  const accepted = { ...state.battle, accepted: true };
+  update({ battle: accepted });
+  return accepted;
 }
 
 /**

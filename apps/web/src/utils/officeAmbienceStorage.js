@@ -564,6 +564,23 @@ export const OFFICE_WORKING_MEMORY_INTERRUPTIONS = Object.freeze(['gotIt', 'gave
 export const OFFICE_WORKING_MEMORY_SCENE_DECLINES = Object.freeze(['coffee', 'battle']);
 
 /**
+ * The set pieces a beat may remember you having **come to** — the other answer
+ * to the same two scenes, and deliberately the *same list object* rather than a
+ * second literal with the same two strings in it.
+ *
+ * A scene has exactly two answers and they are answers to the same question, so
+ * a copy here would be a list that can drift from the one above it: add a third
+ * joinable set piece and the office would remember refusing it and forget
+ * joining it, which is the asymmetry this field exists to close. Aliasing makes
+ * "the kinds are the same kinds" a property instead of a convention. The field
+ * is separate from `sceneDeclined` because the two can both be true of one
+ * colleague — you said no and then turned up — and that reading is a history
+ * rather than a contradiction (the same argument `pitchTaken` /
+ * `pitchDeclined` settled).
+ */
+export const OFFICE_WORKING_MEMORY_SCENE_JOINS = OFFICE_WORKING_MEMORY_SCENE_DECLINES;
+
+/**
  * How a beat was exchanged, when it was not by speaking.
  *
  * An enum for the same reason as the interruptions above — it selects a
@@ -616,8 +633,8 @@ export const OFFICE_WORKING_MEMORY_MEDIUMS = Object.freeze(['email']);
  * @param {number} at
  * @returns {{ at: number, theirs?: string, yours?: string, pitchTaken?: boolean,
  *   pitchDeclined?: boolean, errandDropped?: boolean, inviteDeclined?: boolean,
- *   interrupted?: string, sceneDeclined?: string, peeked?: boolean,
- *   medium?: string } | null}
+ *   interrupted?: string, sceneDeclined?: string, sceneJoined?: string,
+ *   peeked?: boolean, medium?: string } | null}
  */
 export function normalizeWorkingMemoryBeat(beat, at) {
   const next = { at };
@@ -660,6 +677,16 @@ export function normalizeWorkingMemoryBeat(beat, at) {
     next.sceneDeclined = beat.sceneDeclined;
   }
   /*
+   * You came to the set piece — either straight off the invite, or after
+   * turning it down and walking over anyway. One field for both doors, for
+   * `PITCH_PROMPT_LINES`' stated reason: every surface that writes "they came"
+   * has to be describable by the same sentence, or the sentence is making a
+   * claim about *which* door that the beat does not carry.
+   */
+  if (OFFICE_WORKING_MEMORY_SCENE_JOINS.includes(beat.sceneJoined)) {
+    next.sceneJoined = beat.sceneJoined;
+  }
+  /*
    * You walked over and read what was on their screen. A boolean rather than a
    * `look` — which screen they had up is `deskWorkFor`'s answer and it is
    * already in the request on its own block (`officeDeskWork`), so storing it
@@ -676,6 +703,7 @@ export function normalizeWorkingMemoryBeat(beat, at) {
     !next.inviteDeclined &&
     !next.interrupted &&
     !next.sceneDeclined &&
+    !next.sceneJoined &&
     !next.peeked
   ) {
     return null;
@@ -693,7 +721,8 @@ export function normalizeWorkingMemoryBeat(beat, at) {
  * @param {unknown} beat
  * @returns {{ at: number, theirs?: string, yours?: string, pitchTaken?: boolean,
  *   pitchDeclined?: boolean, errandDropped?: boolean, inviteDeclined?: boolean,
- *   interrupted?: string, sceneDeclined?: string, peeked?: boolean } | null}
+ *   interrupted?: string, sceneDeclined?: string, sceneJoined?: string,
+ *   peeked?: boolean } | null}
  */
 function sanitizeWorkingMemoryBeat(beat) {
   if (!beat || typeof beat !== 'object') return null;
