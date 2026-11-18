@@ -353,6 +353,54 @@ describe('loitering, on a real floor', () => {
     act(() => vi.advanceTimersByTime(DWELL_MS * 3));
     expect(onDwellRemark).not.toHaveBeenCalled();
   });
+
+  /**
+   * The one thing this slice does to a *different* slice, pinned through the
+   * real wiring because that is where it was wrong.
+   *
+   * `(7, 6)` is the suite's `BESIDE_JARED` and it is also a whiteboard
+   * listening tile: stand there with the pinned PRNG and the intern walks to
+   * the board, Dinesh answers from his chair, and Jared — in neither half of
+   * the conversation — looks up at you five seconds in. The exchange runs 6.8 s,
+   * so his line always lands mid-conversation.
+   *
+   * It must take the balloon and **not** the way in. `OfficeFloor` used to hand
+   * `useFloorShopTalk` one `active` flag meaning both "you are free to be
+   * listening" and "nothing else is talking"; the second tore the offer down,
+   * and slice 23's own rule is that two people who have stopped talking are
+   * still two people standing next to each other.
+   */
+  it('leaves the way into an overheard conversation standing when a bystander looks up', () => {
+    const onDwellRemark = vi.fn();
+    const view = renderFloor({ onDwellRemark, imHistory: [] });
+
+    walkTo(BESIDE_JARED);
+    // Long enough for the intern to reach the board and for Jared's five
+    // seconds to run out, and short of the 7.75 s the intern stands there.
+    act(() => vi.advanceTimersByTime(9_000));
+
+    expect(onDwellRemark).toHaveBeenCalledWith('jared');
+    const card = screen.getByTestId('office-floor-join-card');
+    expect(card.textContent).toMatch(/intern/i);
+
+    // Jared's answer arrives, which is the instant `hasOtherSpeech` goes true.
+    const arrived = [
+      {
+        id: 'jared-looked-up',
+        colleagueId: 'jared',
+        body: 'Did you need something, or…?',
+        createdAt: Date.now(),
+        channel: 'talk'
+      }
+    ];
+    act(() => view.rerender(<OfficeFloor onDwellRemark={onDwellRemark} imHistory={arrived} />));
+
+    expect(screen.getByTestId('office-floor-dwell-line').textContent).toContain('Did you need');
+    expect(
+      screen.queryByTestId('office-floor-join-card'),
+      'a bystander saying hello must not withdraw the offer to join'
+    ).toBeTruthy();
+  });
 });
 
 afterEach(cleanup);

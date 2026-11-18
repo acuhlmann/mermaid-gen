@@ -537,7 +537,15 @@ function OfficeFloorView({ bridge, viewPhase }) {
     youTile,
     floorState,
     copy,
-    active: activity.standingFree && !hasOtherSpeech,
+    /*
+     * Two arguments rather than one `&&`, and the split is the fix: having a
+     * reason to be somewhere ends the offer to join, and another voice merely
+     * silences the exchange. Folded together, a bystander's dwell remark — 5 s,
+     * against a 6.8 s exchange, from a tile that nearly always has one — pulled
+     * the invitation down with the balloon.
+     */
+    active: activity.standingFree,
+    muted: hasOtherSpeech,
     suspended: floorChatterSuspended,
     narrateLine: sceneHandlers?.narrateLine
   });
