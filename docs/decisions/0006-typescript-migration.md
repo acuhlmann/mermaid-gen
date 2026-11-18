@@ -44,7 +44,7 @@ Priority list (by edit churn × LOC):
 2. `apps/server/src/agents/mermaidLangChainAgent.js` (~1 156 LOC) — once
    `ToolApplyResultSchema` (ADR-0005's sibling work) is wired everywhere,
    the agent boundary is fully typed.
-3. `apps/server/src/mcp/mcpServer.js` (~733 LOC) — per-tool split in progress
+3. `apps/server/src/mcp/mcpServer.js` (~496 LOC) — per-tool split in progress
    (ADR-0005); diagram-session, collaboration-insight, and agent-handshake tools
    already live in sibling `register*.js` modules; convert remaining inline tools as
    each lands in `mcp/tools/`.
@@ -163,7 +163,7 @@ guarded by `apps/web/test/thinkingProseEnrich.test.jsx` (14 tests, green).
 
 ### 2026-11-14 — priority-list sync after MCP hub split
 
-- **`mcpServer.js` LOC** in the priority list above now reads **~733** (was ~1 014
+- **`mcpServer.js` LOC** in the priority list above now reads **~496** (was ~1 014
   when item 3 was last synced on 2026-11-07, before ADR-0005 extractions through
   2026-11-11). Hub still owns registration glue; tools continue landing in sibling
   `register*.js` modules per ADR-0005.

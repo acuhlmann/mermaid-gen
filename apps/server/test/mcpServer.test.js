@@ -13,11 +13,16 @@ import { createAgentTokenStore } from '../src/state/agentTokenStore.js';
 import { createMcpRateLimiter } from '../src/mcp/mcpRateLimit.js';
 import { createMcpHandler } from '../src/mcp/mcpServer.js';
 import { registerMcpCollaborationInsightTools } from '../src/mcp/tools/registerMcpCollaborationInsightTools.js';
+import { registerMcpSessionNavigationTools } from '../src/mcp/tools/registerMcpSessionNavigationTools.js';
 import { createCopilotRouter } from '../src/routes/copilot.js';
 import { MCP_APP_URIS } from '../src/mcp/mcpAppUris.js';
 
 test('registerMcpCollaborationInsightTools exports a registrar', () => {
   assert.equal(typeof registerMcpCollaborationInsightTools, 'function');
+});
+
+test('registerMcpSessionNavigationTools exports a registrar', () => {
+  assert.equal(typeof registerMcpSessionNavigationTools, 'function');
 });
 
 function setupServer() {
