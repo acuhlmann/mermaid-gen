@@ -1048,6 +1048,17 @@ today'` (`officeBoardRecall.js`), `'you said:'` / `'they said:'` for the quotes 
   the write, and the negative case is pinned beside the positive one — **measured**: moving the write
   into the mutator turns `writes nothing when the bare store call accepts it` red, which is exactly
   where a wiring mistake would put it.
+- **A flag that reads `A && B` at the use site is two gates wearing one name, and the loser is
+  whichever consequence only `A` should own.** `OfficeFloor.jsx` handed `useFloorShopTalk` one
+  `active = standingFree && !hasOtherSpeech`: the first half means _you have a reason to be
+  somewhere_, which must end slice 23's offer to join; the second means _something else is
+  talking_, which must only silence the exchange. Folded together, any other voice cleared `armed`
+  and took the invitation with it. The hook now takes `active` (yours) and `muted` (the room's),
+  clears on the first and marks `done: true` on the second — `done` being the state the exchange's
+  own ending already uses, so the offer survives a mute exactly as it survives the last line.
+  **Measured**: 237 of 307 listening positions have a third colleague inside
+  `NAME_CHIP_RANGE_TILES`, `DWELL_MS` is 5 s and the exchange runs 6.8 s, so the bystander always
+  landed mid-conversation — the common case, not a corner.
 
 ## Full findings
 
@@ -2888,3 +2899,53 @@ to each other and to 2026-11-16's merged baseline on steps, `speech`, `peek`, `w
 `roomDelta`, the five `workingMemory` rows and `logDigest` 8, differing only in a model-written
 subject line and in millisecond timestamps. Same rule as 2026-09-09 and 2026-10-31: say which
 measurement replaced the trace, and keep the runs.
+
+### Two gates, not one flag: a bystander saying hello is not you having somewhere to be
+
+`useFloorShopTalk` (`apps/web/src/components/officeFloor/useFloorShopTalk.js`) had a single
+`eligible` built from one `active` argument, and `OfficeFloor.jsx` passed
+`activity.standingFree && !hasOtherSpeech` into it. Those are two different facts about two
+different subjects, and only one of them should ever cost you slice 23's way into the conversation:
+
+- **Yours** (`standingFree`): a card open, a conversation running, a prop in your hands — or taking
+  the offer itself. The room can no longer honour an invitation to walk over, so `armed` must go.
+  This is the behaviour `it('is withdrawn once something has your attention')` has always pinned,
+  and it is correct.
+- **The room's** (`hasOtherSpeech`): somebody else is mid-line. Two people are still standing at the
+  prop and you are still stood in the ring, so the _performance_ stops and the _offer_ must not —
+  which is slice 23's own argument for `done` rather than `null` at the exchange's natural end
+  (_"two people who have finished a sentence are still two people standing next to each other, and
+  an invitation that expires seven seconds after it appears is a reflex test"_).
+
+**Why this is the common case and not a corner, in three numbers.** The proximity ladder keeps the
+two _speakers_ off your tile by construction, and the floor is dense enough that it cannot keep
+anybody else off it: swept over every standable tile against every wanderer and every prop,
+**237 of 307** listening positions put a colleague who is in neither half of the conversation inside
+`NAME_CHIP_RANGE_TILES` (whiteboard 121/150, coffee machine 62/77, printer 54/80). `DWELL_MS` is
+**5 s** and an exchange runs **2.6 + 2.6 + 1.6 = 6.8 s**, so that bystander looks up _before_ the
+pair have finished — every time, which is why `done` was never reached and the roll was thrown away
+instead. The sweep is pinned as a floor rather than an exact count in
+`officeFloorShopTalk.test.jsx`: a desk moving may change it, and a layout that drove it to zero
+would quietly retire the gate.
+
+**The mute does not spend the cap, and cannot create an offer.** `overheard` bounds how often the
+office makes a noise at you, and a muted exchange made none — so `handleDone` stays the only writer
+of it. Safety comes from `done` instead: a `done` key can never re-arm, so one errand is still one
+conversation, heard or half-heard. And the mute may only ever _preserve_ an offer: with `armed`
+still `null`, a mute leaves it `null`, so the join card cannot appear next to two people saying
+nothing while another voice has the room — pinned by
+`it('offers no way in while another voice already has the room')`.
+
+**The wiring was the part nothing watched, and that is the transferable half.** The fix is two
+source lines in `OfficeFloor.jsx`, and reverting them alone left **44 floor suites / 709 cases
+green** — the hook's contract was pinned and the one prop that feeds it was not. The end-to-end case
+now lives in `officeFloorDwell.test.jsx` (`leaves the way into an overheard conversation standing
+when a bystander looks up`) because the tile it needs was already there: under the suite's pinned
+`Math.random` of `0.75` the intern walks to the whiteboard at ~8 s and stands for 7.75 s, Dinesh
+answers from his chair, and `BESIDE_JARED` `(7, 6)` is both a whiteboard listening tile and one tile
+from Jared. Reverting either file turns that one case red; reverting both turns three red.
+
+**The trace cannot see it, and the three runs are the regression check.** `speech.byChannel.shopTalk`
+is 1 and `dwell` is 1 in the fixed visit, but never at the same mark, and the harness reports no
+`join` axis — so the measurement is the sweep plus the red/green directions, and the traces prove
+only that nothing else moved. Same reading as the scene-decline and scene-join slices.

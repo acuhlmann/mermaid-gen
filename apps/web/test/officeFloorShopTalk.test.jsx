@@ -216,6 +216,41 @@ describe('the proximity ladder', () => {
     }
   });
 
+  /**
+   * The *third* person, who is not on either rung and is the reason the hook
+   * below has two gates instead of one.
+   *
+   * The ladder keeps the two speakers off your own tile, and the floor is
+   * dense enough that it cannot keep anybody else off it: measured over every
+   * standable tile against every wanderer and every prop, **237 of 307**
+   * listening positions put a colleague who is in neither half of the
+   * conversation inside `NAME_CHIP_RANGE_TILES` of you. That is the reachable
+   * state, not a defect in the ladder — being stood near Pam while two other
+   * people talk at the printer is an office — and the number is pinned here so
+   * the next person reading `useFloorShopTalk`'s two gates knows the case is
+   * the common one rather than a corner.
+   *
+   * Asserted as a floor rather than an exact count: a desk moving is allowed to
+   * change it, and a layout that drove it to zero would quietly retire the gate.
+   */
+  it('leaves a bystander inside chip range of most listening tiles', () => {
+    let listening = 0;
+    let withBystander = 0;
+    for (const seatId of wanderingSeatIds()) {
+      for (const kind of usablePropKinds()) {
+        const trip = tripTo(seatId, kind);
+        const floorState = { wanderer: trip };
+        for (const tile of standableTiles()) {
+          if (!overheardPartnerFor(trip, tile, floorState)) continue;
+          listening += 1;
+          if (dwellTargetAt(tile, floorState)?.colleagueId) withBystander += 1;
+        }
+      }
+    }
+    expect(listening).toBeGreaterThan(0);
+    expect(withBystander / listening).toBeGreaterThan(0.5);
+  });
+
   it('finds you a spot to overhear from at every prop', () => {
     for (const kind of usablePropKinds()) {
       const trip = tripTo('gilfoyle', kind);
@@ -359,6 +394,7 @@ describe('overhearing one, in a renderer', () => {
         floorState: { wanderer: trip },
         copy: FLOOR_COPY(),
         active: true,
+        muted: false,
         suspended: false,
         // A wrapper rather than `undefined`: with no narrator `useScenePacing`
         // reveals every line at once, and two balloons over two adjacent heads
@@ -600,6 +636,63 @@ describe('overhearing one, in a renderer', () => {
     });
     await act(async () => {
       await vi.advanceTimersByTimeAsync(0);
+    });
+    expect(result.current.said).toBeNull();
+    expect(result.current.join).toBeNull();
+  });
+
+  /*
+   * And the half the case above was quietly also claiming, which is a different
+   * rule: **another voice taking the room is not you having a reason to be
+   * somewhere.** The two of them are still standing at the prop and you are
+   * still stood in the ring, so the performance stops and the *offer* survives
+   * — exactly as it survives the exchange ending on its own.
+   *
+   * This is the common case rather than a corner: `DWELL_MS` is 5 s and the
+   * exchange runs 2.6 + 2.6 + 1.6 = 6.8 s, so a bystander looking up lands
+   * mid-exchange, before `done`, every time.
+   */
+  it('keeps the way in when another voice takes the room', async () => {
+    vi.useFakeTimers();
+    const { result, rerender } = mountShopTalk();
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    expect(result.current.said).toBeTruthy();
+    expect(result.current.join).toBeTruthy();
+
+    const trip = tripTo('gilfoyle', KIND);
+    const muted = {
+      wanderer: trip,
+      youTile: LISTENING,
+      floorState: { wanderer: trip },
+      copy: FLOOR_COPY(),
+      active: true,
+      muted: true,
+      suspended: false,
+      narrateLine: () => Promise.resolve({ spoken: false })
+    };
+    await act(async () => {
+      rerender(muted);
+    });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    expect(result.current.said, 'the overheard line must give way').toBeNull();
+    expect(result.current.join, 'the way in must not').toBeTruthy();
+  });
+
+  /*
+   * The negative that stops the rule above from becoming "the offer appears
+   * whenever two people are near each other": a mute may *preserve* an offer
+   * and may never *create* one. Slice 23's own reason — a card next to two
+   * people saying nothing, while something else is talking.
+   */
+  it('offers no way in while another voice already has the room', async () => {
+    vi.useFakeTimers();
+    const { result } = mountShopTalk({ muted: true });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(20_000);
     });
     expect(result.current.said).toBeNull();
     expect(result.current.join).toBeNull();
