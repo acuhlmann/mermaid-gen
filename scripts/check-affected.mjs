@@ -9,9 +9,12 @@
  *   CHECK_AFFECTED_BASE=origin/main npm run check:affected
  */
 import { spawnSync } from 'node:child_process';
+import fs from 'node:fs';
+import path from 'node:path';
 import { changedFiles, filterPrettierFiles, repoRoot } from './prettier-files.mjs';
 import { classifyChangedFiles } from './check-affected-lib.mjs';
 import { detectWireCoChangeRisks, formatWireCoChangeRisks } from './wire-cochange.mjs';
+import { collectBudgetDeltaConsistencyErrors } from './verify-ratchet.mjs';
 
 const argv = process.argv.slice(2);
 const baseFlag = argv.find((a) => a.startsWith('--base='));
@@ -109,6 +112,19 @@ function main() {
   if (flags.docs) {
     run('npm', ['run', 'verify:doc-paths'], 'verify:doc-paths');
     run('npm', ['run', 'verify:agent-infra'], 'verify:agent-infra');
+    ran = true;
+  }
+
+  if (files.includes('docs/agents/ratchet.json')) {
+    console.log('\n→ verify ratchet budget delta (index/HEAD/parent)');
+    const ratchetPath = path.join(repoRoot, 'docs/agents/ratchet.json');
+    const baseline = JSON.parse(fs.readFileSync(ratchetPath, 'utf8'));
+    const deltaErrors = collectBudgetDeltaConsistencyErrors(repoRoot, baseline);
+    if (deltaErrors.length) {
+      console.error('ratchet budget delta: refusal — loosening without a written "reason"');
+      for (const error of deltaErrors) console.error(`  ${error}`);
+      process.exit(1);
+    }
     ran = true;
   }
 
