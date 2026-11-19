@@ -392,6 +392,11 @@ export const BLAST_RADIUS_RULES = [
     // CLAUDE.md's file-size budgets bullet carries hand-maintained ~LOC figures (improve item 1).
     match: /^CLAUDE\.md$|scripts\/verify-monolith-loc-register\.mjs/,
     tests: ['scripts/verify-monolith-loc-register.test.mjs']
+  },
+  {
+    // Ratchet budget edits must carry a written reason when loosening; the guard lives in verify-ratchet.mjs.
+    match: /^docs\/agents\/ratchet\.json$|scripts\/verify-ratchet\.mjs/,
+    tests: ['scripts/verify-ratchet.test.mjs']
   }
 ];
 

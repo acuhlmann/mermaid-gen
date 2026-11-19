@@ -291,6 +291,71 @@ export function validateBudgetDeltaFromHead(baseline, root) {
 }
 
 /**
+ * @param {string} root
+ * @param {string} revSpec `HEAD`, `HEAD^`, or `:` for the index
+ * @returns {Record<string, any> | null}
+ */
+export function readRatchetJsonAtGitRev(root, revSpec) {
+  const spec = revSpec === ':' ? `:${RATCHET_PATH}` : `${revSpec}:${RATCHET_PATH}`;
+  try {
+    const raw = execFileSync('git', ['show', spec], {
+      cwd: root,
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore']
+    });
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+
+/** Staged index vs HEAD — catches loosening before the committing moment. */
+export function validateBudgetDeltaIndexVsHead(root) {
+  const head = readRatchetJsonAtGitRev(root, 'HEAD');
+  const index = readRatchetJsonAtGitRev(root, ':');
+  if (!head || !index) return [];
+  return validateBudgetDelta(head, index);
+}
+
+/** HEAD commit vs parent when that commit touched the ratchet file — catches post-commit drift. */
+export function validateBudgetDeltaHeadVsParent(root) {
+  try {
+    const names = execFileSync(
+      'git',
+      ['diff-tree', '--no-commit-id', '--name-only', '-r', 'HEAD'],
+      {
+        cwd: root,
+        encoding: 'utf8',
+        stdio: ['ignore', 'pipe', 'ignore']
+      }
+    )
+      .trim()
+      .split(/\r?\n/)
+      .filter(Boolean);
+    if (!names.includes(RATCHET_PATH)) return [];
+    const parent = readRatchetJsonAtGitRev(root, 'HEAD^');
+    const head = readRatchetJsonAtGitRev(root, 'HEAD');
+    if (!parent || !head) return [];
+    return validateBudgetDelta(parent, head);
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * @param {string} root
+ * @param {Record<string, any>} baseline on-disk ratchet (working tree)
+ * @returns {string[]}
+ */
+export function collectBudgetDeltaConsistencyErrors(root, baseline) {
+  return [
+    ...validateBudgetDeltaFromHead(baseline, root),
+    ...validateBudgetDeltaIndexVsHead(root),
+    ...validateBudgetDeltaHeadVsParent(root)
+  ];
+}
+
+/**
  * @param {Record<string, any>} baseline
  * @param {Record<string, Record<string, number>>} measured
  * @returns {{ ok: boolean, violations: string[], improvements: string[] }}
@@ -354,7 +419,7 @@ function main() {
   const baseline = JSON.parse(fs.readFileSync(abs, 'utf8'));
 
   const shapeErrors = validateBaselineShape(baseline);
-  const deltaErrors = validateBudgetDeltaFromHead(baseline, ROOT);
+  const deltaErrors = collectBudgetDeltaConsistencyErrors(ROOT, baseline);
   const consistencyErrors = [...shapeErrors, ...deltaErrors];
   if (consistencyErrors.length) {
     console.error('verify:ratchet: budget file is not self-consistent');

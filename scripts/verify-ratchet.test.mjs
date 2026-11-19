@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -7,6 +8,7 @@ import { fileURLToPath } from 'node:url';
 import {
   DESCENDING_METRICS,
   RATCHET_PATH,
+  collectBudgetDeltaConsistencyErrors,
   compareRatchet,
   countTestCases,
   listTestFiles,
@@ -17,7 +19,9 @@ import {
   measureStrictIslands,
   measureTests,
   validateBaselineShape,
-  validateBudgetDelta
+  validateBudgetDelta,
+  validateBudgetDeltaHeadVsParent,
+  validateBudgetDeltaIndexVsHead
 } from './verify-ratchet.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -203,6 +207,74 @@ test('validateBudgetDelta accepts a tightening from HEAD with no reason', () => 
   const previous = { metrics: { lintWarnings: { 'apps/web': { budget: 813, initial: 851 } } } };
   const current = { metrics: { lintWarnings: { 'apps/web': { budget: 809, initial: 851 } } } };
   assert.deepEqual(validateBudgetDelta(previous, current), []);
+});
+
+function initRatchetGitFixture() {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ratchet-git-'));
+  fs.mkdirSync(path.join(dir, 'docs/agents'), { recursive: true });
+  execFileSync('git', ['init', '-b', 'main'], { cwd: dir, stdio: 'ignore' });
+  execFileSync('git', ['config', 'user.email', 'agent@test'], { cwd: dir, stdio: 'ignore' });
+  execFileSync('git', ['config', 'user.name', 'agent'], { cwd: dir, stdio: 'ignore' });
+  /** @param {Record<string, any>} doc */
+  const writeRatchet = (doc) => {
+    fs.writeFileSync(path.join(dir, RATCHET_PATH), `${JSON.stringify(doc, null, 2)}\n`);
+  };
+  /** @param {string} message */
+  const commitAll = (message) => {
+    execFileSync('git', ['add', '-A'], { cwd: dir, stdio: 'ignore' });
+    execFileSync('git', ['commit', '-m', message, '--no-gpg-sign'], { cwd: dir, stdio: 'ignore' });
+  };
+  return { dir, writeRatchet, commitAll };
+}
+
+test('validateBudgetDeltaIndexVsHead refuses a staged loosening without reason', () => {
+  const { dir, writeRatchet, commitAll } = initRatchetGitFixture();
+  const first = {
+    updated: '2026-01-01',
+    metrics: { lintWarnings: { 'apps/web': { budget: 812, initial: 851 } } }
+  };
+  writeRatchet(first);
+  commitAll('baseline');
+  const loosened = {
+    updated: '2026-01-02',
+    metrics: { lintWarnings: { 'apps/web': { budget: 813, initial: 851 } } }
+  };
+  writeRatchet(loosened);
+  execFileSync('git', ['add', RATCHET_PATH], { cwd: dir, stdio: 'ignore' });
+  const errors = validateBudgetDeltaIndexVsHead(dir);
+  assert.match(errors.join('\n'), /loosened from HEAD \(812 → 813\) with no "reason"/);
+});
+
+test('validateBudgetDeltaHeadVsParent refuses a committed loosening without reason', () => {
+  const { dir, writeRatchet, commitAll } = initRatchetGitFixture();
+  writeRatchet({
+    updated: '2026-01-01',
+    metrics: { lintWarnings: { 'apps/web': { budget: 812, initial: 851 } } }
+  });
+  commitAll('baseline');
+  writeRatchet({
+    updated: '2026-01-02',
+    metrics: { lintWarnings: { 'apps/web': { budget: 813, initial: 851 } } }
+  });
+  commitAll('loosen without reason');
+  const errors = validateBudgetDeltaHeadVsParent(dir);
+  assert.match(errors.join('\n'), /loosened from HEAD \(812 → 813\) with no "reason"/);
+});
+
+test('collectBudgetDeltaConsistencyErrors is quiet on a tightening commit', () => {
+  const { dir, writeRatchet, commitAll } = initRatchetGitFixture();
+  writeRatchet({
+    updated: '2026-01-01',
+    metrics: { lintWarnings: { 'apps/web': { budget: 813, initial: 851 } } }
+  });
+  commitAll('baseline');
+  writeRatchet({
+    updated: '2026-01-02',
+    metrics: { lintWarnings: { 'apps/web': { budget: 809, initial: 851 } } }
+  });
+  commitAll('tighten');
+  const onDisk = JSON.parse(fs.readFileSync(path.join(dir, RATCHET_PATH), 'utf8'));
+  assert.deepEqual(collectBudgetDeltaConsistencyErrors(dir, onDisk), []);
 });
 
 test('the committed baseline is self-consistent', () => {
