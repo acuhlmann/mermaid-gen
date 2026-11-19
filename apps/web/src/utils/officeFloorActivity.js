@@ -57,6 +57,27 @@ const DOING_ART = {
   mug: { pose: 'idle', hold: 'mug', headwear: null }
 };
 
+/**
+ * The holds that are themselves a call tell.
+ *
+ * `DOING_ART`'s own comment is the whole argument: _"on a headset" and "holding
+ * a phone" are the same fiction wearing different art_. So the set is not a
+ * list of ids — it is **derived** from the art, as every hold that belongs to a
+ * `call` pose. A sixth `doing` that says "on a call" with something in a hand is
+ * covered the day it is added, and nobody has to remember this file exists.
+ *
+ * It resolves to `['phone']` today, and a one-member derivation is still the
+ * honest shape: this domain has twice retracted a sensor that named members
+ * where the class was derivable.
+ *
+ * @type {readonly (string | null)[]}
+ */
+const CALL_HOLDS = Object.freeze(
+  Object.values(DOING_ART)
+    .filter((art) => art.pose === 'call' && art.hold)
+    .map((art) => art.hold)
+);
+
 /** Anybody with no desk-work row — which is exactly one person, and it is you. */
 const DEFAULT_ART = DOING_ART.typing;
 
@@ -138,6 +159,20 @@ export function baseDoingFor(id, dayPhase = null) {
  * 1. **A call outranks everything.** A remote sync puts a headset on every
  *    attendee including you, over the top of your own headphones — you did not
  *    join the call to listen to music, and two bits of headwear is one drawing.
+ *
+ *    It reaches the **hand** too, and only as far as the other rendering of its
+ *    own fact: a headset already says "on a call", so a phone under one is the
+ *    same tell drawn twice. Russ is the reachable case — his row is `phone`, he
+ *    is in the IM directory a remote sync is seeded from, and he sat through
+ *    every one of them wearing a headset and holding a handset. Measured over
+ *    the roster: **2 of 17** (Russ and Belson, the two `phone` rows). The other
+ *    seven holds survive on purpose — a mug or a stack of papers on a call is
+ *    somebody on a call with a mug, not a second claim about the call.
+ *
+ *    `PHASE_ART.standUp` is the precedent rather than a coincidence: the
+ *    whole-office remote stand-up has always emptied the hand it put a headset
+ *    above. The per-meeting rung simply never did the same, because it was
+ *    written to own the pose and the head.
  * 2. **Your headphones are next**, and are yours alone: `headphones` is the
  *    Admin menu's posture (`setOfficeHeadphones`), not a thing the cast has.
  *    This is the one place a *preference* reaches the room, which is exactly
@@ -192,9 +227,14 @@ export function floorActivityFor(id, context = {}) {
     dayPhase = null
   } = context;
   const base = baseDoingFor(id, dayPhase);
+  // Rung 1 reaching the hand: the trait row's own call tell loses to the live
+  // one above it, and every other hold is left exactly where it was. Rungs 3
+  // and 4 still outrank it — a coffee break and an errand are both things that
+  // are happening, which is the whole order below.
+  const baked = onCall && CALL_HOLDS.includes(base.hold) ? null : base.hold;
   return {
     pose: onCall ? 'call' : moving ? 'idle' : base.pose,
-    hold: coffee ? 'coffee' : (carrying ?? base.hold),
+    hold: coffee ? 'coffee' : (carrying ?? baked),
     headwear: onCall ? 'headset' : headphones ? 'headphones' : base.headwear
   };
 }

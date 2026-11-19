@@ -2470,6 +2470,13 @@ Kept here so appetite can pick without re-deriving. Each should stay bound by AD
   time you must stand still for) and it is worth stating, because "why does Jared never join in
   at the whiteboard" is a question the room now invites — and slice 23 sharpens it, since **you**
   can now join and he still cannot.
+- ~~**A bystander's dwell remark withdraws the offer**~~ ✅ **cleared 2026-11-18** (#942), by the
+  third route this bullet did not list. `active = standingFree && !hasOtherSpeech` was two gates
+  wearing one name: only `standingFree` should end an offer, and a mute now tears the exchange down
+  to `done` rather than to `null`, so the offer survives a bystander exactly as it survives the last
+  line. No second radius and no card under a foreign balloon. The measurement the bullet asked for
+  came in at **237 of 307** listening positions, not all of them. Kept below as written, because the
+  geometry it records is still the geometry:
 - **A bystander's dwell remark withdraws the offer** (slice 23). Shop talk is gated on
   `!hasOtherSpeech`, and slice 19 fires at whoever you are within a tile of — so five seconds
   into listening, an unrelated colleague looks up at you, the exchange clears and _Within
@@ -2482,21 +2489,29 @@ Kept here so appetite can pick without re-deriving. Each should stay bound by AD
   to prevent — or letting the offer survive `hasOtherSpeech`, which would put a card about one
   conversation under a balloon from another. Worth revisiting only with a measurement of how
   often it actually happens in a session.
-- **Nothing offers a way into a scene, and the card now invites the question.** Standing next to
-  a coffee break gets you no _Join in_, because slice 23 only knows how to join shop talk. The
-  asymmetry is invisible until you have seen the card once; then a coffee break two tiles away
-  with no offer on it reads as a bug rather than as a boundary. That is the strongest argument
-  for building the expensive half, and it did not exist before this slice shipped.
+- ~~**Nothing offers a way into a scene, and the card now invites the question.**~~ ✅ **cleared as
+  slice 28** — `officeFloorSceneJoin.js`, with the answer the Overhear → Join entry above records:
+  joining a scene **ends** it, and declining one now means "not for me" rather than "not happening",
+  which is the state the verb needed to exist at all. The bullet was right that the asymmetry was
+  the strongest argument for building the expensive half; it is the argument that built it.
 
-- **A remote sync wears the headset _and_ keeps the phone** — measured while writing slice 29,
-  pre-existing since slice 13 and left alone. `floorActivityFor('russ', { onCall: true })` is
-  `{ pose: 'call', hold: 'phone', headwear: 'headset' }`, because rung 1 owns the headwear and
-  the hand falls through to the trait row: two call tells on one person, which is the same
-  duplication the glass room's rule exists to avoid one rung further down. It is the physical
-  meeting's sibling case and the fix is the same shape (a call is a thing that is happening, so
-  it should own the hand as well as the head) — but it is one character at one desk during one
-  modality, where the meeting was eight people in the middle of the frame, so it did not earn
-  the change on its own. Worth folding in if anything else touches rung 1.
+- ~~**A remote sync wears the headset _and_ keeps the phone**~~ ✅ **cleared 2026-11-19.** The
+  duplication was real and reachable — captured in Chromium at midday, Russ at his own desk on a
+  remote sync with a headset on his head and a handset at his ear — and **2 of 17** of the roster
+  showed it (Russ and Belson, the two `phone` rows), both of them seedable into a sync from the IM
+  directory the call button reads.
+
+  What the entry got wrong is the **shape** of the fix, and the correction is the part worth
+  keeping. "A call is a thing that is happening, so it should own the hand as well as the head"
+  would have taken Ulrich's mug and Jared's printouts off the same call: 7 of the 17 hold something
+  that is not a claim about a call, and somebody on a call with a coffee is just somebody on a call
+  with a coffee. The defect is **one fact drawn twice**, not an unowned hand — which `DOING_ART`'s
+  own comment had already said in as many words (_"on a headset" and "holding a phone" are the same
+  fiction wearing different art_). So rung 1 now drops exactly the holds that belong to a `call`
+  pose, **derived** from the art rather than listed, and `PHASE_ART.standUp` turns out to be the
+  precedent rather than a coincidence: the whole-office remote stand-up has always emptied the hand
+  it put a headset above. Russ keeps his phone at every other hour; Ulrich keeps his mug on the
+  same call.
 
 - **A meeting is now the only moment with a derivation of its own, and the two must not drift.**
   `meetingActivityFor` sits beside `floorActivityFor` in the same module deliberately — that is

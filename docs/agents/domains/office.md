@@ -548,6 +548,17 @@ https://api.deepseek.com/` — 401 is reachable, 000 is blocked); never route ar
   `pointer-events: none` or it re-inflates the hit box § 6 rule 23 shrank. **You** are drawn
   from `PLAYER_FACE_TRAITS`, which lives beside `PERSONA_FACE_TRAITS` because that object's
   keys are pinned to `CAST_TIERS`.
+- **A live tell may overrule the trait row's rendering of the _same_ fact, and nothing else.**
+  Rung 1 of `floorActivityFor` (a remote sync) owns the pose, the headwear **and** — since
+  2026-11-19 — the hand, but only as far as a hold that belongs to a `call` pose. Russ's row is
+  `phone`, so for two years he sat through every remote sync wearing a headset with a handset at
+  his ear: one fact drawn twice on a 34 px figure, which `DOING_ART`'s own comment already named
+  (_"on a headset" and "holding a phone" are the same fiction wearing different art_). The set of
+  call tells is **derived** from the art (`CALL_HOLDS`, every hold on a `call`-pose row), never
+  listed. **Do not generalise it to "a call owns the hand"**: 7 of the 17 hold something that is
+  not a claim about a call, and taking Ulrich's mug off a sync he is sitting on makes the room
+  emptier, not more honest. `PHASE_ART.standUp` is the precedent — the whole-office remote
+  stand-up has always emptied the hand it put a headset above.
 - **A physical meeting derives separately, and the hour crosses into the glass room only as far
   as the hand.** `MeetingActor` takes `meetingActivityFor`, **not** `floorActivityFor` — the
   glass room shares almost no rungs with a desk, so it is a second ladder in the same module
@@ -2949,3 +2960,46 @@ from Jared. Reverting either file turns that one case red; reverting both turns 
 is 1 and `dwell` is 1 in the fixed visit, but never at the same mark, and the harness reports no
 `join` axis — so the measurement is the sweep plus the red/green directions, and the traces prove
 only that nothing else moved. Same reading as the scene-decline and scene-join slices.
+
+### One fact, drawn twice: what rung 1 owns, and what "a call owns the hand" would have cost
+
+`floorActivityFor` (`apps/web/src/utils/officeFloorActivity.js`) composes a figure from a written
+precedence, and rung 1 — a remote sync — was written to own the **pose** and the **headwear**. The
+hand fell through to rung 6, the character's own `officeDeskWork` row. Russ's row is `phone`, so a
+remote sync drew him with a headset on his head and a handset at his ear; so did Belson's. Measured
+over the roster: **2 of 17**, and reachable rather than theoretical — the call button seeds its
+attendees from the IM thread or the email thread you are in, and the IM directory is the whole cast.
+Captured in Chromium at midday, it is unmissable at 1× once you have seen it.
+
+**The first-stated fix was the wrong shape, and the correction is the finding.** `office-isometric-
+mode.md` § 8 had carried this since slice 29 with a proposed fix — _"a call is a thing that is
+happening, so it should own the hand as well as the head"_ — which is the physical meeting's rule
+(`meetingActivityFor` never falls through to the desk row) carried across to the remote one. Applied
+here it would have emptied **7 of 17** hands that are not a claim about anything: Ulrich's mug,
+Jared's printouts, Gary's tea. Somebody on a call with a coffee is somebody on a call with a coffee;
+the defect was never an unowned hand.
+
+The defect is **one fact rendered twice**, and the module had already said so in a comment nobody
+had read as a rule: `DOING_ART`'s own header — _"two of them carry headwear rather than a hold,
+which is the reason `doing` is one field and not two: 'on a headset' and 'holding a phone' are the
+same fiction wearing different art"_. `phone` and `headset` are the two renderings of **on a call**.
+So rung 1 drops exactly the holds that belong to a `call` pose, and keeps every other one.
+
+Three things worth carrying to the next rung on this ladder:
+
+- **Derive the class, do not list the members.** `CALL_HOLDS` is built from `DOING_ART` — every hold
+  on a `call`-pose row — rather than written as `['phone']`. It resolves to one member today, and a
+  one-member derivation is still the honest shape: this domain has twice retracted a sensor that
+  named members where the class was derivable, and a sixth `doing` that says "on a call" with
+  something in a hand is covered the day it lands.
+- **The precedent was already in the file.** `PHASE_ART.standUp` — the whole-office remote stand-up
+  — is `{ pose: 'call', hold: null, headwear: 'headset' }`: the hour has always emptied the hand it
+  put a headset above. The per-meeting rung simply never did the same. When a ladder has two rungs
+  expressing one idea and only one of them is right, the other is usually not a design decision, it
+  is the rung that was written second.
+- **The hour is rung 5, so a browser probe of rungs 1 and 6 must pin the clock.** The first capture
+  came back with the whole room holding papers and the bug invisible: it ran at the `windDown` hour,
+  whose `PHASE_ART` hold is `papers`, which is not a call tell, so the fix changed nothing visible
+  and the two arms agreed. This is the same trap `officeFloorActivity.test.jsx`'s drawing block
+  records for jsdom (red ~7.5 h a day), arriving through Playwright instead: pin `Date` in
+  `page.addInitScript` to the suites' midday, which is one of the two phases with no `PHASE_ART`.

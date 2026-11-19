@@ -79,6 +79,53 @@ describe('floorActivityFor precedence', () => {
     expect(both.pose).toBe('call');
   });
 
+  it('takes the handset out of the hand it just put a headset above', () => {
+    // Russ conducts business by phone, so his row holds one — and a remote sync
+    // puts a headset on him. Two renderings of one fact ("on a call") on one
+    // 34 px figure, which `DOING_ART`'s own comment is the argument against.
+    expect(deskDoingFor('russ').hold).toBe('phone');
+    const sync = floorActivityFor('russ', { onCall: true });
+    expect(sync.headwear).toBe('headset');
+    expect(sync.pose).toBe('call');
+    expect(sync.hold).toBeNull();
+    // Off the call he is himself again — this is rung 1 reaching the hand, not
+    // a trait row being edited.
+    expect(floorActivityFor('russ', {}).hold).toBe('phone');
+  });
+
+  it('leaves every other hand alone on a call, because a mug is not a second claim', () => {
+    // The fix is the *same fiction twice*, not "a call owns the hand": somebody
+    // on a call with a coffee is somebody on a call with a coffee.
+    expect(floorActivityFor('greybeard', { onCall: true }).hold).toBe('mug');
+    expect(floorActivityFor('jared', { onCall: true }).hold).toBe('papers');
+  });
+
+  it('keeps a set piece and an errand above it, which is the order below', () => {
+    // Rungs 3 and 4 are untouched: both are things that are *happening*, and
+    // rung 1 only overrules the trait row's own call tell.
+    expect(floorActivityFor('russ', { onCall: true, coffee: true }).hold).toBe('coffee');
+    expect(floorActivityFor('russ', { onCall: true, carrying: 'papers' }).hold).toBe('papers');
+  });
+
+  it('never draws a call twice, for anybody the room can put on one', () => {
+    // The class, not the member: a hold that belongs to a `call` pose is a call
+    // tell, so a sixth `doing` of that shape is covered the day it lands.
+    const callTellHolds = new Set(
+      Object.keys(OFFICE_DESK_WORK)
+        .map((id) => deskDoingFor(id))
+        .filter((art) => art.pose === 'call' && art.hold)
+        .map((art) => art.hold)
+    );
+    // The companion assertion: without it this sweep passes on an empty set,
+    // which is what it would silently become if `phone` ever lost its hold.
+    expect(callTellHolds.size).toBeGreaterThan(0);
+    for (const id of [...Object.keys(OFFICE_DESK_WORK), 'you']) {
+      const sync = floorActivityFor(id, { onCall: true });
+      expect(sync.headwear, `${id} is on a sync without the headset`).toBe('headset');
+      expect(callTellHolds.has(sync.hold), `${id} wears the call and holds it too`).toBe(false);
+    }
+  });
+
   it('gives you headphones from the posture alone', () => {
     expect(floorActivityFor('you', { headphones: true }).headwear).toBe('headphones');
   });
@@ -228,6 +275,33 @@ describe('the drawing', () => {
       expect(layer, `${id} has a hold marker and no art`).toBeTruthy();
       expect(layer.innerHTML.length, `${id}'s item is empty`).toBeGreaterThan(0);
     }
+  });
+
+  it('empties the hand it draws a headset above, on a remote sync', () => {
+    // The two modalities disagreed until this: the glass room already refused
+    // to seat Russ with his handset (slice 29 never falls through to the desk
+    // row), while the remote sync left it in his hand under the headset.
+    const view = renderFloor({
+      meeting: {
+        state: 'playing',
+        title: 'Sync (remote)',
+        modality: 'remote',
+        attendees: ['russ', 'greybeard'],
+        facilitatorId: 'russ',
+        transcript: [{ speakerId: 'russ', kind: 'substantive', text: 'TWELVE TABS.' }],
+        completed: false,
+        interjectionsLeft: 2
+      }
+    });
+    const russ = seatFigure(view, 'russ');
+    expect(russ.querySelector('[data-accessory="headset"]')).toBeTruthy();
+    expect(russ.dataset.hold).toBeUndefined();
+    expect(russ.querySelector('.office-floor-person-hold')).toBeNull();
+    // Two companions, because "no hold" is also what a broken render looks
+    // like: Ulrich is on the same call and keeps his mug, and Russ's own row
+    // still says `phone` — this is the composer, not the table.
+    expect(seatFigure(view, 'greybeard').dataset.hold).toBe('mug');
+    expect(deskDoingFor('russ').hold).toBe('phone');
   });
 
   it('hands a coffee to everyone in a coffee break', () => {
