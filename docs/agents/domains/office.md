@@ -1070,6 +1070,19 @@ today'` (`officeBoardRecall.js`), `'you said:'` / `'they said:'` for the quotes 
   **Measured**: 237 of 307 listening positions have a third colleague inside
   `NAME_CHIP_RANGE_TILES`, `DWELL_MS` is 5 s and the exchange runs 6.8 s, so the bystander always
   landed mid-conversation — the common case, not a corner.
+- **"Not a refusal" is not "not an answer", and a module header that conflated the two kept a gap
+  with a green test in front of it.** `apps/web/src/utils/officeInviteMemory.js` said _"only the two
+  refusals go through here"_ and listed **Accept** among the callers that write nothing, so the
+  office remembered every no to a calendar invite and forgot every yes — the asymmetry
+  `officeSceneJoinMemory.js` closed for the coffee break and the battle, on the card that slice did
+  not reach. `acceptOfficeMeetingInviteWithMemory` writes `inviteAccepted` on the organizer;
+  `dismissOfficeMeetingInvite` still writes nothing, because two of its four callers clear the toast
+  without answering it (a probe moving the write into the store turns **8** cases red, both decline
+  cases among them). Two booleans and not an enum, for `pitchTaken` / `pitchDeclined`'s reason: you
+  ducked the 10:00 and went to the 15:00, and the pair in order is a relationship. The old
+  end-to-end case `accepting it leaves no mark` is **rewritten to its own claim** — the accept writes
+  the accepted line and never the refused one — because a comment arguing one property under a
+  matcher asserting an absence is how a gap acquires a test defending it.
 
 ## Full findings
 
@@ -3003,3 +3016,63 @@ Three things worth carrying to the next rung on this ladder:
   and the two arms agreed. This is the same trap `officeFloorActivity.test.jsx`'s drawing block
   records for jsdom (red ~7.5 h a day), arriving through Playwright instead: pin `Date` in
   `page.addInitScript` to the suites' midday, which is one of the two phases with no `PHASE_ART`.
+
+### "Not a refusal" is not "not an answer": the invite's yes, and a sentence that was two claims
+
+`officeInviteMemory.js` has written a beat on the organizer since 2026-10-27, and its header said
+**"only the two refusals go through here"**, listing the three other callers of
+`dismissOfficeMeetingInvite` as not-a-no: accepting on the way into the glass room, calling your own
+meeting, and opening the people picker. Two of those three really are not answers to anybody's
+invite — they clear the card to get it out of the way. **Accepting is.** The sentence put a yes in a
+bucket labelled "not a refusal" and then treated the bucket as "writes nothing", so the office kept
+every no to an invite and forgot every yes: Chad books your afternoon, you press **Accept**, you
+walk into the room he booked, and he is a stranger to `hasWorkingMemoryFact` for the rest of the
+day — while the version of you who pressed ✕ is somebody he remembers.
+
+It is the same asymmetry `officeSceneJoinMemory.js` closed for the coffee break and the cubicle
+battle, on the one card that slice did not reach, and it is worth stating as its own finding because
+the **tell is different**. A missing beat usually looks like a gap. This one looked like a decision:
+a module header asserting it, and a green end-to-end case (`accepting it leaves no mark`) whose own
+comment argued something narrower and correct — that a _decline_ beat there would tell the next
+`/moment` you skipped a meeting you were walking into. `hasWorkingMemoryFact(organizer) === false`
+asserts a great deal more than that, which is 2026-11-17's matcher lesson again from the other side:
+**a comment that argues one property under a matcher that asserts an absence is how a gap acquires a
+test defending it.** The case is rewritten to its own claim — the accept writes the _accepted_ line
+and never the refused one — not deleted.
+
+Four mechanics, all of them already settled elsewhere in this domain and worth not re-deriving:
+
+- **The store still writes nothing, and that is what makes the negative case real.** Four callers,
+  three answers, two of them refusals: only a caller that knows what the press meant can own the
+  beat. A throwaway probe that moved the write into `dismissOfficeMeetingInvite` itself turns
+  **eight** cases red, among them `leaves nothing when the toast is cleared by something that is not
+an answer` **and both decline cases** — the store would tell an organizer you had come to the
+  meeting you just refused, which is the fabrication the situation rule was measured on arriving
+  through memory. Same shape as `acceptOfficeCoffee`'s probe (2026-11-17) and
+  `dismissOfficeErrand`'s rule.
+- **Two booleans, not an enum**, and the model is `pitchTaken` / `pitchDeclined` rather than
+  `sceneDeclined`: an organizer can hold both over one day — you ducked the 10:00 and went to the
+  15:00 — and the pair in order is a relationship, not a contradiction. `sceneJoined`'s enum exists
+  because a _scene kind_ needs naming; an invite has no kinds.
+- **The beat is the press, not the hour that follows.** It says they went, never that they sat
+  through it or that it went well: `meetingSurvived` / `meetingLeftEarly` reach the office log and
+  the glass room has not started when this is written, so a line claiming an outcome would claim one
+  that may never arrive — `SCENE_JOINED_PROMPT_LINES`' stated reason.
+- **The handler takes the invite back from the writer** instead of reading the snapshot and then
+  clearing it, which is the split the store already draws by returning the dismissed invite: taking
+  the card off the screen and remembering the answer are one decision, and walking into the glass
+  room stays `startMeeting`'s. `startMeeting` is asynchronous, so the roster it is handed is pinned
+  at the unit and the end-to-end case pins the synchronous half it can see (you stand up).
+
+**The one thing deliberately not claimed.** The other attendees were in the room with you, and no
+attendee of any meeting has ever carried a memory of sitting in one. That is a bigger question than
+this door — every meeting, every huddle, a roster at a time — so the test asserts only that _your
+answer to the invite_ did not reach them, and does not pin "an attendee holds nothing" as a rule.
+Pinning an absence is what this finding is about.
+
+**And the instrument cannot see it, for the third slice running.** The fixed visit's ten steps never
+receive a set-piece or calendar invite — the ambient director is held while a surface is open, by
+design — so three generated traces come back identical to the merged baseline on every counted axis,
+and the measurement is the five-direction red/green plus the probe. `afterwards.workingMemory`'s beat
+projection also enumerates five fields and carries none of the four answer booleans, but adding them
+would buy nothing while the visit cannot reach the door.

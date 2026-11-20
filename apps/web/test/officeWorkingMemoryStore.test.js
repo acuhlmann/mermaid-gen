@@ -262,6 +262,65 @@ describe('an errand you walked into is a fact about you', () => {
     ]);
   });
 
+  /*
+   * The yes to the same question (2026-11-20). The invite card carries Accept
+   * and two refusals, and only the refusals were written down — the same
+   * asymmetry `sceneJoined` closed for the coffee break and the cubicle battle,
+   * on the surface that slice did not reach.
+   */
+  it('remembers an accepted meeting as a fact of its own', async () => {
+    const { hasWorkingMemoryFact, rememberWorkingMemoryBeat, workingMemoryPromptLines } =
+      await freshStore();
+    rememberWorkingMemoryBeat('scrumMaster', { inviteAccepted: true, now: at(14, 0) });
+    expect(hasWorkingMemoryFact('scrumMaster')).toBe(true);
+    expect(workingMemoryPromptLines('scrumMaster')).toEqual([
+      "you put a meeting on the user's calendar; they went to it"
+    ]);
+  });
+
+  /*
+   * Independent of the refusal rather than a second value on it, which is
+   * `pitchTaken` / `pitchDeclined`'s argument and not `sceneDeclined`'s: an
+   * organizer can hold both over a day, and the pair in order is the history.
+   * An enum covering both would have had to delete one half of what the room
+   * actually saw.
+   */
+  it('coexists with a refusal of a different invite, in the order the room saw them', async () => {
+    const { rememberWorkingMemoryBeat, workingMemoryPromptLines } = await freshStore();
+    rememberWorkingMemoryBeat('scrumMaster', { inviteDeclined: true, now: at(10, 0) });
+    rememberWorkingMemoryBeat('scrumMaster', { inviteAccepted: true, now: at(15, 0) });
+
+    expect(workingMemoryPromptLines('scrumMaster')).toEqual([
+      "you put a meeting on the user's calendar; they did not go to it",
+      "you put a meeting on the user's calendar; they went to it"
+    ]);
+  });
+
+  /*
+   * Strict `=== true`, like every other boolean here. A caller handing this a
+   * truthy string writes nothing rather than writing an acceptance nobody made
+   * — and a beat carrying only a rejected field is no beat at all, which is the
+   * emptiness check the field has to be listed in to be honest about.
+   */
+  it('refuses an accepted meeting that is not literally true', async () => {
+    const { hasWorkingMemoryFact, rememberWorkingMemoryBeat, workingMemoryPromptLines } =
+      await freshStore();
+    rememberWorkingMemoryBeat('belson', { inviteAccepted: 'yes', now: at(14, 0) });
+
+    expect(hasWorkingMemoryFact('belson')).toBe(false);
+    expect(workingMemoryPromptLines('belson')).toEqual([]);
+  });
+
+  it('keeps an accepted meeting across a reload', async () => {
+    const first = await freshStore();
+    first.rememberWorkingMemoryBeat('scrumMaster', { inviteAccepted: true });
+    const second = await freshStore();
+    expect(second.hasWorkingMemoryFact('scrumMaster')).toBe(true);
+    expect(second.workingMemoryPromptLines('scrumMaster')).toEqual([
+      "you put a meeting on the user's calendar; they went to it"
+    ]);
+  });
+
   it('is still there after a reload, which the write side alone cannot promise', async () => {
     /*
      * A beat passes two validators — `rememberWorkingMemoryBeat` on the way in
@@ -763,6 +822,7 @@ describe("every prompt line is written in the speaker's second person", () => {
   const BOOLEAN_ARMS = [
     ['jared', { errandDropped: true }],
     ['hr', { inviteDeclined: true }],
+    ['belson', { inviteAccepted: true }],
     ['gilfoyle', { peeked: true }],
     ['greybeard', { pitchTaken: true }],
     ['chad', { pitchDeclined: true }]

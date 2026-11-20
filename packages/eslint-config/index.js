@@ -213,6 +213,15 @@ export function baseConfig({ env = 'node', tighten = false, workspaceDir = '.' }
       rules: {
         'no-dupe-class-members': 'error'
       }
+    },
+    // ADR-0007: promoted 2026-11-20 (improve, lint severity promotion). Quiet-period
+    // evidence: `git log --since="2 weeks ago" -S'no-fallthrough' -- '**/*.{js,jsx,ts,tsx}'` returned
+    // empty; eslint JSON across web/shared/server reported zero no-fallthrough warnings.
+    {
+      files: ['**/*.{js,jsx,mjs,cjs,ts,tsx}'],
+      rules: {
+        'no-fallthrough': 'error'
+      }
     }
   ];
 }

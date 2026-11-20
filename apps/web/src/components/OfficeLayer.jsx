@@ -120,7 +120,10 @@ import {
 import { duckRoomTone, unduckRoomTone } from '../utils/officeRoomTone.js';
 import { isSpokenLine, threadTranscriptFor } from '../utils/officeImThreads.js';
 import { officeStatusOf } from '../utils/officePresence.js';
-import { declineOfficeMeetingInviteWithMemory } from '../utils/officeInviteMemory.js';
+import {
+  acceptOfficeMeetingInviteWithMemory,
+  declineOfficeMeetingInviteWithMemory
+} from '../utils/officeInviteMemory.js';
 import { dismissOfficeWalkByWithMemory } from '../utils/officeWalkByMemory.js';
 import { officeSpeakerSting } from '../utils/officeSpeakerStings.js';
 import { getDeskSlotElement, subscribeDeskSlotElement } from '../state/deskSlotStore.js';
@@ -1022,10 +1025,17 @@ export default function OfficeLayer({
 
   const [meetingPicker, setMeetingPicker] = useState(null);
 
+  /*
+   * Through `officeInviteMemory.js` rather than the bare store call, for
+   * `onDecline`'s reason read the other way round: the person who put the
+   * meeting on your calendar is entitled to remember that you went to it, and
+   * until that writer existed the only answer this card recorded was the no.
+   * It returns the invite it cleared, which is the same object the snapshot read
+   * used to hand over, so the roster below is unchanged.
+   */
   const handleAcceptInvite = useCallback(() => {
-    const invite = getOfficeSnapshot().meetingInvite;
+    const invite = acceptOfficeMeetingInviteWithMemory();
     if (!invite) return;
-    dismissOfficeMeetingInvite();
     setMeetingPicker(null);
     // Calendar invites are diegetic "get to the glass room" moments. An
     // all-hands additionally carries an audience — everyone present who will
