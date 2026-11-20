@@ -172,6 +172,35 @@ const INVITE_DECLINED_PROMPT_LINE =
   "you put a meeting on the user's calendar; they did not go to it";
 
 /**
+ * What **accepting** their meeting reads like to the model — the other answer
+ * to the question `INVITE_DECLINED_PROMPT_LINE` above already records.
+ *
+ * It is the same inversion `SCENE_JOINED_PROMPT_LINES` records one block down,
+ * on the one surface that slice did not reach: the invite toast has **Accept**
+ * and the two refusals on the same card, in both renderers, and only the
+ * refusals were written down. So Chad could book your afternoon, watch you walk
+ * into the room he booked, and be a stranger to `hasWorkingMemoryFact` for the
+ * rest of the day — while the version of you who had pressed ✕ was somebody he
+ * remembered. A room that keeps every no and forgets every yes is keeping score
+ * of itself rather than remembering you.
+ *
+ * **It is the press, not the hour that follows.** The beat says they went, and
+ * never that they sat through it or that it went well: the glass room's own
+ * ending is `meetingSurvived` / `meetingLeftEarly` on the office log, and a
+ * sentence here claiming an outcome would be claiming one that has not happened
+ * when this is written — `SCENE_JOINED_PROMPT_LINES`' stated reason, and the
+ * same reading that keeps `PITCH_PROMPT_LINES.taken` to what the press meant.
+ *
+ * **Two booleans and not an enum**, exactly like `PITCH_PROMPT_LINES`: an
+ * organizer can hold both, and that reading is correct rather than
+ * contradictory. You ducked Chad's 10:00 and went to his 15:00 — two beats, two
+ * lines, in order, and a relationship.
+ *
+ * It names no title, for `INVITE_DECLINED_PROMPT_LINE`'s reason.
+ */
+const INVITE_ACCEPTED_PROMPT_LINE = "you put a meeting on the user's calendar; they went to it";
+
+/**
  * What turning down their set piece reads like to the model
  * (`docs/automations/office-life.md` queue 13, the third and last instance the
  * playbook names by file: *"`sceneJoin`'s decline path in particular ends the
@@ -307,7 +336,7 @@ const PITCH_PROMPT_LINES = Object.freeze({
   declined: 'you came over with a suggestion; the user did not take it'
 });
 
-/** @typedef {{ at: number, theirs?: string, yours?: string, pitchTaken?: boolean, pitchDeclined?: boolean, errandDropped?: boolean, inviteDeclined?: boolean, interrupted?: 'gotIt' | 'gaveUp', interruptedProp?: string, sceneDeclined?: 'coffee' | 'battle', sceneJoined?: 'coffee' | 'battle', peeked?: boolean, medium?: 'email' }} WorkingMemoryBeat */
+/** @typedef {{ at: number, theirs?: string, yours?: string, pitchTaken?: boolean, pitchDeclined?: boolean, errandDropped?: boolean, inviteDeclined?: boolean, inviteAccepted?: boolean, interrupted?: 'gotIt' | 'gaveUp', interruptedProp?: string, sceneDeclined?: 'coffee' | 'battle', sceneJoined?: 'coffee' | 'battle', peeked?: boolean, medium?: 'email' }} WorkingMemoryBeat */
 /** @typedef {{ beats: WorkingMemoryBeat[], boardFingerprint?: string }} WorkingMemoryRow */
 
 /** @type {{ [colleagueId: string]: WorkingMemoryRow }} */
@@ -426,6 +455,7 @@ export function listWorkingMemoryColleagueIds() {
  * @param {string} colleagueId
  * @param {{ theirs?: string, yours?: string, pitchTaken?: boolean,
  *   pitchDeclined?: boolean, errandDropped?: boolean, inviteDeclined?: boolean,
+ *   inviteAccepted?: boolean,
  *   interrupted?: 'gotIt' | 'gaveUp', interruptedProp?: string,
  *   sceneDeclined?: 'coffee' | 'battle', peeked?: boolean,
  *   medium?: 'email', now?: number }} beat
@@ -444,7 +474,13 @@ export function listWorkingMemoryColleagueIds() {
  *   fifth is the only one where you did not refuse anybody anything (you stood
  *   at their desk and read their screen), and the sixth is the refusal with a
  *   twin — `pitchDeclined` is ✕ on the bubble whose other button writes
- *   `pitchTaken`. All are still
+ *   `pitchTaken`.
+ *   `pitchTaken`, `sceneJoined` and `inviteAccepted` are the other answer to
+ *   three of those same questions, and they are listed apart from the six
+ *   because an acceptance is a different kind of fact rather than a seventh
+ *   refusal: each is the button *beside* the ✕ on one card, and a colleague who
+ *   holds both over a day holds a relationship rather than a contradiction.
+ *   All are still
  *   only a record — writing one schedules nothing (ADR-0010) — but it is what
  *   makes `hasWorkingMemoryFact` true for somebody you have never spoken to,
  *   which is the whole point: the next time you stand next to them, the office
@@ -530,6 +566,7 @@ export function workingMemoryPromptLines(colleagueId, { boardNow = '' } = {}) {
     if (beat.interrupted) lines.push(INTERRUPTION_PROMPT_LINES[beat.interrupted]);
     if (beat.errandDropped) lines.push(ERRAND_DROPPED_PROMPT_LINE);
     if (beat.inviteDeclined) lines.push(INVITE_DECLINED_PROMPT_LINE);
+    if (beat.inviteAccepted) lines.push(INVITE_ACCEPTED_PROMPT_LINE);
     if (beat.sceneDeclined) lines.push(SCENE_DECLINED_PROMPT_LINES[beat.sceneDeclined]);
     if (beat.sceneJoined) lines.push(SCENE_JOINED_PROMPT_LINES[beat.sceneJoined]);
     if (beat.peeked) lines.push(PEEKED_PROMPT_LINE);
