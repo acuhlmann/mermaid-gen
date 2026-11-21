@@ -175,6 +175,19 @@ typecheck:strict` and `scripts/verify-strict-islands.mjs`.
 - **`docs/guide/coding-agents.md`** next-targets prose updated: `diagramStore.js` is
   no longer listed as a monolith conversion target after ADR-0005 slices 1–4.
 
+### 2026-11-21 — strict-island counts after TS leaves + hub split
+
+- **Strict islands (measured):** `apps/web/tsconfig.strict.json` lists **42** files
+  (`explainEntryMarkdown.ts`, `diagramChangeDiff.ts` added 2026-11-17 per the ratchet
+  recipe); `apps/server/tsconfig.strict.json` lists **33** (upstream growth on `main`
+  since 2026-11-12). Counts are enforced by `npm run typecheck:strict` and
+  `scripts/verify-strict-islands.mjs` — the ADR-0006 priority list and
+  `docs/guide/coding-agents.md` point at those files rather than repeating a number that
+  drifts nightly.
+- **`mcpServer.js` hub LOC** remains **~496** after the 2026-11-18
+  `registerMcpSessionNavigationTools` extraction (already recorded in ADR-0005 and the
+  2026-11-14 note above).
+
 ## Consequences
 
 - Sliding ratchet: every PR that touches a `.js` file is an opportunity to

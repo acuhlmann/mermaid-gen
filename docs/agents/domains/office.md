@@ -1084,6 +1084,24 @@ today'` (`officeBoardRecall.js`), `'you said:'` / `'they said:'` for the quotes 
   the accepted line and never the refused one — because a comment arguing one property under a
   matcher asserting an absence is how a gap acquires a test defending it.
 
+- **Two memories hold a collision, and for two slices only one of them did.** Walking into
+  somebody's errand wrote a beat on the victim (`useFloorInterruptMemory.js`, queue 2) and nothing
+  at all in `officeLogStore.js` — so the one event on this floor with the most witnesses, a person
+  turning round and saying something out loud in the middle of an open-plan room, was the only one
+  a third colleague could not mention, while the log was already carrying **email subjects** on the
+  argument that a subject line is what the office gossips about. The same hook now records both,
+  behind the same `seatId:leg` latch, because one collision is one fact however many memories hold
+  it. **Which half goes where is the whole design**: the reaction (`gotIt` / `gaveUp`) is public and
+  already reaches a mouth through `INTERRUPTION_PROMPT_LINES`, the prop is named on neither side
+  (`interruptedProp` is "a fact for the floor, not a fact for a mouth"), and the line itself never
+  leaves the beat — it was said to you. `interrupt` is deliberately **out** of
+  `RELATIONSHIP_KINDS`: the person it names already carries the richer version, and both blocks ride
+  on the same `/moment` request. **Measured**: the visit's `afterwards.logDigest` 8 → **9** in 3 of
+  3, and a 2 × 5 audition found the new line referenced **0 of 5** by a third party against the
+  digest as a whole being quoted ~1 of 5 in **both** arms — availability is what this buys, not
+  frequency, and the block's own rule ("only if a reference lands naturally… most of the time it is
+  not") is why.
+
 ## Full findings
 
 - **Office sound is one posture, not four checkboxes.** Menu bar **Admin** carries 🎧 **Headphones**
@@ -3076,3 +3094,67 @@ design — so three generated traces come back identical to the merged baseline 
 and the measurement is the five-direction red/green plus the probe. `afterwards.workingMemory`'s beat
 projection also enumerates five fields and carries none of the four answer booleans, but adding them
 would buy nothing while the visit cannot reach the door.
+
+### The room's memory and the victim's: one collision, two records, and only one of them existed
+
+The floor has been able to ruin somebody's errand since slice 18 — you claim the tile they were
+walking to, `goHome({ byYou })` turns them round, `officeFloorInterrupt.js` gives them a line about
+it — and since queue 2 the person it happened to has remembered it
+(`useFloorInterruptMemory.js` → `rememberWorkingMemoryBeat`). **Nothing was ever filed in the shared
+log**, so the fact existed in exactly one head. That is the wrong shape for this event specifically,
+and the argument is already written in `officeLogDigest.js`: the module carries **email subjects** on
+the grounds that "in the fiction a subject line is what the office gossips about", and withholds DM
+bodies because a direct message "is the one exchange on this floor with no witness". An interruption
+is the opposite extreme of that scale. It happens in the middle of an open-plan room and the person
+it happened to _announces_ it; there is no witness-free version of walking into somebody. So the one
+event with the most witnesses was the only one a third colleague could not mention.
+
+`'interrupt'` is now the fifteenth `OFFICE_LOG_KINDS` entry and the same hook writes both records,
+behind the same `seatId:leg` latch. Four things decide the split, and each is a rule this domain
+already paid for somewhere else:
+
+- **One edge, one writer, one latch.** `useFloorInterruptMemory` already owned this edge, so the log
+  write hooks the funnel that exists rather than adding an observer to feed it (`state/CLAUDE.md`'s
+  record-never-trigger note). One collision is one fact however many memories hold it, so a second
+  latch would be a second answer to "did this happen".
+- **The public half is the reaction, and the prop is named on neither side.** `interrupted`
+  (`gotIt` / `gaveUp`) already reaches a mouth through `INTERRUPTION_PROMPT_LINES`, and it is visible
+  from across the room — whether they walked back with the thing or without it. `interruptedProp`
+  deliberately does not reach a mouth (that hook's own words: "a fact for the floor, not a fact for a
+  mouth"), and keeping the same split means the room's memory and the victim's **cannot disagree
+  about which machine it was, because neither of them names one**. The line itself stays out of the
+  log entirely: it was said to you.
+- **`RELATIONSHIP_KINDS` is left alone on purpose, and this is the second kind to be kept out of it.**
+  `interrupt` names a colleague, so it would qualify on the stated test — and the person it names
+  already carries the richer version of the same collision, a beat with their own line in it, in a
+  block that rides on the _same_ `/moment` request. A count there would be the third telling of one
+  event in one prompt. (`errand`'s exclusion note is the precedent: that projection's effect has been
+  measured once, at n=5, and widening what feeds it before the measurement is redone builds on an
+  unaudited result.)
+- **No log-side twin of the latch test.** The log collapses consecutive duplicates with the same
+  kind, colleague and detail inside a minute, so a double write from one tick is **unobservable**
+  through the digest and a case asserting "one line" would be green whether or not the latch held.
+  The latch is pinned where it can actually fail — on the beat, where the cap is four facts and a
+  repeat costs one of them. A test that cannot fail is worse than no test, because it reads as cover.
+
+**What it measures, including the half that did not move.** The scripted visit's
+`afterwards.logDigest` goes **8 → 9** in 3 of 3 generated runs, with every other counted axis
+identical (10/10 steps, `speech.count` 20 on the same channel split, `bySource` model 2 / bank 18,
+`askedTheModel`/`answeredByModel` 3/3, 12 calls all 200, `read.cards` 2, `pageErrors: []`) — the
+instrument can see this slice directly, which is rare on this rung. The new line reads
+`you took the spot intern was using`, step 3's own collision. **A 2 × 5 audition against the real
+route then found the collision referenced 0 of 5 by a third party** (`gilfoyle`, `walkby` and `im`,
+one fixed diagram, the interrupt line the only variable), against the digest **as a whole** being
+quoted in roughly 1 of 5 in **both** arms — Gilfoyle reached for the whiteboard in the control and
+for HR's welcome email in the test arm. So what this slice buys is **availability, not frequency**,
+and that is the block's own design: `PURPOSE_RULES.dialogue` says "use this ONLY if a reference lands
+naturally… most of the time it is not". A funnel diagram that ends at Churn is louder material than
+a bumped elbow, and making the room _prefer_ the collision would be a ranking inside that block —
+a separate slice, with its own measurement, and the kind of change the "cut the notes, not the
+register" finding says to be careful with.
+
+**The general rule worth keeping:** when a floor event is public, ask what the log already carries
+on the loudest and quietest ends of its own scale before deciding. The scale in
+`officeLogDigest.js`'s header — email subjects in, DM bodies out, by witness count — answers "does
+this belong in the room's memory" without anybody having to re-reason about privacy, and it also
+answers which _part_ belongs, which is the half that is easy to get wrong.

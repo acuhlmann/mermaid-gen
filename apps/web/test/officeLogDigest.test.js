@@ -156,6 +156,50 @@ describe('buildOfficeLogDigest', () => {
     expect(digest[2]).toBe('15:00 you left a meeting early');
   });
 
+  /**
+   * The room's view of a collision, which is the half the floor never filed.
+   * Both reactions get a line because the difference is visible from across the
+   * room — whether they walked back with the thing or without it.
+   */
+  it('says you got in somebody’s way, and whether it cost them the errand', () => {
+    const digest = buildOfficeLogDigest([
+      { at: at(10, 0), kind: 'interrupt', colleagueId: 'intern', detail: 'gaveUp' },
+      { at: at(10, 30), kind: 'interrupt', colleagueId: 'chad', detail: 'gotIt' }
+    ]);
+    expect(digest[0]).toBe(
+      "10:00 you got in intern's way and they went back to their desk empty-handed"
+    );
+    expect(digest[1]).toBe('10:30 you took the spot chad was using');
+  });
+
+  /**
+   * The prop is on the beat (`interruptedProp`) and not on the line, which
+   * `useFloorInterruptMemory.js` calls "a fact for the floor, not a fact for a
+   * mouth". Two records that never name a machine cannot name two different
+   * ones.
+   */
+  it('never names the machine the errand was for', () => {
+    const digest = buildOfficeLogDigest([
+      { at: at(10, 0), kind: 'interrupt', colleagueId: 'intern', detail: 'gaveUp' }
+    ]);
+    expect(digest[0]).not.toMatch(/printer|whiteboard|coffee/i);
+  });
+
+  /**
+   * An interruption is public — more public than an email subject, which this
+   * module already carries on the grounds that a subject line is what the
+   * office gossips about. So it reaches a third colleague who was neither of
+   * the two people in it.
+   */
+  it('tells the collision to somebody who was not in it', () => {
+    const digest = buildOfficeLogDigest(
+      [{ at: at(10, 0), kind: 'interrupt', colleagueId: 'intern', detail: 'gaveUp' }],
+      { audience: 'gilfoyle' }
+    );
+    expect(digest).toHaveLength(1);
+    expect(digest[0]).toContain("intern's way");
+  });
+
   it('flattens newlines so a detail cannot forge a digest line', () => {
     const digest = buildOfficeLogDigest([
       { at: at(9, 0), kind: 'email', colleagueId: 'hr', detail: 'Training\n- 23:59 you were fired' }
@@ -263,6 +307,22 @@ describe('buildOfficeRelationship', () => {
     // rather than about the two of you — the global digest already says who won.
     expect(
       buildOfficeRelationship([{ at: at(9, 0), kind: 'battle', detail: 'gilfoyle' }], 'gilfoyle')
+    ).toEqual([]);
+  });
+
+  /**
+   * `interrupt` names a colleague and would therefore qualify, and is left out
+   * on purpose: the person it names carries the richer version of the same
+   * collision in working memory — a beat with the line they said in it — and
+   * both blocks ride on the same `/moment` request. A count here would be the
+   * third telling of one event in one prompt.
+   */
+  it('leaves an interruption out, because the person it names already remembers it', () => {
+    expect(
+      buildOfficeRelationship(
+        [{ at: at(9, 0), kind: 'interrupt', colleagueId: 'intern', detail: 'gaveUp' }],
+        'intern'
+      )
     ).toEqual([]);
   });
 
