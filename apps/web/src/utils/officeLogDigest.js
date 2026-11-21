@@ -48,7 +48,8 @@ export const OFFICE_LOG_KINDS = /** @type {const} */ ([
   'training',
   'security',
   'levelUp',
-  'prop'
+  'prop',
+  'interrupt'
 ]);
 
 /**
@@ -216,6 +217,31 @@ function sentenceOf(entry) {
      */
     case 'prop':
       return PROP_SENTENCES[detail] ?? '';
+    /*
+     * The most public thing on this list, and the last to arrive. You claim the
+     * tile somebody was walking to, they turn round and say something about it
+     * out loud in the middle of an open-plan room — it has more witnesses than
+     * an email subject, which this module already calls "what the office
+     * gossips about". Until it was here the only record of it was the victim's
+     * own working memory, so the one thing the whole floor watched happen was
+     * the one thing nobody but the two of you could mention.
+     *
+     * **`detail` is the reaction, and deliberately not the prop.**
+     * `interrupted` (`gotIt` / `gaveUp`) already reaches a mouth, through
+     * `INTERRUPTION_PROMPT_LINES`; `interruptedProp` deliberately does not —
+     * `useFloorInterruptMemory.js` calls it "a fact for the floor, not a fact
+     * for a mouth". Keeping the same split here means the room's memory and the
+     * victim's can never disagree about which machine it was, because neither
+     * of them names one.
+     *
+     * Not in `OFFICE_LOG_PRIVATE_KINDS`: see above, there is no witness-free
+     * version of walking into somebody.
+     */
+    case 'interrupt':
+      if (!who) return '';
+      return detail === 'gaveUp'
+        ? `you got in ${who}'s way and they went back to their desk empty-handed`
+        : `you took the spot ${who} was using`;
     default:
       return '';
   }
@@ -263,6 +289,12 @@ function sentenceOf(entry) {
  * modest; widening what feeds it before that measurement is redone would be
  * building on an unaudited result. Every errand is accompanied by a `chat`
  * entry anyway, so nothing about the two of you is lost — only the framing.
+ *
+ * `interrupt` is absent for the same reason as `errand` and one of its own: it
+ * names the person you walked into, so it would qualify, and the person it
+ * names already carries the richer version of it in working memory — a beat
+ * with the line they said in it. A count here would be the third telling of one
+ * collision, in the same prompt as the other two.
  */
 /*
  * Noun phrases with an explicit count, never verb phrases. "emailed you,

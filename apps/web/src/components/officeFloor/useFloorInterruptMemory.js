@@ -1,6 +1,6 @@
 /**
- * An errand you walked into is still true five minutes later
- * (`docs/automations/office-life.md` queue 2).
+ * An errand you walked into is still true five minutes later, and the room saw
+ * it happen (`docs/automations/office-life.md` queue 2).
  *
  * The floor has been able to ruin somebody's coffee run since slice 18: you
  * claim the tile they were heading for, `goHome({ byYou: true })` turns them
@@ -32,6 +32,23 @@
  * (the situation rule in `docs/agents/domains/office.md`). It is a fact for the
  * floor, not a fact for a mouth.
  *
+ * **Two memories, one edge, one latch.** The beat is the victim's own and
+ * nobody else's — the quote in it is a line they said to you. The office log is
+ * the room's, and an interruption belongs there for the plainest reason any
+ * entry in it does: it happens in the middle of an open-plan floor and the
+ * person it happened to announces it out loud. Until the log entry existed, the
+ * one event on this floor with the most witnesses was the only one a third
+ * colleague could not mention — `officeLogDigest.js` was already carrying email
+ * subjects on the argument that a subject line is what the office gossips
+ * about. Both writes sit behind the same `seatId:leg` latch below, because one
+ * collision is one fact however many memories hold it.
+ *
+ * **Which half goes where is the split `officeLogDigest.js` restates.** The
+ * reaction (`gotIt` / `gaveUp`) is public — you can see from across the room
+ * whether they went back empty-handed — and the prop is not named on either
+ * side, so the two records can never disagree about which machine it was. The
+ * line itself stays out of the log entirely: it was said to you.
+ *
  * The dedupe key is `seatId:leg` rather than the line or the trip object.
  * `interrupted` is set on the same tick `leg` increments and survives into the
  * `lingering` update that follows, so keying on the trip's identity would write
@@ -40,6 +57,7 @@
  */
 
 import { useEffect, useRef } from 'react';
+import { recordOfficeLogEntry } from '../../state/officeLogStore.js';
 import { rememberWorkingMemoryBeat } from '../../state/officeWorkingMemoryStore.js';
 
 /**
@@ -71,6 +89,19 @@ export function useFloorInterruptMemory({ said, leg = 0 } = {}) {
       theirs: said.text,
       interrupted: said.reaction,
       interruptedProp: said.kind
+    });
+    /*
+     * The room's half. `colleagueId` is who you walked into and `detail` is
+     * which of the two reactions the floor drew, which is also what keeps the
+     * log's consecutive-duplicate collapse honest here: two collisions with the
+     * same person and the same outcome, back to back inside a minute, read as
+     * one line — which is the truthful reading, since the second says nothing
+     * the first did not — while ruining the errand and then catching them on the
+     * way back stays two, because the reactions differ.
+     */
+    recordOfficeLogEntry('interrupt', {
+      colleagueId: said.speakerId,
+      detail: said.reaction
     });
     // `said` is derived from the same trip as `key` and changes with it; depending
     // on it as well would re-run this on a copy bundle swap mid-linger.
