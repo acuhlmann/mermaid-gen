@@ -23,7 +23,11 @@ import {
   OFFICE_PROP_NEWS_WINDOW_MS,
   OFFICE_UNFINISHED_ERRAND_WINDOW_MS
 } from '../src/utils/officeCadence.js';
-import { _resetOfficeLogForTests, recordOfficeLogEntry } from '../src/state/officeLogStore.js';
+import {
+  _resetOfficeLogForTests,
+  getOfficeLogDigest,
+  recordOfficeLogEntry
+} from '../src/state/officeLogStore.js';
 import { interruptSpeech } from '../src/utils/officeFloorInterrupt.js';
 import {
   FLOOR_SEATS,
@@ -1564,6 +1568,45 @@ describe('walking into somebody else s errand, on a real floor', () => {
 
     expect(wanderer).toBeTruthy();
     expect(hasWorkingMemoryFact(wanderer)).toBe(false);
+  });
+
+  /**
+   * The room's own half, end to end. The beat above is the victim's and carries
+   * a line they said to you; this is the floor filing the fact everybody
+   * standing in the room could see, so a third colleague can mention it.
+   */
+  it('files it in the shared log as well, so the room knows it happened', () => {
+    expect(getOfficeLogDigest()).toEqual([]);
+    interruptChad();
+    act(() => vi.advanceTimersByTime(1_800));
+
+    // Read as somebody who was in neither half of it — the collision is public.
+    const digest = getOfficeLogDigest({ audience: 'gilfoyle' });
+    expect(digest).toHaveLength(1);
+    expect(digest[0]).toContain(`you took the spot ${CHAD} was using`);
+  });
+
+  /*
+   * There is deliberately no log-side twin of `records it once, not once per
+   * render`: the log collapses consecutive duplicates inside a minute, so a
+   * double write from the same tick is unobservable through the digest and a
+   * case asserting one line would be green whether or not the latch held. The
+   * latch is pinned where it can actually fail — on the beat, where the cap is
+   * four facts and a repeat costs one of them.
+   */
+  it('files nothing when the errand simply ended', () => {
+    /*
+     * The `byYou` gate, from the log's side. An ambient trip that ran its
+     * course is a clock finishing, and `office-parody.md` § 11 puts that on the
+     * ambient side of the line: the room does not gossip about Chad fetching a
+     * coffee nobody stopped him fetching.
+     */
+    renderFloor();
+    act(() => vi.advanceTimersByTime(9_000));
+    act(() => vi.advanceTimersByTime(9_000));
+    act(() => vi.advanceTimersByTime(9_000));
+
+    expect(getOfficeLogDigest()).toEqual([]);
   });
 });
 
