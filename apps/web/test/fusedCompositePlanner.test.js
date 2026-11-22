@@ -158,6 +158,9 @@ const LABEL_PLACEMENT_GOLDEN = [
 
 describe('Composite v2 primitive registry', () => {
   it('declares bounded anchors, placement, motion, and cost for every capability', () => {
+    // Coverage claim: an empty registry would pass the loop below while
+    // examining nothing.
+    expect(BASE_KINDS.length).toBeGreaterThan(0);
     for (const capability of Object.values(COMPOSITE_CAPABILITY_BY_KIND)) {
       const primitive = COMPOSITE_PRIMITIVE_REGISTRY[capability.primitive];
       expect(primitive).toBeDefined();

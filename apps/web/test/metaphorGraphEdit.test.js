@@ -420,12 +420,17 @@ describe('the descriptor reaches the mutators it was dead code for (#495)', () =
     // must not be offered a rename whose only outcome is an error toast.
     // Composite is absent from this sweep only because its fixture lives in
     // layers; `metaphorLinkPick.test.js` covers it both ways.
-    for (const metaphor of [
+    const linkEditKinds = [
       ...Object.keys(METAPHOR_FLAT_GRAPH_EDIT_KINDS),
       'city',
       'tree',
       'garden'
-    ]) {
+    ];
+    expect(
+      linkEditKinds.length,
+      'no link-edit kinds registered — this proves nothing'
+    ).toBeGreaterThan(3);
+    for (const metaphor of linkEditKinds) {
       const source = docWithLink(metaphor);
       const adapter = graphEditAdapterFor('metaphor3d', source);
       const canRename = adapter?.renameEdge(source, 'a', 'b', 'carries').ok === true;

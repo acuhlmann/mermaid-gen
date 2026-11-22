@@ -134,6 +134,8 @@ describe('recedeTheme', () => {
     // The trap this whole module is annotated for: a near-black albedo cannot
     // be lit, so a receded layer that clamps to black stops reading as a body
     // standing in the scene and reads as a hole in it.
+    const themeIds = Object.keys(METAPHOR_THEME_PRESETS);
+    expect(themeIds.length, 'no theme presets — this proves nothing').toBeGreaterThan(3);
     for (const [id, preset] of Object.entries(METAPHOR_THEME_PRESETS)) {
       const muted = recedeTheme(preset);
       for (const [key, value] of Object.entries(muted)) {
