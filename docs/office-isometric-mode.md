@@ -2513,6 +2513,24 @@ Kept here so appetite can pick without re-deriving. Each should stay bound by AD
   it put a headset above. Russ keeps his phone at every other hour; Ulrich keeps his mug on the
   same call.
 
+- **A pair huddle is never `huddled`, so the room files nothing about its longest conversation.**
+  Found 2026-11-22 while giving the pair partner a working-memory beat
+  (`officeHuddleMemory.js`). `handleHardStop` pays `onOfficeEvent('huddled')` only from `speaking`
+  or `watching`, and `useHuddleRingControls`' `onDone` is `pairing ? handleTurnDone : onHardStop` —
+  a mob ends from `speaking`, a pair is sent to `listening` and waits there for you. So the only
+  ways a pair is closed from a paying phase are cutting it off mid-line or closing it during a
+  Do-it: **no XP, and no `officeLogStore.js` entry at all**, for the one exchange on this floor with
+  a transcript.
+
+  **The gate cannot move on its own, which is why this is a debt and not a one-line fix.**
+  `sentenceOf`'s single `huddle` line is _"the team crowded around your screen"_ and the entry
+  carries no `colleagueId`, so making a pair fire the event would have the room tell itself a false
+  fact more often than it does now. The gate, the sentence and a `colleagueId` on the entry move
+  together — and the last of those re-opens `RELATIONSHIP_KINDS`, since a pair names a colleague and
+  that colleague now carries the richer version of the same conversation in a block riding on the
+  same `/moment` request, which is exactly `interrupt`'s stated reason for staying out. One slice,
+  with its own audition.
+
 - **A meeting is now the only moment with a derivation of its own, and the two must not drift.**
   `meetingActivityFor` sits beside `floorActivityFor` in the same module deliberately — that is
   what stops the room and the glass room disagreeing about a headset — but it is a _second_

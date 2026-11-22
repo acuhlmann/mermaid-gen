@@ -125,6 +125,7 @@ import {
   declineOfficeMeetingInviteWithMemory
 } from '../utils/officeInviteMemory.js';
 import { dismissOfficeWalkByWithMemory } from '../utils/officeWalkByMemory.js';
+import { rememberPairHuddle } from '../utils/officeHuddleMemory.js';
 import { officeSpeakerSting } from '../utils/officeSpeakerStings.js';
 import { getDeskSlotElement, subscribeDeskSlotElement } from '../state/deskSlotStore.js';
 import {
@@ -1207,9 +1208,14 @@ export default function OfficeLayer({
 
   // Hard stop, Escape, or the last remark landing — all end the same way. Only
   // a huddle that actually got as far as speaking (or watched a Do-it) is worth XP.
+  // A pair also leaves the person in the chair knowing what you two said, through
+  // `officeHuddleMemory.js` — read off this snapshot, written before the tear-down,
+  // and deliberately not behind the XP phases: a pair waiting on you is `listening`.
   const handleHardStop = useCallback(() => {
-    const phase = getOfficeSnapshot().huddle?.phase;
+    const huddle = getOfficeSnapshot().huddle;
+    const phase = huddle?.phase;
     if (phase === 'speaking' || phase === 'watching') onOfficeEvent?.('huddled');
+    rememberPairHuddle(huddle);
     endHuddle();
   }, [endHuddle, onOfficeEvent]);
 

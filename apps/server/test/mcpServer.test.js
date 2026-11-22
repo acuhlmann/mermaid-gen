@@ -106,6 +106,10 @@ test('MCP: end-to-end handshake → presence → propose → accept → state ad
 
   // 1. Tool list reflects our registered tools
   const tools = await client.listTools();
+  assert.ok(
+    tools.tools.length > 0,
+    'MCP must register at least one tool — the sweep below would pass on nothing'
+  );
   const names = new Set(tools.tools.map((t) => t.name));
   for (const required of [
     'get_mcp_binding',
