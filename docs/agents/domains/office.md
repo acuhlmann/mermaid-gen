@@ -1102,6 +1102,32 @@ today'` (`officeBoardRecall.js`), `'you said:'` / `'they said:'` for the quotes 
   frequency, and the block's own rule ("only if a reference lands naturally… most of the time it is
   not") is why.
 
+- **The office's longest conversation was the only one nobody remembered.** A pair huddle
+  (`mode: 'pair'` in `officeMomentStore.js`) is one named colleague, a `turns` transcript up to
+  `PAIR_TURNS_MAX` that the server reads back so each answer replies to the one before it, a
+  `listening` phase that advances on nothing but you typing, and an interrupt verb for cutting them
+  off mid-sentence — and twelve turns of that left `hasWorkingMemoryFact(partner)` **false**, so the
+  next time you stood next to them `useFloorDwell` dealt from the canned deck. That is the hole
+  queue 2 closed for somebody you merely walked into. `officeHuddleMemory.js`'s `rememberPairHuddle`
+  now writes **one** beat on the partner as the pair is torn down, and it needs **no new field**:
+  `yours` / `theirs` and the spoken prefixes already exist and are already capped, so a pair is a
+  talk with more turns. Four rules decide the shape — the beat is the last `partner` line plus the
+  last `you` line **before** it (`workingMemoryPromptLines` renders `yours` first, so pairing it
+  with a later answer hands the model a reply to something it had not heard); an `edit` turn is a
+  canvas change and not speech, so it is never quoted as one; a **mob writes nothing**, because this
+  store's rule is about the aimed _edge_ and a mob is aimed at the team (roster-at-a-time is the
+  ledger's parked `meeting-attendees-hold-nothing`); and **one conversation is one beat**, because
+  the cap is six per colleague and a beat per turn would evict the peek, the collision and the
+  suggestion you took. **Measured**: a sweep of all 364 transcript shapes up to length five records
+  exactly one beat in 301 and is silent in 63 — exactly the 63 with no `partner` line — with **0**
+  `edit` turns quoted and **0** beats whose halves are out of order. **Found while reading it, and
+  left for its own slice**: `handleHardStop` pays
+  `huddled` only from `speaking` / `watching`, and `useHuddleRingControls`' `onDone` sends a pair to
+  `listening` instead of ending it — so a pair is _never_ `huddled`, pays no XP and files no
+  `officeLogStore.js` entry at all, while the digest's one `huddle` sentence says "the team crowded
+  around your screen" about one person. The beat deliberately does not ride that gate (ledger row
+  `pair-huddle-is-never-huddled`).
+
 ## Full findings
 
 - **Office sound is one posture, not four checkboxes.** Menu bar **Admin** carries 🎧 **Headphones**
@@ -3158,3 +3184,90 @@ on the loudest and quietest ends of its own scale before deciding. The scale in
 `officeLogDigest.js`'s header — email subjects in, DM bodies out, by witness count — answers "does
 this belong in the room's memory" without anybody having to re-reason about privacy, and it also
 answers which _part_ belongs, which is the half that is easy to get wrong.
+
+### A pair is a conversation, and it was the one conversation the room did not remember
+
+Every aimed edge on this floor has written a fact for weeks: a dwell, a desk talk, an email, a
+collision, a dropped errand, a declined invite, an accepted one, a refused set piece, a joined one,
+a peek, a waved-off suggestion. **The pair huddle wrote nothing**, and it is the richest of them
+all. `startOfficeHuddle([id], { mode: 'pair' })` seats exactly one named colleague; `turns` keeps up
+to `PAIR_TURNS_MAX` lines and rides back to the server so each answer replies to the one before it;
+`setOfficeHuddleListening` parks the scene on nothing but you typing; `interruptOfficeHuddle` exists
+because you can cut them off mid-sentence. Twelve turns of that and `hasWorkingMemoryFact(partner)`
+was still **false** — so the next time you stood beside them `useFloorDwell` dealt from the canned
+deck, which is precisely the hole queue 2 closed for somebody you had merely walked into. A single
+desk visit was remembered three ways; the one real conversation was remembered none.
+
+**The fix needed no new vocabulary, and that is the argument for it being overdue rather than new.**
+`yours` / `theirs` already exist on the beat, `normalizeWorkingMemoryBeat` already trims and caps
+them at 200 characters, and `SPOKEN_PROMPT_LINES` already prefixes them `the user said:` /
+`you said:`. So `officeHuddleMemory.js` adds a writer and nothing else: no field, no prompt line, no
+enum member, no wire field, no schema restate, no cap, no locale key, no LLM call. A pair is a talk
+with more turns.
+
+Four things decide the shape, and each is a rule this domain already paid for elsewhere:
+
+- **The beat is the last real exchange, in the order it happened.** Their last line, plus the last
+  thing you said _before_ it. `workingMemoryPromptLines` pushes `yours` ahead of `theirs` — the same
+  ordering rule its interruption comment states — so taking your _latest_ line and pairing it with
+  an answer that came earlier would hand the next prompt a reply to something it had not heard yet.
+  A trailing line of yours with nothing under it is therefore dropped rather than paired, which also
+  makes the record independent of whether you closed the chair before or after their answer landed:
+  `awaitingReply` is a live state, and a beat that changed meaning with it would be a different
+  fact depending on your timing.
+- **An `edit` turn is not speech.** The transcript's third role is a canvas change the partner
+  reacted to. Quoting one as `the user said: added Retry queue` is the fabrication the situation
+  rule warns about, arriving through memory instead of through a prompt — the same failure shape as
+  a `situation` that states a delta the prompt does not carry.
+- **A mob writes nothing, and that is not an oversight.** A mob seats `CAST_TIERS.team`. This
+  store's own header says the writer set is a rule about the _edge_ — "each writer is a moment the
+  user aimed at one named person" — and a mob is aimed at the team, so a beat on each of five
+  attendees is the omniscience that rule exists to refuse. Roster-at-a-time is the ledger's parked
+  `meeting-attendees-hold-nothing`, and it needs a rule for what a shared room is entitled to know
+  (queue 11's territory) before it is code. A pair is the one huddle you aim, by naming them.
+- **One conversation is one beat.** `OFFICE_WORKING_MEMORY_BEAT_CAP` is six per colleague, so a beat
+  per turn would let one chat evict everything else that happened between you two today — the peek,
+  the collision, the suggestion you took. Written once, as the huddle is torn down, from the
+  snapshot the caller already holds (the `rememberSceneJoin` / `boardNow` discipline: the module
+  reads nothing, so the beat and the thing being closed cannot be two different conversations).
+
+**A pair is never `huddled`, and the beat deliberately does not ride that gate.** `handleHardStop`
+pays `onOfficeEvent('huddled')` only from `speaking` or `watching` — and `useHuddleRingControls`'
+`onDone` is `pairing ? handleTurnDone : onHardStop`, so a mob ends from `speaking` while a pair is
+sent to `listening` and waits there for you. The only ways a pair is closed from a paying phase are
+cutting it off mid-line or closing it during a Do-it. So a pair pays no XP and files **no**
+`officeLogStore.js` entry at all, which is why this beat is the whole record of it. Left for its own
+slice rather than folded in, because the gate cannot move alone: `sentenceOf`'s single `huddle` line
+is _"the team crowded around your screen"_ and the entry carries no `colleagueId`, so making a pair
+fire the event would start the room telling itself a false fact more often than it does now. The
+gate and the sentence move together, with their own audition (ledger row
+`pair-huddle-is-never-huddled`).
+
+**What it measures, including the half that cannot move.** Three generated visit traces before and
+three after are identical on every counted axis, and that is the expected reading: the fixed visit's
+ten steps never seat a huddle of either mode, so the harness reports no pair axis at all and is
+structurally blind to this slice (ledger row `visit-cannot-see-a-pair-huddle`). The measurements that
+_can_ see it are two. A **three-direction red/green** on `officeHuddleMemory.test.jsx`: revert only
+the module and 6 of 9 cases go red; revert only `OfficeLayer.jsx` and **exactly one** does, the
+end-to-end case through the overlay's own button, with all eight unit cases green. That asymmetry is
+the point of having both — a slice where the unit passes and `OfficeLayer` still tears the huddle
+down silently looks exactly like a slice that works. And a **whole-input sweep** over every
+transcript shape a pair can end in: all 364 sequences of `{partner, you, edit}` up to length five,
+of which **301 record exactly one beat and 63 are silent — and the 63 are exactly the shapes with no
+`partner` line in them**, which is the input space rather than a sample. Across the 301, `edit` turns
+quoted: **0**; beats whose `yours` came after its `theirs`: **0**; beats written more than once:
+**0**; both halves present in 172 and `theirs` alone in 129.
+
+**There is nothing here to audition, and that is a property of the slice rather than a corner cut.**
+This domain's rule is that a prompt change is auditioned with ~4 samples an arm and a control, and
+what it measures is a **sentence**. This slice writes no sentence: it reuses `SPOKEN_PROMPT_LINES`,
+whose read-back the 2026-11-10 POV slice already measured at **23 of 24 facts correctly attributed**
+once the parties were named. Auditioning it again would re-measure a known result on somebody else's
+copy. **A slice that adds a writer and not a line is measured by the red/green and the sweep; a
+slice that adds a line is measured by the judge.**
+
+**The general rule worth keeping:** before writing a new beat field, check whether the beat already
+says the thing. Four of this store's eleven fields are booleans minted for one surface, and three
+more are enums — so the reflex when a new edge appears is to mint a twelfth. The pair needed none,
+because what happened there was two people saying things to each other, which is the one fact this
+store was built around. **Ask what kind of fact the edge produces before asking what to call it.**
