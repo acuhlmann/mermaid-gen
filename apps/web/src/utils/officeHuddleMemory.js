@@ -44,8 +44,25 @@
  * **It records, it does not trigger** (ADR-0010 consequence #4). Nothing here
  * ends the huddle, re-opens it, pays XP or schedules a follow-up; the caller
  * ends the huddle immediately afterwards and would end it identically with this
- * module deleted. The only thing written is a sentence a later `/moment` may
- * quote.
+ * module deleted. The only things written are two sentences a later `/moment`
+ * may quote.
+ *
+ * **Two records, one guard** — the shape `useFloorInterruptMemory.js` arrived
+ * at for the other event that two memories hold. The partner gets the beat and
+ * the room gets a line, both behind the single `beat.theirs` test below,
+ * because one conversation is one fact however many memories hold it: the two
+ * cannot disagree about whether it happened. Which half carries what is the
+ * same split as an interruption — the body is the partner's (only they are
+ * handed their own beat) and the bare fact is the room's, since a chair pulled
+ * up to your desk is drawn by both renderers and has witnesses.
+ *
+ * The entry is written **here rather than through `onOfficeEvent`**, which is
+ * the precedent and not an exception: `interrupt`, `prop`, `pitch`, `email`,
+ * `walkby` and one of the two `chat` writers all record at the edge that holds
+ * the fact. The funnel in `useRunCeremony.js` drops everything but `now` for
+ * this kind, so routing a pair through it would file the mob's sentence about
+ * one person — the false fact `docs/office-isometric-mode.md` § 8 said would
+ * get worse before it got better. The mob keeps that path untouched.
  *
  * **Why a module and not two lines in the handler.** Both worlds draw the
  * huddle — `HuddleOverlay.jsx` at the desk and `FloorHuddle.jsx` in the room —
@@ -56,6 +73,7 @@
  * and this one is too.
  */
 
+import { recordOfficeLogEntry } from '../state/officeLogStore.js';
 import { rememberWorkingMemoryBeat } from '../state/officeWorkingMemoryStore.js';
 
 /**
@@ -107,20 +125,21 @@ function lastExchangeOf(turns) {
  * the caller holds the snapshot it is about to end, so the beat and the thing
  * being closed cannot be two different conversations.
  *
- * Deliberately **not** gated on the phase that decides XP, and that gate is
- * worth knowing about because it is broken the other way. `handleHardStop`
- * pays `huddled` only from `speaking` or `watching`, while
- * `useHuddleRingControls`' `onDone` is `pairing ? handleTurnDone : onHardStop`
- * — a mob ends from `speaking`, a pair is sent to `listening` and waits there
- * for you. So a pair is closed from a paying phase only if you cut it off
- * mid-line or close it during a Do-it: **a pair pays no XP and files no
- * `officeLogStore.js` entry at all**, which makes this beat its whole record.
- * Fixing that needs the digest's one `huddle` sentence ("the team crowded
- * around your screen") and a `colleagueId` on the entry to move with it, so it
- * is its own slice — `docs/office-isometric-mode.md` § 8 Debts, and the ledger
- * row `pair-huddle-is-never-huddled`. Whether the room *said* something is a
- * different question from whether the gamification counter liked it, and the
- * transcript is the honest answer to the first.
+ * Deliberately **not** gated on the phase `handleHardStop` reads, and the
+ * reason is the second record below. That gate fires `onOfficeEvent('huddled')`
+ * from `speaking` or `watching` only, while `useHuddleRingControls`' `onDone` is
+ * `pairing ? handleTurnDone : onHardStop` — a mob ends from `speaking`, a pair
+ * is sent to `listening` and waits there for you — so a pair reaches it only if
+ * you cut it off mid-line or close it during a Do-it.
+ *
+ * **The `no XP` half of that finding is retracted.** `huddled` is absent from
+ * `OFFICE_XP_AWARDS`, and `applyOfficeEvent` bails on a falsy award, so *no*
+ * huddle has ever paid XP — the event's only effect is one
+ * `recordOfficeLogEntry('huddle')` in `useRunCeremony.js`. A pair was not
+ * underpaid relative to a mob; it was unrecorded, which is the half that
+ * mattered and the half this module now closes.
+ *
+ * @see docs/office-isometric-mode.md § 8 Debts, `pair-huddle-is-never-huddled`.
  *
  * @param {{ mode?: string, attendees?: string[],
  *   turns?: Array<{role?: string, text?: string}> } | null} huddle the huddle as
@@ -140,6 +159,14 @@ export function rememberPairHuddle(huddle) {
    */
   if (!beat.theirs) return null;
   rememberWorkingMemoryBeat(partner, beat);
+  /*
+   * The room's half. `colleagueId` is who pulled their chair up and there is no
+   * `detail`, which is what the log's consecutive-duplicate collapse then reads:
+   * two conversations with the same person inside a minute become one line,
+   * which is the truthful reading of closing the chair and immediately pulling
+   * it back — the same latch `chat` and `walkby` already rely on.
+   */
+  recordOfficeLogEntry('huddle', { colleagueId: partner });
   return partner;
 }
 
