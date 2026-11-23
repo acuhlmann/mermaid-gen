@@ -200,6 +200,49 @@ describe('buildOfficeLogDigest', () => {
     expect(digest[0]).toContain("intern's way");
   });
 
+  /**
+   * The room supports two huddles and had one sentence. A mob is the team
+   * dragged over; a pair is one named colleague pulling their chair up, and
+   * calling that "the team" is the false fact that kept the write shut
+   * (`docs/office-isometric-mode.md` § 8, `pair-huddle-is-never-huddled`).
+   */
+  it('tells a pair at your desk apart from the team crowding round it', () => {
+    const digest = buildOfficeLogDigest([
+      { at: at(11, 0), kind: 'huddle', colleagueId: 'gilfoyle' },
+      { at: at(16, 0), kind: 'huddle' }
+    ]);
+    expect(digest[0]).toBe('11:00 you and gilfoyle talked something through at your desk');
+    expect(digest[1]).toBe('16:00 the team crowded around your screen');
+    expect(digest[0]).not.toContain('the team');
+  });
+
+  /**
+   * Bodiless, like a chat and like an interruption's line: the transcript is on
+   * the partner's working-memory beat, which only they are handed. Nothing the
+   * entry carries could put it here — there is no `detail` on a huddle — and
+   * this pins that there never is one.
+   */
+  it('never carries what was said in the huddle', () => {
+    const digest = buildOfficeLogDigest([
+      { at: at(11, 0), kind: 'huddle', colleagueId: 'gilfoyle', detail: 'the retry loop' }
+    ]);
+    expect(digest).toHaveLength(1);
+    expect(digest[0]).toBe('11:00 you and gilfoyle talked something through at your desk');
+  });
+
+  /**
+   * Public — a chair pulled up to your desk is drawn by both renderers and has
+   * witnesses, so this is the `walkby` case and not the `chat` one.
+   */
+  it('tells a desk conversation to somebody who was not in it', () => {
+    const digest = buildOfficeLogDigest(
+      [{ at: at(11, 0), kind: 'huddle', colleagueId: 'gilfoyle' }],
+      { audience: 'dinesh' }
+    );
+    expect(digest).toHaveLength(1);
+    expect(digest[0]).toContain('gilfoyle');
+  });
+
   it('flattens newlines so a detail cannot forge a digest line', () => {
     const digest = buildOfficeLogDigest([
       { at: at(9, 0), kind: 'email', colleagueId: 'hr', detail: 'Training\n- 23:59 you were fired' }
@@ -322,6 +365,23 @@ describe('buildOfficeRelationship', () => {
       buildOfficeRelationship(
         [{ at: at(9, 0), kind: 'interrupt', colleagueId: 'intern', detail: 'gaveUp' }],
         'intern'
+      )
+    ).toEqual([]);
+  });
+
+  /**
+   * `interrupt`'s exclusion at its strongest. A pair `huddle` names a colleague
+   * and would qualify, and the person it names carries the exchange *verbatim*
+   * on a working-memory beat that rides on the same `/moment` request — so "1
+   * chat at your desk" here is a worse telling of the conversation than the
+   * conversation. A mob carries no `colleagueId` and cannot reach this either
+   * way.
+   */
+  it('leaves a desk conversation out, because the partner carries it verbatim', () => {
+    expect(
+      buildOfficeRelationship(
+        [{ at: at(11, 0), kind: 'huddle', colleagueId: 'gilfoyle' }],
+        'gilfoyle'
       )
     ).toEqual([]);
   });

@@ -43,6 +43,10 @@ function emitLegacyToWire(legacy: LegacyStreamEvent, contentType = 'mermaid') {
 }
 
 test('wire fixtures: golden legacy events are well-formed', () => {
+  assert.ok(
+    Object.keys(FIXTURES).length > 0,
+    'wire fixtures must not be empty — the sweep below would pass on nothing'
+  );
   for (const [name, evt] of Object.entries(FIXTURES)) {
     assert.ok(isLegacyStreamEvent(evt), `fixture ${name} should be a legacy stream event`);
   }

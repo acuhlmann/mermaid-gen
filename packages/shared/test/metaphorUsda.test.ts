@@ -179,6 +179,10 @@ const KIND_FIXTURES: Record<
 };
 
 test('authorMetaphorUsda covers every per-kind field for every base kind', () => {
+  assert.ok(
+    Object.keys(KIND_FIXTURES).length > 0,
+    'KIND_FIXTURES must not be empty — the sweep below would pass on nothing'
+  );
   for (const [kind, fixture] of Object.entries(KIND_FIXTURES)) {
     const usda = author({ metaphor: kind, scene: baseScene, items: fixture.items, links: [] });
     for (const field of fixture.fields) {
@@ -367,6 +371,10 @@ function roundTrip(doc: unknown): { dsl: MetaphorDsl; usda: string; again: strin
 }
 
 test('parseMetaphorUsda round-trips every base kind fixture', () => {
+  assert.ok(
+    Object.keys(KIND_FIXTURES).length > 0,
+    'KIND_FIXTURES must not be empty — the sweep below would pass on nothing'
+  );
   for (const [kind, fixture] of Object.entries(KIND_FIXTURES)) {
     const { usda, again } = roundTrip({
       metaphor: kind,

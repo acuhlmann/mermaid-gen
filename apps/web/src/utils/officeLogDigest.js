@@ -185,8 +185,27 @@ function sentenceOf(entry) {
         : 'a cubicle argument was settled';
     case 'meeting':
       return detail === 'left' ? 'you left a meeting early' : 'you sat through a meeting';
+    /*
+     * Two sentences, because the room supports two huddles and it only ever had
+     * a line for one. A mob is `CAST_TIERS.team` dragged over, and "the team
+     * crowded around your screen" is true of it. A **pair** is one named
+     * colleague pulling their chair up — the longest conversation this office
+     * supports — and the mob line is false about it, which is why the write that
+     * would have filed one stayed shut until this branch existed
+     * (`docs/office-isometric-mode.md` § 8, `pair-huddle-is-never-huddled`).
+     *
+     * **Public, and bodiless** — the two halves decided separately, as for an
+     * interruption. Public because a chair pulled up to your desk has
+     * witnesses: both renderers draw it (`HuddleOverlay.jsx` at the desk,
+     * `FloorHuddle.jsx` ringing the desk in the room), so this is the `walkby`
+     * case and not the `chat` one. Bodiless because what was said is on the
+     * partner's own working-memory beat, which only they are handed: the office
+     * knows the two of you talked, never what about.
+     */
     case 'huddle':
-      return 'the team crowded around your screen';
+      return who
+        ? `you and ${who} talked something through at your desk`
+        : 'the team crowded around your screen';
     /*
      * Slice 26. `detail` is who *sent* you, which is the half that makes this
      * office business rather than a private chat: the whole floor knows Linda
@@ -295,6 +314,14 @@ function sentenceOf(entry) {
  * names already carries the richer version of it in working memory — a beat
  * with the line they said in it. A count here would be the third telling of one
  * collision, in the same prompt as the other two.
+ *
+ * A `huddle` that names somebody — a pair — is absent for exactly
+ * `interrupt`'s reason, and it is the strongest instance of it: the partner's
+ * beat holds the last exchange *verbatim* (`officeHuddleMemory.js` writes both
+ * records behind one guard), and that beat rides on the same `/moment` request
+ * as this block. "1 chat at your desk" is a worse telling of a conversation
+ * than the conversation. A mob `huddle` has no `colleagueId` at all and so
+ * cannot reach this projection either way.
  */
 /*
  * Noun phrases with an explicit count, never verb phrases. "emailed you,

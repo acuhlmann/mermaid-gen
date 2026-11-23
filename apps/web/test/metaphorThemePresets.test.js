@@ -171,6 +171,7 @@ describe('resolveMetaphorPostfx', () => {
     const defaults = resolveMetaphorPostfx({});
     expect(defaults.aoThickness).toBeLessThan(defaults.aoRadius);
 
+    expect(Object.keys(METAPHOR_THEME_PRESETS).length).toBeGreaterThan(0);
     for (const [name, theme] of Object.entries(METAPHOR_THEME_PRESETS)) {
       const postfx = resolveMetaphorPostfx(theme);
       expect(postfx.aoThickness, `${name} aoThickness`).toBeLessThan(postfx.aoRadius);
@@ -255,6 +256,7 @@ describe('daylight surface floor', () => {
   const LOCKED_DARK_THEMES = ['noir', 'arcade', 'blueprint'];
 
   it('raises every surface a daylight sky is meant to be lighting', () => {
+    expect(Object.keys(DAYLIGHT_LOCKED_KINDS).length).toBeGreaterThan(0);
     for (const kind of Object.keys(DAYLIGHT_LOCKED_KINDS)) {
       for (const themeId of LOCKED_DARK_THEMES) {
         const resolved = resolveMetaphorSceneTheme({ themeId, kind, moodId: null });
