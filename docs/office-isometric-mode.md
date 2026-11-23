@@ -2513,23 +2513,32 @@ Kept here so appetite can pick without re-deriving. Each should stay bound by AD
   it put a headset above. Russ keeps his phone at every other hour; Ulrich keeps his mug on the
   same call.
 
-- **A pair huddle is never `huddled`, so the room files nothing about its longest conversation.**
-  Found 2026-11-22 while giving the pair partner a working-memory beat
-  (`officeHuddleMemory.js`). `handleHardStop` pays `onOfficeEvent('huddled')` only from `speaking`
-  or `watching`, and `useHuddleRingControls`' `onDone` is `pairing ? handleTurnDone : onHardStop` —
-  a mob ends from `speaking`, a pair is sent to `listening` and waits there for you. So the only
-  ways a pair is closed from a paying phase are cutting it off mid-line or closing it during a
-  Do-it: **no XP, and no `officeLogStore.js` entry at all**, for the one exchange on this floor with
-  a transcript.
+- ~~**A pair huddle is never `huddled`, so the room files nothing about its longest
+  conversation.**~~ ✅ **cleared 2026-11-23**, and the entry's own XP claim is the half worth
+  keeping, because it was wrong. Found 2026-11-22 while giving the pair partner a working-memory
+  beat: `handleHardStop` fires `onOfficeEvent('huddled')` only from `speaking` or `watching`, and
+  `useHuddleRingControls`' `onDone` is `pairing ? handleTurnDone : onHardStop` — a mob ends from
+  `speaking`, a pair is sent to `listening` and waits there for you — so a pair was closed from a
+  paying phase only by cutting it off mid-line or closing it during a Do-it.
 
-  **The gate cannot move on its own, which is why this is a debt and not a one-line fix.**
-  `sentenceOf`'s single `huddle` line is _"the team crowded around your screen"_ and the entry
-  carries no `colleagueId`, so making a pair fire the event would have the room tell itself a false
-  fact more often than it does now. The gate, the sentence and a `colleagueId` on the entry move
-  together — and the last of those re-opens `RELATIONSHIP_KINDS`, since a pair names a colleague and
-  that colleague now carries the richer version of the same conversation in a block riding on the
-  same `/moment` request, which is exactly `interrupt`'s stated reason for staying out. One slice,
-  with its own audition.
+  **Retracted: "no XP."** `huddled` is absent from `OFFICE_XP_AWARDS` and `applyOfficeEvent` bails
+  on a falsy award, so **no** huddle has ever paid XP, mob included; the event's entire effect is one
+  `recordOfficeLogEntry('huddle', { now })`. A pair was never underpaid relative to a mob, it was
+  **unrecorded** — and the lesson is to read what an event does before describing it as unequal pay,
+  since the false half is the one that would have sent a run to edit a gamification table.
+
+  **How it was closed, without the gate moving.** `rememberPairHuddle` writes the room's line beside
+  the partner's beat, both behind its one `beat.theirs` guard — the shape
+  `useFloorInterruptMemory.js` already uses for the other event two memories hold, so one
+  conversation is one fact however many memories hold it. The entry carries the partner's
+  `colleagueId` and `sentenceOf` grew the branch it was waiting for (`who ? "you and {who} talked
+something through at your desk" : "the team crowded around your screen"`), which is what the debt
+  meant by the sentence moving with it. The body stays on the beat and the bare fact goes to the
+  room, the same split as an interruption; a pair huddle is **public** (both renderers draw the chair
+  at your desk, so it has witnesses) and `huddle` stays **out** of `RELATIONSHIP_KINDS` for
+  `interrupt`'s reason at its strongest — the partner holds the exchange verbatim on the same
+  `/moment` request. Measured over 8,000 speaker renders: 100% of speakers carry it against 0%
+  before, at **12.00 → 12.00** lines a speaker over the cap and **7.32 → 8.32** under it.
 
 - **A meeting is now the only moment with a derivation of its own, and the two must not drift.**
   `meetingActivityFor` sits beside `floorActivityFor` in the same module deliberately — that is

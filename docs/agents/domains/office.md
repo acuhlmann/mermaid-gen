@@ -1120,13 +1120,32 @@ today'` (`officeBoardRecall.js`), `'you said:'` / `'they said:'` for the quotes 
   the cap is six per colleague and a beat per turn would evict the peek, the collision and the
   suggestion you took. **Measured**: a sweep of all 364 transcript shapes up to length five records
   exactly one beat in 301 and is silent in 63 — exactly the 63 with no `partner` line — with **0**
-  `edit` turns quoted and **0** beats whose halves are out of order. **Found while reading it, and
-  left for its own slice**: `handleHardStop` pays
-  `huddled` only from `speaking` / `watching`, and `useHuddleRingControls`' `onDone` sends a pair to
-  `listening` instead of ending it — so a pair is _never_ `huddled`, pays no XP and files no
-  `officeLogStore.js` entry at all, while the digest's one `huddle` sentence says "the team crowded
-  around your screen" about one person. The beat deliberately does not ride that gate (ledger row
-  `pair-huddle-is-never-huddled`).
+  `edit` turns quoted and **0** beats whose halves are out of order. **Found while reading it and
+  closed the next night** (below): a pair is never `huddled`, so the room filed nothing about it.
+
+- **The room's half of that conversation, and one retraction.** `rememberPairHuddle` now writes
+  **two** records behind its one `beat.theirs` guard — the partner's beat, and a
+  `recordOfficeLogEntry('huddle', { colleagueId: partner })` for the room — which is the shape
+  `useFloorInterruptMemory.js` already uses for the other event two memories hold. The split is the
+  same: the **body** is the partner's (only they are handed their own beat) and the bare **fact** is
+  the room's, because a chair pulled up to your desk is drawn by both renderers and has witnesses,
+  so a pair huddle is the `walkby` case and not the `chat` one (it is **not** in
+  `OFFICE_LOG_PRIVATE_KINDS`). `sentenceOf` grew the branch the write was waiting for — `who ? "you
+and {who} talked something through at your desk" : "the team crowded around your screen"` — and
+  `huddle` stays **out** of `RELATIONSHIP_KINDS` for `interrupt`'s reason at its strongest: the
+  partner's beat holds the exchange verbatim on the same `/moment` request, so "1 chat at your desk"
+  there is a worse telling of the conversation than the conversation. The entry is written at the
+  edge rather than through `onOfficeEvent('huddled')` because `useRunCeremony.js` drops everything
+  but `now` for this kind, which is also the precedent (`interrupt`, `prop`, `pitch`, `email`,
+  `walkby` all record at their own edge); the mob keeps that path untouched.
+  **Retracted: "a pair pays no XP."** `huddled` is absent from `OFFICE_XP_AWARDS` and
+  `applyOfficeEvent` bails on a falsy award, so **no** huddle has ever paid XP, mob included — the
+  event's only effect is one log write. A pair was not underpaid, it was unrecorded.
+  **Measured** (500 synthetic days × 16 cast ids = 8,000 speaker renders per arm, the real
+  `buildOfficeLogDigest` the only variable): over the 12-line cap the digest still renders
+  **12.00** lines a speaker before and after while the desk conversation reaches **100%** of them
+  (0% before); under the cap it is **7.32 → 8.32**, exactly additive. The line costs the budget
+  nothing it was not already dropping from the front.
 
 ## Full findings
 
@@ -3235,13 +3254,11 @@ Four things decide the shape, and each is a rule this domain already paid for el
 pays `onOfficeEvent('huddled')` only from `speaking` or `watching` — and `useHuddleRingControls`'
 `onDone` is `pairing ? handleTurnDone : onHardStop`, so a mob ends from `speaking` while a pair is
 sent to `listening` and waits there for you. The only ways a pair is closed from a paying phase are
-cutting it off mid-line or closing it during a Do-it. So a pair pays no XP and files **no**
-`officeLogStore.js` entry at all, which is why this beat is the whole record of it. Left for its own
-slice rather than folded in, because the gate cannot move alone: `sentenceOf`'s single `huddle` line
-is _"the team crowded around your screen"_ and the entry carries no `colleagueId`, so making a pair
-fire the event would start the room telling itself a false fact more often than it does now. The
-gate and the sentence move together, with their own audition (ledger row
-`pair-huddle-is-never-huddled`).
+cutting it off mid-line or closing it during a Do-it. So a pair filed **no** `officeLogStore.js`
+entry at all, which is why this beat was the whole record of it. Left for its own slice rather than
+folded in, because the sentence had to move with it: `sentenceOf`'s single `huddle` line was _"the
+team crowded around your screen"_, which is a false fact about one colleague. **Closed the next
+night — see the last section in this file, which also retracts the XP half of this paragraph.**
 
 **What it measures, including the half that cannot move.** Three generated visit traces before and
 three after are identical on every counted axis, and that is the expected reading: the fixed visit's
@@ -3271,3 +3288,66 @@ says the thing. Four of this store's eleven fields are booleans minted for one s
 more are enums — so the reflex when a new edge appears is to mint a twelfth. The pair needed none,
 because what happened there was two people saying things to each other, which is the one fact this
 store was built around. **Ask what kind of fact the edge produces before asking what to call it.**
+
+### A pair huddle's other half — the room's record, and a retraction
+
+**The gap the beat left behind, and the retraction that changes what it was.** `handleHardStop`
+fires `onOfficeEvent('huddled')` from `speaking` or `watching` only, `useHuddleRingControls`'
+`onDone` sends a pair to `listening`, and so the longest conversation this office supports filed
+nothing anywhere the room could read. The night before had recorded that as "no XP, and no
+`officeLogStore.js` entry at all". **The XP half is retracted**: `huddled` does not appear in
+`OFFICE_XP_AWARDS` (`runGamificationStore.js`) and `applyOfficeEvent` returns the state untouched on
+a falsy award, so _no_ huddle has ever paid XP, a mob included — the event's entire effect is one
+`recordOfficeLogEntry('huddle', { now })` in `useRunCeremony.js`. A pair was never underpaid relative
+to a mob; it was **unrecorded**, which is the half worth fixing. **Check what an event actually does
+before calling it unequal pay:** the same five lines yielded a true sentence about the gate and a
+false one about the money, and the false one is what would have sent a later run to edit a
+gamification table two rungs outside this automation's paths.
+
+**The write goes at the edge, which is the precedent rather than an exception.**
+`rememberPairHuddle` (`officeHuddleMemory.js`) now writes the room's line beside the partner's beat,
+both behind its single `beat.theirs` test — exactly the shape `useFloorInterruptMemory.js` arrived at
+for the other event two memories hold: one conversation is one fact however many memories hold it, so
+the two cannot disagree about whether it happened. Routing it through `onOfficeEvent` instead is not
+available to this rung (`useRunCeremony.js` is `review`/`resolve`/`deps`-reachable only) and would be
+wrong if it were — that funnel drops everything but `now` for this kind, so a pair would file the
+mob's sentence about one person, which is the false fact getting worse before it got better. Six
+other kinds (`interrupt`, `prop`, `pitch`, `email`, `walkby`, and one of the two `chat` writers)
+already record at the edge that holds the fact. The mob's path is untouched.
+
+**Which half goes where is the interruption's split, reached independently.** The **body** stays on
+the partner's beat, where only they are handed it; the **bare fact** is the room's. Public, because a
+chair pulled up to your desk is drawn by both renderers (`HuddleOverlay.jsx` at the desk,
+`FloorHuddle.jsx` ringing the desk in place) and therefore has witnesses — so a pair huddle is the
+`walkby` case and not the `chat` one, and it is deliberately **not** in `OFFICE_LOG_PRIVATE_KINDS`.
+`sentenceOf` grew the branch the write was waiting for: `who ? "you and {who} talked something
+through at your desk" : "the team crowded around your screen"`. And `huddle` stays **out** of
+`RELATIONSHIP_KINDS` — `interrupt`'s stated reason at its strongest, since the partner's beat holds
+the exchange _verbatim_ and rides on the same `/moment` request, so "1 chat at your desk" there would
+be a worse telling of the conversation than the conversation. A mob entry carries no `colleagueId`
+and cannot reach that projection either way.
+
+**What it measures.** A 500-day deterministic sweep × 16 cast ids = **8,000 speaker renders per
+arm**, the real `buildOfficeLogDigest` the only variable, the before arm being the same day with the
+pair entry absent — which is what the room actually held. Over the 12-line cap: **12.00** lines per
+speaker before and after, with the desk conversation carried by **100%** of renders against **0%**
+before, and the partner's own copy surviving **500/500** (965/965 with two pairs in the day). So the
+new line costs the budget nothing the digest was not already dropping from the front. Under the cap:
+**7.32 → 8.32**, exactly additive. **Red in three directions** across
+`officeHuddleMemory.test.jsx` and `officeLogDigest.test.js`: revert only the writer and **6** cases
+go red (five of the twelve new ones plus the extended end-to-end case); revert only the sentence and
+a different **6** do; revert both and **9**, exactly the union. The two sets overlap by three, which
+is what proves these are two edits and not one — the branch without the write is a sentence nothing
+reaches, and the write without the branch calls one colleague the team. **Four** of the 12 are green
+in both directions on purpose: a chair nobody spoke from, a mob, and the relationship-block
+exclusion asserted from each side pin what must **not** change.
+
+**The instrument still cannot see any of it, and that is now two unseen facts rather than one.** The
+fixed visit's ten steps never seat a huddle of either mode, so neither the beat nor the room's line
+reaches a trace (ledger rows `visit-cannot-see-a-pair-huddle` and
+`visit-blindness-now-costs-two-facts`). Three generated traces came back identical to the merged
+baseline on every counted axis, which is the regression reading and not a measurement of the slice.
+**There is nothing to audition here either**, for the previous section's reason: this slice writes no
+prompt sentence a model has to interpret — it reuses the digest's own past-tense register, whose
+read-back is already measured — and a slice that adds a writer is measured by the red/green and the
+sweep.
