@@ -502,6 +502,7 @@ describe('board recall', () => {
   });
 
   it('never leaks the fingerprint, a count or a label into a line', () => {
+    expect(Object.values(BOARD_RECALL_LINES).length).toBeGreaterThan(0);
     for (const line of Object.values(BOARD_RECALL_LINES)) {
       expect(line).not.toMatch(/[|:]/);
       expect(line).not.toMatch(/\d/);

@@ -48,12 +48,14 @@ describe('the baked half — one row per character', () => {
   it('gives every cast member a `doing` the art can draw', () => {
     // Same drift guard as `look`: a new colleague costs one field, and a typo
     // silently falls through to `typing` where nothing would look wrong.
+    expect(Object.keys(OFFICE_DESK_WORK).length).toBeGreaterThan(0);
     for (const [id, work] of Object.entries(OFFICE_DESK_WORK)) {
       expect(DESK_WORK_DOING, `${id} is doing something unrenderable`).toContain(work.doing);
     }
   });
 
   it('maps every `doing` into the closed art sets', () => {
+    expect(DESK_WORK_DOING.length).toBeGreaterThan(0);
     for (const doing of DESK_WORK_DOING) {
       const art = deskDoingFor(
         Object.keys(OFFICE_DESK_WORK).find((id) => OFFICE_DESK_WORK[id].doing === doing)
