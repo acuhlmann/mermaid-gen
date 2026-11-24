@@ -4,8 +4,42 @@ import { partKindLabel } from './partKindLabel.js';
 
 const GO_TITLE_PROMPT_MAX = 72;
 
-function goCopy(copy) {
-  return copy ?? getActiveControlsCopy().insights?.goIntent ?? {};
+type GoIntentCopy = {
+  go?: string;
+  goQuoted?: string;
+  goDiagram?: string;
+  delegateGo?: string;
+  edge?: string;
+  title?: string;
+  description?: string;
+  itemDesc?: string;
+  itemValue?: string;
+  itemIcon?: string;
+  item?: string;
+  subgraph?: string;
+  node?: string;
+};
+
+type SelectionLike = {
+  partKind?: string;
+  partName?: string;
+  kind?: string;
+  selectionKind?: string;
+  edgeFrom?: string;
+  edgeTo?: string;
+  label?: string;
+  clickedLabel?: string;
+  id?: string;
+  elementType?: string;
+};
+
+type GoCopyInput = {
+  goIntent?: GoIntentCopy;
+  selectionKinds?: Record<string, string>;
+};
+
+function goCopy(copy?: GoCopyInput): GoIntentCopy {
+  return copy?.goIntent ?? getActiveControlsCopy().insights?.goIntent ?? {};
 }
 
 function selectionKindsCopy() {
@@ -13,7 +47,10 @@ function selectionKindsCopy() {
 }
 
 /** Focus fragment without the leading verb (e.g. `node "API"`). */
-export function selectionFocusFragment(selectionLike, copy) {
+export function selectionFocusFragment(
+  selectionLike: SelectionLike | null | undefined,
+  copy?: GoCopyInput
+): string {
   const c = goCopy(copy);
   const kinds = selectionKindsCopy();
   if (!selectionLike) return '';
@@ -58,7 +95,7 @@ export function selectionFocusFragment(selectionLike, copy) {
   return `${c.node ?? 'node'} “${selectionLike.label || selectionLike.id}”`;
 }
 
-function promptExcerpt(promptText) {
+function promptExcerpt(promptText: string | null | undefined): string {
   const trimmed = (promptText ?? '').trim();
   if (!trimmed) return '';
   return trimmed.length > GO_TITLE_PROMPT_MAX
@@ -66,22 +103,31 @@ function promptExcerpt(promptText) {
     : trimmed;
 }
 
+type GoIntentOptions = {
+  delegateName?: string;
+};
+
 /** Thinking-panel title for Go / intent runs. */
-export function goIntentInsightTitle(promptText, selectionLike, copy, options = {}) {
-  const c = goCopy(copy);
+export function goIntentInsightTitle(
+  promptText: string | null | undefined,
+  selectionLike: SelectionLike | null | undefined,
+  copy?: GoCopyInput | null,
+  options: GoIntentOptions = {}
+): string {
+  const c = goCopy(copy ?? undefined);
   const { delegateName } = options;
   const excerpt = promptExcerpt(promptText);
   const quoted = excerpt
     ? formatLocale(c.goQuoted ?? "Go '{excerpt}'", { excerpt })
     : (c.go ?? 'Go');
   if (!excerpt) {
-    const focus = selectionFocusFragment(selectionLike, c);
+    const focus = selectionFocusFragment(selectionLike, copy ?? undefined);
     const base = focus ? `${c.go ?? 'Go'} — ${focus}` : (c.goDiagram ?? 'Go — diagram');
     return delegateName
       ? formatLocale(c.delegateGo ?? '{name} · {title}', { name: delegateName, title: base })
       : base;
   }
-  const focus = selectionFocusFragment(selectionLike, c);
+  const focus = selectionFocusFragment(selectionLike, copy ?? undefined);
   const core = focus ? `${quoted} · ${focus}` : quoted;
   return delegateName
     ? formatLocale(c.delegateGo ?? '{name} · {title}', { name: delegateName, title: core })

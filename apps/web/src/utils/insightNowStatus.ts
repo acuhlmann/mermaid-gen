@@ -11,20 +11,32 @@ const NOW_STATUS_MAX = 140;
 const CODE_LINE =
   /^(?:```|flowchart|graph|sequenceDiagram|classDiagram|stateDiagram|erDiagram|infographic\s|C4Context|%%\{|<!DOCTYPE|<html\b|<div\b|<section\b|\{|\[)/i;
 
-function normalizeInline(text) {
+type NowStatusCopy = Record<string, string>;
+
+type InsightsCopy = {
+  nowStatus?: NowStatusCopy;
+};
+
+type InsightEntry = {
+  statusText?: string;
+  phases?: { id?: string }[];
+  variant?: string;
+};
+
+function normalizeInline(text: string | null | undefined): string {
   return String(text ?? '')
     .replace(/\s+/g, ' ')
     .trim();
 }
 
-function stripFencedBlocks(text) {
+function stripFencedBlocks(text: string | null | undefined): string {
   return String(text ?? '')
     .replace(/```[\s\S]*?```/g, ' ')
     .replace(/`[^`\n]+`/g, ' ')
     .trim();
 }
 
-function looksLikeCode(text) {
+function looksLikeCode(text: string): boolean {
   const t = normalizeInline(text);
   if (!t) return true;
   if (CODE_LINE.test(t)) return true;
@@ -33,24 +45,24 @@ function looksLikeCode(text) {
   return Boolean(splitEmbeddedDiagramDsl(t)?.dsl);
 }
 
-function firstProseSentence(text) {
+function firstProseSentence(text: string): string {
   const cleaned = normalizeInline(text);
   if (!cleaned) return '';
   const sentence = cleaned.match(/^[^.!?]+[.!?]?/)?.[0]?.trim();
   return sentence || cleaned;
 }
 
-function truncateStatus(text, max = NOW_STATUS_MAX) {
+function truncateStatus(text: string, max = NOW_STATUS_MAX): string {
   const t = normalizeInline(text);
   if (!t || t.length <= max) return t;
   return `${t.slice(0, max - 1)}…`;
 }
 
-function insightsNowCopy(copy) {
+function insightsNowCopy(copy?: InsightsCopy): NowStatusCopy {
   return copy?.nowStatus ?? getActiveControlsCopy().insights?.nowStatus ?? {};
 }
 
-function fallbackNowStatus(entry = {}, copy) {
+function fallbackNowStatus(entry: InsightEntry = {}, copy?: InsightsCopy): string {
   const nowStatus = insightsNowCopy(copy);
   const raw = String(entry.statusText ?? '');
   if (/repair/i.test(raw)) return nowStatus.repairingSyntax ?? 'Repairing diagram syntax…';
@@ -83,13 +95,12 @@ function fallbackNowStatus(entry = {}, copy) {
 /**
  * Compact copy for the Thinking pane "Now" strip — strips code/DSL previews and
  * keeps a short action-oriented status line.
- *
- * @param {string | undefined | null} statusText
- * @param {Record<string, unknown>} [entry]
- * @param {import('../i18n/locales/controls.en.js').CONTROLS_EN['insights']} [copy]
- * @returns {string}
  */
-export function summarizeInsightNowStatus(statusText, entry = {}, copy) {
+export function summarizeInsightNowStatus(
+  statusText: string | null | undefined,
+  entry: InsightEntry = {},
+  copy?: InsightsCopy
+): string {
   const insightsCopy = copy ?? getActiveControlsCopy().insights;
   const nowStatus = insightsCopy?.nowStatus ?? {};
   const raw = String(statusText ?? '').trim();
@@ -105,7 +116,7 @@ export function summarizeInsightNowStatus(statusText, entry = {}, copy) {
     !tryExtractDiagramPreviewFromText(raw);
   if (isCuratedShort) {
     const aliasKey = INSIGHT_NOW_STATUS_ALIASES[raw];
-    if (aliasKey && nowStatus[aliasKey]) return nowStatus[aliasKey];
+    if (aliasKey && nowStatus[aliasKey]) return nowStatus[aliasKey] ?? raw;
     return raw;
   }
 

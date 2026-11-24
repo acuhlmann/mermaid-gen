@@ -37,6 +37,8 @@
     "src/utils/formatChartDsl.ts",
     "src/utils/formatFormAnswer.ts",
     "src/utils/formatFormsA2ui.ts",
+    "src/utils/goIntentInsightTitle.ts",
+    "src/utils/insightNowStatus.ts",
     "src/utils/phaseLabelResolution.ts",
     "src/utils/partKindLabel.ts",
     "src/utils/planPreviewDedupe.ts",
