@@ -1146,6 +1146,31 @@ and {who} talked something through at your desk" : "the team crowded around your
   **12.00** lines a speaker before and after while the desk conversation reaches **100%** of them
   (0% before); under the cap it is **7.32 → 8.32**, exactly additive. The line costs the budget
   nothing it was not already dropping from the front.
+- **A pair huddle is the one office verb with no canned bank, and a refused script takes its own
+  feedback back.** `POST /api/office/huddle` answers **503 with no backend and nothing deals from a
+  bank** — unlike every other provoked channel (dwell, talk reply, walk-by, IM reply, email reply),
+  which all have one. Worse than silence: `applyHuddleResponse` (`useHuddlePlayback.js`) calls
+  `endOfficeHuddle` on an empty script, and `handleStartHuddle` seats the ring **before** the call
+  precisely so the chair arriving is the feedback that the click landed — so a refusal clears the
+  chair inside **46 ms** and `[data-testid="office-huddle"]` never paints at all. Measured on the
+  visit's canned arm: `/api/office/huddle 502`, no overlay in 20 s, `rememberPairHuddle` unreachable,
+  neither mark written. So with no key the Pair chip reads as a **dead button** rather than
+  degrading in fiction, which is the one place this office breaks its own `degrade in-fiction` rule
+  — and it is invisible to any test, because the teardown is correct code doing exactly what it
+  says. Two consequences for anyone working here: never read "pressing Pair did nothing" as an
+  unwired control without checking the huddle call's status, and never add a bank to this surface
+  without deciding what a scripted opening line for _one named person_ is worth (an improvised
+  two-colleague scene is `FloorScene`'s job, and that argument does not transfer to a conversation
+  aimed at you).
+- **`pairReplyAbout`'s topic context is appended before the beat cap, so working memory can quote an
+  unclosed parenthetical.** `officePairPointing.js` turns your reply into `${text} (about your point:
+"${point.slice(0, 160)}")` whenever the partner made two or more points, and
+  `normalizeWorkingMemoryBeat`'s `quote()` then caps the whole thing at **200** characters.
+  Measured in a real visit: a 71-character question plus a 106-character point came to exactly 201,
+  so the closing `)` was cut and the next `/moment` read `the user said: … (about your point: "…"`
+  with the parenthesis open. Cosmetic — it is not a fabrication and nothing downstream parses it —
+  but it is the shape to watch whenever a builder appends context _before_ a store caps a quote: the
+  cap belongs to the field and the suffix belongs to the caller, and neither knows about the other.
 
 ## Full findings
 
@@ -3351,3 +3376,63 @@ baseline on every counted axis, which is the regression reading and not a measur
 prompt sentence a model has to interpret — it reuses the digest's own past-tense register, whose
 read-back is already measured — and a slice that adds a writer is measured by the red/green and the
 sweep.
+
+### The visit grew an eleventh step, and the pair turned out to be the one verb that cannot degrade
+
+Two consecutive slices landed on the pair huddle — a beat on the partner, then a line in the room's
+log — and both were measured by sweeps and red/green alone, because **not one of the visit's ten
+steps seated a huddle of either mode** (the previous two sections end on exactly that admission).
+The eleventh step closes it: press the desk's Pair verb for one named colleague, type one sentence
+into the reply strip, send them away. It is the fourth application of the append rule in
+`apps/web/test/officeVisitTrace.mjs`'s header — spec'd in the ledger first
+(`visit-cannot-see-a-pair-huddle`, re-priced as `visit-blindness-now-costs-two-facts`), appended
+after the tenth so no earlier step moves, taken in a run that wanted nothing from the number.
+
+**It costs no total, and that is a property of the surface rather than luck.** A huddle line is
+drawn in `.office-huddle-line`, which `harvest()` does not select, so `speech.count`, `byChannel`,
+`bySource` and `throughStep7` are **identical** to a version-7 run (20 / narration 13 · interrupt 1
+· dwell 1 · talk 1 · shopTalk 1 · peek 1 · walkby 2 / model 2 · bank 18 / 12, measured 3 before and
+3 after). The same split the `email` block exists for: a surface that is not floor speech gets its
+own block instead of being welded into the harvest. What **does** move is spend —
+`mode.askedTheModel`, `mode.answeredByModel` and `speech.modelTurns` are each **+2** (3 → 5), being
+the opening script and the one reply — plus `afterwards.workingMemory` gaining the partner's row
+(5 → 6) and `afterwards.logDigest` one line (9 → 10). Those four are the only fields a reader has to
+re-base across version 7 → 8.
+
+**Three mechanics the step had to get right, and the third is the useful one.**
+
+- **The Pair verb lives in shell chrome, so it was unreachable rather than unvisited** — the same
+  shape as the inbox before the tenth step. `DeskBottomActionsSlot.jsx` hangs `withPair(variant)` on
+  each colleague's mascot row, and the harness mounts `OfficeLayer` alone. So the harness's desk
+  anchor grew a chip inside the **same desk-only branch** as the taskbar stand-in, carrying
+  `officeChromeCopy().desk.pairAction` as its label and raising the product's own signal through
+  `useOfficeCollaborationHandlers`' `onPair` — never a direct `startOfficeHuddle` call, which is the
+  one thing the eighth, ninth and tenth steps all refuse to do.
+- **The step has to type, because nothing else advances the scene.** A pair reaches `listening` when
+  the opening script lands and leaves it when you reply or when `usePairInitiative`'s `lull` fires
+  after `PAIR_LULL_BASE_MS` (45 s) — so a step that only waited would have measured the opening
+  script and called it a conversation, and the step finishing in ~21 s is also why the spend is
+  exactly two calls and not three.
+- **A refused huddle and an unwired chip look identical, and separating them found the finding.**
+  The first canned run reported `pressing Pair seated nobody` after a full 20 s wait, which reads
+  like a broken control; it is `applyHuddleResponse` ending a huddle with no script, 46 ms after the
+  ring was seated. The wait now resolves on **either** the overlay painting **or** a huddle call that
+  came back non-2xx, and zero huddle calls is still a hard failure — so the canned arm goes 10/11 in
+  20 s to **11/11 in 52 ms** with the cause in the note. See the Short-form entry above: the lesson
+  is about the office, not the instrument.
+
+**What the new `pair` block reports**, all literal, derived parts labelled: the transcript copied out
+of the live scene _before_ `endOfficeHuddle` clears it (so a reader sees who spoke last and in what
+order), the beat read off the record rather than off `promptLines`
+(`visit-trace-reads-promptlines-not-the-record`), and the office log's **difference across the step**
+rather than a match against `sentenceOf`'s English written into the harness — the tenth step's
+`inboxBeforeIds` trick applied to the digest. Three generated runs: `turnsByRole` `{partner: 5, you:
+1}`, `theyAnsweredLast` true, `beatWritten` true, `quotesYou` true, `roomKnows` true, one added line
+(`you and jared talked something through at your desk`), in **3 of 3**. Whether the answer is any
+good is not asked — score a register property with a judge, never a phrase regex.
+
+**`jared` is the fixture for the ninth and tenth steps' reason**: he is the last colleague no step
+touches (steps 2, 3, 7, 8, 9 and 10 leave rows on `dinesh`, `intern`, `gilfoyle`, `greybeard` and
+`facilities`), so a mark on the wrong person cannot hide inside a row that was already there — and he
+is on the desk's own Pair roster, so the state the step drives is one a user reaches by pressing what
+the product draws.
