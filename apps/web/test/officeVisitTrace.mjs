@@ -7,8 +7,9 @@
  * **fixed visit**: enter the floor, walk to a named colleague, step into their
  * path, stand beside them for six seconds, use the printer, open the
  * whiteboard, say one sentence in the composer, read somebody's screen, wave
- * away an idea somebody brought over, and sit back down to write one email. It
- * prints **one JSON object**, and that object is what goes in the ledger row.
+ * away an idea somebody brought over, sit back down to write one email, and
+ * pull one colleague's chair up for a single exchange. It prints **one JSON
+ * object**, and that object is what goes in the ledger row.
  *
  * ## Run it
  *
@@ -139,6 +140,31 @@
  * `roomDelta`, which is now cut at the floor exit so that it keeps answering
  * the question it has always answered; see the step's own point 2.
  *
+ * **The eleventh step, 2026-11-24, is the rule's fourth application and the
+ * first one that buys two facts at once.** Spec'd in the ledger as
+ * `visit-cannot-see-a-pair-huddle` and re-priced the next night as
+ * `visit-blindness-now-costs-two-facts`; appended after step 10 so no earlier
+ * step moves; taken in a run that wanted nothing from the number. A pair
+ * huddle is the longest conversation this office supports — one named
+ * colleague in a chair, a transcript the server reads back, a `listening`
+ * phase that advances on nothing but you typing — and two consecutive slices
+ * landed on it (a beat on the partner, then an entry in the room's log) with
+ * three identical traces each, because **not one of the ten steps seated a
+ * huddle of either mode**. Like the tenth it costs no total: a huddle line is
+ * drawn in `.office-huddle-line`, which `harvest()` does not select, so
+ * `speech` does not move and the `pair` block below is where the conversation
+ * is read — the same split the `email` block exists for.
+ *
+ * **What it does cost is two model calls, and that is the whole of it.** The
+ * opening script is one `POST /api/office/huddle` and the one reply this step
+ * types is a second; the unprompted `lull` turn needs `PAIR_LULL_BASE_MS`
+ * (45 s) of silence and the step is finished long before it. There is **no
+ * canned arm for a huddle at all** — the route answers 503 with no backend and
+ * nothing deals from a bank — so on `--no-llm` the chair is pulled up, nobody
+ * speaks, and the step says so instead of failing. That is a fact about the
+ * office rather than about the instrument, and it is the one surface where
+ * `llmConfigured: false` means the conversation cannot happen.
+ *
  * The harness page it writes into `apps/web/.office-visit/` is scratch and is
  * deleted on the way out. It never reaches a commit.
  */
@@ -223,6 +249,34 @@ const EMAIL_FIXTURE = Object.freeze({
   body:
     'The funnel on my screen runs Intake into Triage and then Triage into Ship, with no way back. ' +
     'Before I add a rejection path, is there anything on your side that makes that worse?'
+});
+
+/**
+ * The one pair huddle the eleventh step seats, fixed the way `COMPOSER_LINE`,
+ * `WALKBY_FIXTURE` and `EMAIL_FIXTURE` are. Three choices in it are
+ * load-bearing.
+ *
+ * - **`jared` is the last colleague no step touches.** Steps 2, 3, 7, 8, 9 and
+ *   10 leave working-memory rows on `dinesh`, `intern`, `gilfoyle`,
+ *   `greybeard` and `facilities`; a fixture sharing any of those names would
+ *   hide a writer that wrote onto the wrong person, which is why the ninth and
+ *   tenth steps picked theirs the same way. He is also **on the desk's own
+ *   Pair roster** (`DeskBottomActionsSlot.jsx` offers the verb on his row), so
+ *   the state this step drives is one a user can reach by pressing what the
+ *   product draws.
+ * - **One sentence, and it is a question about the fixture diagram.** The pair
+ *   is the only office surface whose `listening` phase advances on nothing but
+ *   the user typing, so a step that does not type measures the opening script
+ *   and stops. A question gives the reply turn something of yours to answer
+ *   and gives the partner's working-memory beat a `yours` half to hold.
+ * - **Whether the answer is any good is not asked here** (§ 14: score a
+ *   register property with a judge, never a phrase regex). The `pair` block
+ *   reports the transcript, the two marks and who spoke last; it does not
+ *   grade the conversation.
+ */
+const PAIR_FIXTURE = Object.freeze({
+  colleagueId: 'jared',
+  line: 'Is Triage doing too much here, or is the missing bit a way back from it?'
 });
 
 const STEP_TIMEOUT_MS = 20_000;
@@ -326,7 +380,7 @@ async function resolveChromium() {
  * its own questions and `llmConfigured` would mean nothing. `OfficeLayer` owns
  * the real plumbing, so the visit's office calls are the app's office calls.
  */
-const HARNESS_JSX = `import { useSyncExternalStore } from 'react';
+const HARNESS_JSX = `import { useState, useSyncExternalStore } from 'react';
 import { createRoot } from 'react-dom/client';
 import OfficeLayer from '../src/components/OfficeLayer.jsx';
 import {
@@ -336,6 +390,8 @@ import {
 } from '../src/state/officeViewModeStore.js';
 import { setOfficeCaptions } from '../src/state/officeMomentStore.js';
 import { useDeskSlotRef } from '../src/hooks/useDeskSlotRef.js';
+import { useOfficeCollaborationHandlers } from '../src/features/session/useOfficeCollaborationHandlers.js';
+import { officeChromeCopy } from '../src/utils/officeCast.js';
 import '../src/index.css';
 import '../src/App.css';
 /* Trap 2: ArchiSlop.jsx is this stylesheet's only importer. Without it every
@@ -343,6 +399,7 @@ import '../src/App.css';
 import '../src/components/OfficeFloor.css';
 
 const FIXTURE = ${JSON.stringify(FIXTURE_DIAGRAM)};
+const PAIR_PARTNER = ${JSON.stringify(PAIR_FIXTURE.colleagueId)};
 
 /* Captions are the accessibility path and the TTS-failure path both, and
    headless Chromium has no voice — pin them on so the trace can read what was
@@ -369,7 +426,7 @@ standUp();
  * the tenth step press a control nobody can press, which is the stand-in
  * turning into a fiction.
  */
-function DeskChromeAnchor() {
+function DeskChromeAnchor({ onPair }) {
   const viewMode = useSyncExternalStore(
     subscribeOfficeViewMode,
     getOfficeViewMode,
@@ -377,13 +434,48 @@ function DeskChromeAnchor() {
   );
   const deskSlotRef = useDeskSlotRef();
   if (viewMode === 'floor') return null;
-  return <div id="office-desk-bottom-slot" ref={deskSlotRef} />;
+  return (
+    <>
+      <div id="office-desk-bottom-slot" ref={deskSlotRef} />
+      {/*
+        * The Pair chip, for the eleventh step, and it is a **stand-in with the
+        * product's own gating** rather than a shortcut past it. The real verb
+        * rides on each colleague's row in \`DeskBottomActionsSlot.jsx\`
+        * (\`extraActions: withPair(variant)\`), which is shell chrome this
+        * harness does not mount — so pulling somebody's chair up was
+        * *unreachable* from this page, exactly as the inbox was before the
+        * tenth step. It sits inside the same desk-only branch as the taskbar
+        * anchor above, because the desk is where the product offers it, and it
+        * carries the product's own label out of \`officeChromeCopy()\` so the
+        * step is not quietly English-only. The signal it raises is the
+        * product's: \`useOfficeCollaborationHandlers\`' own \`onPair\`, not a
+        * hand-rolled store call, which is the one thing steps 8, 9 and 10 all
+        * refuse to do.
+        */}
+      <button type="button" data-testid="visit-pair-chip" onClick={() => onPair(PAIR_PARTNER)}>
+        {officeChromeCopy().desk.pairAction}
+      </button>
+    </>
+  );
 }
 
-createRoot(document.getElementById('root')).render(
+function Visit() {
+  /*
+   * \`huddleSignal\` is a prop, not a store, so the harness has to hold it the
+   * way \`useArchiSlopSessionState\` does — one bumped \`{ seq, mode,
+   * colleagueId }\` object that \`OfficeLayer\` watches.
+   */
+  const [huddleSignal, setHuddleSignal] = useState(null);
+  const { onPair } = useOfficeCollaborationHandlers({
+    setHuddleSignal,
+    setCallMeetingSignal: () => {},
+    setTalkSignal: () => {}
+  });
+  return (
   <>
   <OfficeLayer
     deskActionsAnchorReady
+    huddleSignal={huddleSignal}
     pause={false}
     advisorBusy={false}
     getDiagramSource={() => FIXTURE}
@@ -401,9 +493,12 @@ createRoot(document.getElementById('root')).render(
     onCheckHrProgression={() => {}}
     playChime={() => {}}
   />
-  <DeskChromeAnchor />
+  <DeskChromeAnchor onPair={onPair} />
   </>
-);
+  );
+}
+
+createRoot(document.getElementById('root')).render(<Visit />);
 `;
 
 const HARNESS_HTML = `<!doctype html>
@@ -502,7 +597,13 @@ function installInstrument(config) {
        observations cannot be read after the tenth step sits down. */
     floorExitShot: null,
     floorExitPeek: null,
-    floorExitSurfaces: null
+    floorExitSurfaces: null,
+    /* The eleventh step's two marks. `endOfficeHuddle` clears the live scene,
+       so the transcript is copied out while it exists; the digest is held from
+       *before* the chair went up so the log line the huddle files is read as a
+       difference rather than matched against English written here. */
+    pairHuddle: null,
+    pairLogBefore: null
   };
 
   /*
@@ -1520,7 +1621,209 @@ async function walkTheVisit(page) {
     );
   });
 
+  /**
+   * **Pull somebody's chair up, say one thing, and send them away.** The
+   * eleventh step, and the fourth application of the append rule — see the
+   * header. Five choices in it are load-bearing.
+   *
+   * 1. **It is last, and it has to be.** A pair huddle writes into working
+   *    memory *and* the office log, and the digest rides on every office
+   *    request — so seating one earlier would put "you and Jared talked
+   *    something through at your desk" into the prompt of every step after it.
+   *    Same argument the ninth step was placed last on, one surface further on.
+   * 2. **The desk, not the floor**, which is why it follows the tenth rather
+   *    than replacing it. `HuddleOverlay` is renderer #1 and `FloorHuddle` is
+   *    renderer #2 (ADR-0011 rule 1); the tenth step has already sat down, so
+   *    this step presses the overlay the desk draws and leaves the floor's
+   *    twin for a future step that would have to stand up again.
+   * 3. **The step types, because nothing else advances the scene.** A pair's
+   *    opening script puts it in `listening`, and `listening` ends when you
+   *    reply or when `usePairInitiative`'s `lull` timer fires after
+   *    `PAIR_LULL_BASE_MS` (45 s). A step that only waited would measure the
+   *    opening script and call it a conversation.
+   * 4. **A refused huddle is reported, not thrown — and measuring it is how
+   *    the step found the one verb that does not degrade in fiction.**
+   *    `POST /api/office/huddle` answers 503 with no backend, **nothing deals
+   *    from a bank**, and `applyHuddleResponse` calls `endOfficeHuddle` on an
+   *    empty script — so on `--no-llm` the chair is seated and cleared inside
+   *    46 ms and `[data-testid="office-huddle"]` never paints at all. Measured
+   *    on the first canned run of this step: the ring is drawn *before* the
+   *    call precisely so the arrival is the feedback that the click landed, and
+   *    a refusal takes that feedback away again before a frame goes out. So the
+   *    wait resolves on **either** the overlay or a huddle call that failed,
+   *    which is what separates "the office cannot have this conversation
+   *    tonight" from "the chip is not wired" — those are the two readings an
+   *    instrument must never merge. Zero huddle calls *is* a failure: it means
+   *    the press reached nothing.
+   * 5. **The live huddle is stashed before it ends.** `endOfficeHuddle` clears
+   *    it, and the two marks this step exists to see are read at the end of the
+   *    visit — so the transcript is copied into `state.pairHuddle` while it
+   *    still exists, the way the tenth step holds the floor's last room shot.
+   */
+  await step(steps, 'pair-with-a-colleague', async () => {
+    const pressed = await page.evaluate(() => {
+      const chip = document.querySelector('[data-testid="visit-pair-chip"]');
+      chip?.click();
+      /* The digest as it stands *before* the chair goes up, so the log line the
+         huddle files is read as "what this step added" rather than matched
+         against a sentence hard-coded in English here. The tenth step's
+         `inboxBeforeIds` trick, applied to the office log. */
+      return import('/src/state/officeLogStore.js').then((log) => {
+        window.__visit.state.pairLogBefore = log.getOfficeLogDigest();
+        return Boolean(chip);
+      });
+    });
+    if (!pressed) throw new Error('the desk drew no way to pull somebody’s chair up');
+    /*
+     * Either the ring paints or the script is refused — see point 4. Polled
+     * rather than two sequential waits, because on the canned arm the second
+     * condition is already true while the first one can never become true, and
+     * a 20 s wait for a chair that was cleared in 46 ms is time the visit
+     * spends learning nothing.
+     */
+    const seated = await page
+      .waitForFunction(
+        () => {
+          if (document.querySelector('[data-testid="office-huddle"]')) return 'seated';
+          const calls = window.__visit.state.fetches.filter((call) =>
+            /\/api\/office\/huddle\b/.test(call.url)
+          );
+          const answered = calls.some((call) => call.status >= 200 && call.status < 300);
+          return calls.length > 0 && !answered ? 'refused' : false;
+        },
+        { timeout: STEP_TIMEOUT_MS }
+      )
+      .then((handle) => handle.jsonValue())
+      .catch(() => null);
+    if (!seated) throw new Error('pressing Pair neither seated anybody nor asked for a script');
+    if (seated === 'refused') {
+      const statuses = await page.evaluate(() =>
+        window.__visit.state.fetches
+          .filter((call) => /\/api\/office\/huddle\b/.test(call.url))
+          .map((call) => call.status)
+      );
+      return (
+        `${PAIR_FIXTURE.colleagueId}'s chair went up and was cleared before a frame: ` +
+        `/api/office/huddle ${statuses.join(', ')} and \`applyHuddleResponse\` ends a huddle ` +
+        'with no script — a huddle is the one office surface with no canned bank, so this is ' +
+        "the canned arm's only unreachable subject"
+      );
+    }
+    /*
+     * The reply strip exists only in `listening`, which a pair reaches when the
+     * opening script lands — so waiting on it waits on the model's first turn
+     * without asking the store what phase it is in. Generous for the same
+     * reason the tenth step's delivery wait is: one model turn behind a
+     * `HUDDLE_FETCH_TIMEOUT_MS` budget of 20 s.
+     */
+    const strip = await page
+      .waitForSelector('[data-testid="office-pair-reply"]', { timeout: 30_000 })
+      .catch(() => null);
+    const huddleCalls = await page.evaluate(() =>
+      window.__visit.state.fetches
+        .filter((call) => /\/api\/office\/huddle\b/.test(call.url))
+        .map((call) => call.status)
+    );
+    if (!strip) {
+      if (huddleCalls.some((status) => status >= 200 && status < 300)) {
+        throw new Error(
+          `the huddle was scripted (${huddleCalls.join(', ')}) and the reply strip never drew`
+        );
+      }
+      const ended = await endThePair(page);
+      return (
+        `${PAIR_FIXTURE.colleagueId} pulled a chair up and the reply strip never drew: ` +
+        `/api/office/huddle ${huddleCalls.join(', ') || 'never answered'}; chair ${ended}`
+      );
+    }
+    const input = await strip.$('.office-pair-reply-input');
+    if (!input) throw new Error('the reply strip drew no input');
+    await input.fill(PAIR_FIXTURE.line);
+    /* Pressed in page context, for steps 8, 9 and 10's reason: the overlay is a
+       layered, animated surface and an element-handle click there waits on
+       hit-testing that reads exactly like an unwired button when it misses. */
+    const sent = await page.evaluate(() => {
+      const button = document.querySelector('[data-testid="office-pair-reply-send"]');
+      if (!button) return 'missing';
+      if (button.disabled) return 'disabled';
+      button.click();
+      return 'pressed';
+    });
+    if (sent !== 'pressed') throw new Error(`the reply strip's send button was ${sent}`);
+    /*
+     * Asked, then answered. `data-busy` is `awaitingReply`, so its appearance
+     * is the request leaving and its clearing is the turn landing **or
+     * failing** — the flag comes back off either way, which is why the
+     * transcript below is what the block reads and this is only the wait.
+     */
+    await page
+      .waitForSelector('[data-testid="office-pair-reply"][data-busy="true"]', { timeout: 5_000 })
+      .catch(() => null);
+    const answered = await page
+      .waitForSelector('[data-testid="office-pair-reply"]:not([data-busy])', { timeout: 30_000 })
+      .then(() => true)
+      .catch(() => false);
+    const held = await page.evaluate(() =>
+      import('/src/state/officeMomentStore.js').then((store) => {
+        const huddle = store.getOfficeSnapshot().huddle;
+        window.__visit.state.pairHuddle = huddle
+          ? {
+              mode: huddle.mode,
+              attendees: huddle.attendees,
+              phase: huddle.phase,
+              turnIndex: huddle.turnIndex,
+              awaitingReply: Boolean(huddle.awaitingReply),
+              turns: (huddle.turns ?? []).map((turn) => ({
+                role: turn.role,
+                text: String(turn.text ?? '').slice(0, 200)
+              })),
+              beats: (huddle.beats ?? []).map((beat) => ({
+                speakerId: beat.speakerId,
+                text: String(beat.text ?? '').slice(0, 200),
+                offeredAPrompt: Boolean(beat.actionPrompt)
+              }))
+            }
+          : null;
+        return window.__visit.state.pairHuddle;
+      })
+    );
+    const ended = await endThePair(page);
+    const roles = (held?.turns ?? []).map((turn) => turn.role).join('→') || 'none';
+    return (
+      `${PAIR_FIXTURE.colleagueId} pulled a chair up; said one thing; ` +
+      `${answered ? 'they answered' : 'they never answered'}; transcript ${roles}; chair ${ended}`
+    );
+  });
+
   return steps;
+}
+
+/**
+ * Send the person in the chair away, through the overlay's own button.
+ *
+ * Its own function because the eleventh step reaches it down two paths — the
+ * canned arm never gets a reply strip — and a pair left seated would be a
+ * surface still open when the report reads the room, which is the one thing
+ * the tenth step's point 2 is about.
+ *
+ * @param {import('playwright-core').Page} page
+ * @returns {Promise<string>}
+ */
+async function endThePair(page) {
+  const ended = await page.evaluate(() => {
+    const button = document.querySelector('[data-testid="office-huddle-end"]');
+    button?.click();
+    return Boolean(button);
+  });
+  if (!ended) throw new Error('the huddle drew no way to send them away');
+  const gone = await page
+    .waitForSelector('[data-testid="office-huddle"]', {
+      state: 'detached',
+      timeout: STEP_TIMEOUT_MS
+    })
+    .then(() => true)
+    .catch(() => false);
+  return gone ? 'sent away' : 'still seated';
 }
 
 /**
@@ -1884,6 +2187,56 @@ async function main() {
       )
       .catch((err) => ({ error: String(err?.message ?? err).split('\n')[0] }));
 
+    /*
+     * **What the pair huddle left behind, read as two records rather than
+     * inferred from one.** A huddle line is drawn in `.office-huddle-line`,
+     * which `harvest()` does not select, so nothing this step produces reaches
+     * `speech` — the `email` block's situation exactly, one surface further on.
+     * And the thing under test is not the conversation: it is that *the
+     * conversation was remembered*, by two different memories, from one press.
+     *
+     * Four facts, all literal. The **transcript** is the live scene copied out
+     * before the chair was cleared, so a reader can see who spoke last and in
+     * what order. The **beat** `officeHuddleMemory.js` claims to write on the
+     * partner is read off the record, not off `promptLines`, for
+     * `visit-trace-reads-promptlines-not-the-record`'s reason. The **log
+     * lines** are the digest's difference across the step, which is how the
+     * room's half is observed without hard-coding `sentenceOf`'s English here.
+     * And `beatWritten` / `roomKnows` are derived in `buildTrace` beside the
+     * counts they come from, so a later run can disagree with the reading
+     * without re-running the visit.
+     *
+     * Whether their answer is any good is not asked (§ 14). `quotesYou` is
+     * containment and nothing more.
+     */
+    const pair = await page
+      .evaluate(
+        (fixture) =>
+          Promise.all([
+            import('/src/state/officeWorkingMemoryStore.js'),
+            import('/src/state/officeLogStore.js')
+          ]).then(([memory, log]) => {
+            const before = window.__visit.state.pairLogBefore ?? [];
+            const digest = log.getOfficeLogDigest();
+            const beats = memory.getWorkingMemoryWith(fixture.colleagueId)?.beats ?? [];
+            return {
+              colleagueId: fixture.colleagueId,
+              said: fixture.line,
+              huddle: window.__visit.state.pairHuddle,
+              beats: beats.map((beat) => ({
+                theirs: beat.theirs ? String(beat.theirs).slice(0, 160) : null,
+                yours: beat.yours ? String(beat.yours).slice(0, 160) : null
+              })),
+              promptLines: memory.workingMemoryPromptLines(fixture.colleagueId),
+              logLinesAdded: digest.filter((line) => !before.includes(line)),
+              logDigestBefore: before.length,
+              logDigestAfter: digest.length
+            };
+          }),
+        PAIR_FIXTURE
+      )
+      .catch((err) => ({ error: String(err?.message ?? err).split('\n')[0] }));
+
     const collected = await page.evaluate(() => ({
       speech: window.__visit.state.speech,
       eighthStepAtMs: window.__visit.state.eighthStepAtMs ?? null,
@@ -1909,7 +2262,7 @@ async function main() {
       steps,
       before,
       after,
-      collected: { ...collected, imHistoryAtEnd, afterwards, peek, walkby, email }
+      collected: { ...collected, imHistoryAtEnd, afterwards, peek, walkby, email, pair }
     });
     const json = JSON.stringify(trace, null, 2);
     console.log(json);
@@ -2146,12 +2499,25 @@ function buildTrace({ args, startedAt, t0, steps, before, after, collected }) {
      * `movement` is comparable for a related reason — `sampleFigures` now
      * refuses to measure without a stage instead of falling back to
      * `document.body`.
+     * 8: an **eleventh step** pulls a colleague's chair up to the desk, types
+     * one sentence into the pair reply strip and sends them away, so the pair
+     * huddle — the longest conversation this office supports, and the subject
+     * of two consecutive slices the instrument could not see — is observable.
+     * `speech` totals are unaffected for the tenth step's reason (a huddle line
+     * is drawn in `.office-huddle-line`, which `harvest()` does not select), so
+     * every summed axis stays comparable with version 7 and
+     * `speech.throughStep7` remains the field to read against versions ≥4.
+     * What does move is **spend**: two more `POST /api/office/huddle` calls, so
+     * `mode.askedTheModel`, `mode.answeredByModel` and `speech.modelTurns` are
+     * each +2 against a version-7 run and are the one set of fields a reader
+     * must re-base. The report gained `pair`, and `afterwards.workingMemory`
+     * gains a row for the partner with `afterwards.logDigest` one line longer.
      * Version 1 attributed `bySource` by an 8 s clock window, which over-credits any
      * bank line drawn behind a mid-visit model call — so a v1 `bySource.model`
      * from a run whose call was not the last thing to happen has to be re-read
      * against `modelTurns`, and this field is how a reader can tell which.
      */
-    version: 7,
+    version: 8,
     startedAt,
     durationMs: Date.now() - t0,
     mode: {
@@ -2213,6 +2579,37 @@ function buildTrace({ args, startedAt, t0, steps, before, after, collected }) {
             '`wroteTheTwinInstead` catches the Do it path firing from the dismiss button'
         },
     email,
+    pair: collected.pair?.error
+      ? collected.pair
+      : {
+          ...(collected.pair ?? {}),
+          /* Derived here rather than in the page, the way `peek` and `walkby`
+             are, so the raw transcript and the raw digest difference ship
+             beside the verdict. */
+          turnsByRole: (collected.pair?.huddle?.turns ?? []).reduce((acc, turn) => {
+            acc[turn.role] = (acc[turn.role] ?? 0) + 1;
+            return acc;
+          }, {}),
+          theyAnsweredLast:
+            (collected.pair?.huddle?.turns ?? []).at(-1)?.role === 'partner' || false,
+          /* The partner's half: one beat holding the last real exchange. */
+          beatWritten: (collected.pair?.beats ?? []).length > 0,
+          quotesYou: (collected.pair?.beats ?? []).some((beat) =>
+            String(beat.yours ?? '').includes(String(collected.pair?.said ?? '').slice(0, 40))
+          ),
+          /* The room's half: `sentenceOf`'s pair line, observed as the digest
+             line this step added that names the partner. Membership, not
+             length — `logdigest-count-is-not-a-hard-axis`. */
+          roomKnows: (collected.pair?.logLinesAdded ?? []).some((line) =>
+            line.includes(collected.pair?.colleagueId ?? '\u0000')
+          ),
+          rule:
+            'observed: the desk Pair verb pressed in the DOM, one sentence typed into the reply ' +
+            'strip, the chair sent away through `office-huddle-end`; `beatWritten` is ' +
+            "`officeHuddleMemory.js`'s mark on the partner and `roomKnows` is the office log's " +
+            'own line. A huddle is never harvested into `speech` (`.office-huddle-line` is not a ' +
+            'harvest selector), and it has no canned bank: on the canned arm nobody speaks'
+        },
     read: {
       cards: collected.read ?? [],
       rule:

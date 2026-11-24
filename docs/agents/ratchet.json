@@ -77,9 +77,9 @@
     },
     "strictIslandFiles": {
       "apps/web/tsconfig.strict.json": {
-        "budget": 42,
+        "budget": 44,
         "initial": 15,
-        "reason": "2026-11-17: 40→42 — explainEntryMarkdown.ts and diagramChangeDiff.ts from improve TS-leaves slice."
+        "reason": "2026-11-24: 42→44 — goIntentInsightTitle.ts and insightNowStatus.ts from improve TS-leaves slice."
       },
       "apps/server/tsconfig.strict.json": {
         "budget": 33,
