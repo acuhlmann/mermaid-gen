@@ -32,6 +32,7 @@
  * nine people sitting at it. The slot is off the stage and occludes nothing.
  */
 
+import FloorElevatorCard from './FloorElevatorCard.jsx';
 import FloorPersonCard from './FloorPersonCard.jsx';
 import { FloorErrandCard } from './FloorErrand.jsx';
 import { FloorHuddleCard } from './FloorHuddle.jsx';
@@ -43,6 +44,7 @@ import { sitDown } from '../../state/officeViewModeStore.js';
 
 /**
  * @param {{
+ *   elevator?: boolean,
  *   copy: Record<string, any>,
  *   meeting?: any,
  *   meetingHandlers?: any,
@@ -73,6 +75,7 @@ import { sitDown } from '../../state/officeViewModeStore.js';
  *   against a max of 12 — nine of those points are its own `= null`s.
  */
 export function FloorCardSlot({
+  elevator,
   copy,
   meeting = null,
   meetingHandlers = {},
@@ -102,6 +105,8 @@ export function FloorCardSlot({
   onAdoptPrompt,
   onClosePerson
 }) {
+  if (elevator) return <FloorElevatorCard />;
+
   if (meeting) {
     return (
       <FloorMeetingCard

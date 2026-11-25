@@ -1439,6 +1439,15 @@ consumer). Reserved for later MCP-app parity: `office_moment` / `meeting_started
     at build time, so the office reports what the product did to itself overnight without asking
     GitHub, a model or the server. Gotchas: `docs/agents/domains/office.md` ("The Night Shift
     board reads the fleet's ledgers").
+13. ~~**The building: an elevator and the Machine Room**~~ — ✅ **shipped**. Reception has
+    elevator doors; call it, walk over, pick a floor. **B1 is the Machine Room**, where the night
+    crew live as racks — one per routine, lit green for a night that shipped, amber for a run that
+    merged nothing, dark with one red lamp for a no-show, dim violet for parked — read from the
+    same columns as the kanban upstairs. Walk up to a rack to read its night, with its PRs and the
+    way to the board. **4, Leadership** is on the panel and locked until Chief Slopitect Officer
+    (Lvl 10); at Lvl 10 it is still being fitted out ("Facilities says Q3"). Anything you agreed
+    to upstairs brings you back up. Gotchas: `docs/agents/domains/office.md` ("A second floor is
+    its own plan and its own stage").
 
 ## 11. Agency & reactivity doctrine (adopted 2026-07-25)
 

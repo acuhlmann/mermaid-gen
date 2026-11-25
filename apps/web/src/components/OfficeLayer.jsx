@@ -630,8 +630,9 @@ export default function OfficeLayer({
         playChime?.(playPropJam);
         return;
       }
-      if (cue === 'door') {
-        playChime?.(officeCueChime('door', { near: true }));
+      // The door and the elevator are both something you walked up to.
+      if (cue === 'door' || cue === 'elevator') {
+        playChime?.(officeCueChime(cue, { near: true }));
         return;
       }
       if (cue === 'step') {

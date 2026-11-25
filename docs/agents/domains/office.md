@@ -1193,6 +1193,29 @@ trace` section with its own table, and repeated separators, and a parser that tr
   feature-local English (`nightShiftCopy.js`, the `godAltarCopy.js` posture) because office bundles
   swap wholesale.
 
+- **A second floor is its own plan and its own stage, never a parameter on `officeFloorPlan.js`.**
+  The building (`apps/web/src/features/building/`) adds an elevator in reception
+  (`FLOOR_ELEVATOR` / `ELEVATOR_TILE`, wall art like the kanban) and floor B1, the Machine Room
+  (`machineRoomPlan.js`, `officeFloor/MachineRoom.jsx`): one rack per `NIGHT_SHIFT_CREW` member, lit
+  from the same `nightShiftCards` columns the kanban draws, so the two cannot disagree. Threading a
+  "which floor" argument through the open plan's constants was the alternative and was rejected:
+  every consumer of `FLOOR_SEATS` / `FLOOR_PROPS` (peeks, commutes, the camera, bubbles, wander) is
+  about the cast, and the cast never leaves the open plan. Four things are load-bearing. **The open
+  plan's stage stays mounted while you are downstairs** (hidden by
+  `[data-building-floor='basement']`), so walks, commutes and moments upstairs carry on without you
+  rather than remounting on your return — a walk-by that arrives meanwhile simply happens unseen.
+  **The call is answered by the floor you are on, with that floor's own walk**: `callElevator` is
+  the only press, `useFloorBuilding` answers it upstairs with free roam's `walkTo`, and
+  `MachineRoom` answers it downstairs with its own BFS walk, so clicking elsewhere on the way cancels
+  the call the same way it cancels a walk to the printer. **Upstairs wins**: a glass-room meeting, a
+  huddle or an accepted set piece returns you with no ride (`isSummoned`); and off the open plan,
+  arrow keys are disabled and Escape goes home _via_ the open plan, because both would otherwise
+  move the hidden you. **Nothing outlives the floor**: the building store resets on unmount, so
+  standing up always puts you at your desk. The leadership button is `locked` below Lvl 10 and
+  `fitOut` at it — a floor with no plan module is honestly unbuilt, which is also the joke. The
+  readout for what you walked up to sits in the **card slot**, not a `FloorPanel` over the rack:
+  the back row stands against the far wall, and a lifted panel ran off the top of the stage.
+
 ## Full findings
 
 - **Office sound is one posture, not four checkboxes.** Menu bar **Admin** carries 🎧 **Headphones**
