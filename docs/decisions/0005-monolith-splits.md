@@ -31,7 +31,7 @@ they need access to outer-closure state.
 
 ## Progress
 
-### `mcpServer.js` (~1 542 → ~496 LOC)
+### `mcpServer.js` (~1 542 → ~309 LOC)
 
 - ✅ Helpers extracted to `apps/server/src/mcp/mcpHelpers.js`
   (`textResult`, `jsonResult`, `safeError`, `humanOnlyMcpToolBlocked`,
@@ -46,9 +46,11 @@ they need access to outer-closure state.
   `registerMcpSessionNavigationTools` (welcome, events, dashboard, proposal/handshake
   review MCP Apps, web companion, focus picker, compose insight),
   `registerHumanOnlyAppTools`
-  (four human-only stubs). Remaining: `join_session`, MCP resources, collaboration
-  prompt, and `createMcpHandler` transport — continue the
-  `register{ToolName}(server, ctx)` pattern from `tools/README.md`.
+  (four human-only stubs), `registerMcpSessionResources` (four session resources),
+  `registerJoinSession` (`join_session` MCP App tool), and
+  `registerMcpCollaborationGuidePrompt`. Remaining: `createMcpHandler` transport
+  initialize/close plumbing — continue the `register{ToolName}(server, ctx)` pattern
+  from `tools/README.md`.
 
 ### Shared repair ladder (agent maintainability)
 
