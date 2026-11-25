@@ -1,6 +1,7 @@
 import FloorArrival from '../../components/officeFloor/FloorArrival.jsx';
 import OfficeDirectory from '../../components/OfficeDirectory.jsx';
 import GodAltarHost from '../god/GodAltarModal.jsx';
+import NightShiftHost from '../nightShift/NightShiftHost.jsx';
 import { openGodAltar } from '../god/godAltarStore.js';
 import { buildContentModeOptions } from '../../utils/renderModeAction.js';
 import { SimpleStudioSlot } from './SimpleStudioSlot.jsx';
@@ -191,6 +192,9 @@ export function BootSurfaces(props) {
         userName={props.shell?.userName}
         modelProfile={props.modelProfile}
       />
+      {/* The Night Shift window: opened from the floor's wall board or its
+          morning invite, so it is mounted wherever the floor can be. */}
+      <NightShiftHost />
     </>
   );
 }

@@ -5,6 +5,7 @@
  * is purely "put the office on the stage".
  */
 
+import FloorNightShiftBoard from './FloorNightShiftBoard.jsx';
 import FloorProps from './FloorProps.jsx';
 import FloorRoam from './FloorRoam.jsx';
 import FloorRoom, { FloorZoneLabels } from './FloorRoom.jsx';
@@ -161,6 +162,12 @@ export function FloorStage({
         {interactive && onWalkTo ? (
           <FloorRoam scale={scale} origin={roamOrigin} onWalkTo={onWalkTo} />
         ) : null}
+
+        {/* On the wall, so it paints under everything walkable — but after
+            the roam surface, which would otherwise take its click. Pressable
+            exactly when the props are (§ 6: not from a glass-room chair, not
+            during the arrival ceremony). */}
+        <FloorNightShiftBoard interactive={interactive && Boolean(onUseProp)} />
 
         <FloorProps
           copy={copy}

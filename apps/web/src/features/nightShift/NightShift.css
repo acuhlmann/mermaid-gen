@@ -1,0 +1,431 @@
+/*
+ * The Night Shift window. A fixed night palette rather than the app's theme
+ * tokens, the same posture as the God Altar: it is the night crew's room, and
+ * it reads the same whichever theme the day shift picked.
+ */
+
+.night-shift-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal, 220);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(6, 9, 18, 0.62);
+}
+
+.night-shift {
+  --ns-bg: #101726;
+  --ns-surface: #172036;
+  --ns-card: #1d2843;
+  --ns-ink: #eef2ff;
+  --ns-muted: #9fb0cf;
+  --ns-line: rgba(159, 176, 207, 0.22);
+  --ns-shipped: #7ee0a1;
+  --ns-checked: #f5d76e;
+  --ns-noshow: #ff9b8f;
+  --ns-leave: #b4a6f8;
+  --ns-accent: #8ab4ff;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: min(1040px, 100%);
+  max-height: min(88vh, 860px);
+  padding: 18px 18px 14px;
+  border: 1px solid var(--ns-line);
+  border-radius: 14px;
+  color: var(--ns-ink);
+  background:
+    radial-gradient(ellipse 80% 50% at 85% 0%, rgba(138, 180, 255, 0.12), transparent 60%),
+    var(--ns-bg);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.5);
+  outline: none;
+  overflow: hidden;
+}
+
+.night-shift-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.night-shift-title {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 650;
+}
+
+.night-shift-subtitle {
+  margin: 2px 0 0;
+  color: var(--ns-muted);
+  font-size: 0.85rem;
+}
+
+.night-shift-btn {
+  flex: none;
+  padding: 7px 14px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  color: #0b1222;
+  background: var(--ns-accent);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.night-shift-btn--quiet {
+  color: var(--ns-ink);
+  background: transparent;
+  border-color: var(--ns-line);
+  font-weight: 500;
+}
+
+.night-shift-btn:focus-visible,
+.night-shift-pr:focus-visible,
+.night-shift-card-earlier summary:focus-visible {
+  outline: 2px solid var(--ns-accent);
+  outline-offset: 2px;
+}
+
+/* Board ------------------------------------------------------------------ */
+
+.night-shift-board {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  min-height: 0;
+  overflow: auto;
+}
+
+.night-shift-column {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  padding: 10px;
+  border-radius: 10px;
+  background: var(--ns-surface);
+  border-top: 3px solid var(--ns-col, var(--ns-line));
+}
+
+.night-shift-column--shipped {
+  --ns-col: var(--ns-shipped);
+}
+.night-shift-column--checked {
+  --ns-col: var(--ns-checked);
+}
+.night-shift-column--noShow {
+  --ns-col: var(--ns-noshow);
+}
+.night-shift-column--onLeave {
+  --ns-col: var(--ns-leave);
+}
+
+.night-shift-column-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  margin: 0;
+  font-size: 0.8rem;
+  font-weight: 650;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--ns-col);
+}
+
+.night-shift-column-count {
+  min-width: 1.6em;
+  padding: 1px 6px;
+  border-radius: 999px;
+  text-align: center;
+  color: var(--ns-ink);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.night-shift-column-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.night-shift-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 9px 10px;
+  border-radius: 8px;
+  background: var(--ns-card);
+  border-left: 3px solid var(--ns-col);
+  font-size: 0.82rem;
+  line-height: 1.4;
+}
+
+.night-shift-card-who {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.night-shift-card-emoji {
+  font-size: 1.15rem;
+  line-height: 1.2;
+}
+
+.night-shift-card-name {
+  display: block;
+}
+
+.night-shift-card-dept,
+.night-shift-card-lastseen,
+.night-shift-card-date {
+  color: var(--ns-muted);
+  font-size: 0.76rem;
+}
+
+.night-shift-card-dept {
+  display: block;
+}
+
+.night-shift-card-summary,
+.night-shift-card-lastseen {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.night-shift-prs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.night-shift-pr {
+  padding: 1px 7px;
+  border-radius: 999px;
+  color: var(--ns-ink);
+  background: rgba(138, 180, 255, 0.16);
+  font-size: 0.76rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.night-shift-pr:hover {
+  background: rgba(138, 180, 255, 0.3);
+}
+
+.night-shift-card-earlier summary {
+  color: var(--ns-muted);
+  font-size: 0.76rem;
+  cursor: pointer;
+}
+
+.night-shift-card-earlier ul {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+  overflow-wrap: anywhere;
+}
+
+.night-shift-card-earlier .night-shift-prs {
+  display: inline-flex;
+}
+
+.night-shift-empty {
+  margin: 0;
+  color: var(--ns-muted);
+}
+
+.night-shift-provenance {
+  color: var(--ns-muted);
+  font-size: 0.72rem;
+}
+
+/* Standup ---------------------------------------------------------------- */
+
+.night-shift-standup {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 0;
+}
+
+.night-shift-transcript {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 56vh;
+  margin: 0;
+  padding: 2px 4px 2px 0;
+  list-style: none;
+  overflow: auto;
+}
+
+.night-shift-beat {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  opacity: 0.62;
+}
+
+.night-shift-beat.is-current {
+  opacity: 1;
+}
+
+.night-shift-beat-avatar {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--ns-card);
+  font-size: 1.15rem;
+}
+
+.night-shift-beat--host .night-shift-beat-avatar {
+  background: rgba(245, 215, 110, 0.18);
+}
+
+.night-shift-beat-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  padding: 8px 11px;
+  border-radius: 4px 12px 12px 12px;
+  background: var(--ns-surface);
+}
+
+.night-shift-beat-who {
+  font-size: 0.8rem;
+}
+
+.night-shift-beat-dept {
+  color: var(--ns-muted);
+}
+
+.night-shift-beat-text {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.night-shift-standup-controls {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.night-shift-step {
+  margin-right: auto;
+  color: var(--ns-muted);
+  font-size: 0.8rem;
+}
+
+@media (max-width: 860px) {
+  .night-shift-board {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  .office-floor-night-shift-invite {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+  .office-floor-night-shift-invite-text {
+    flex: 1 1 calc(100% - 32px);
+  }
+  .night-shift {
+    max-height: 92vh;
+    padding: 14px 12px 10px;
+  }
+  .night-shift-board {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Floor: the invite pill ------------------------------------------------- */
+
+.office-floor-night-shift-invite {
+  /* In the floor's own column flow, between the title bar and the room —
+     not absolutely positioned: the floor's cards own the bottom-left corner,
+     and on a phone the title bar wraps to two rows, so any fixed offset lands
+     on top of something. */
+  position: relative;
+  z-index: 30;
+  flex: none;
+  align-self: center;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: calc(100% - 32px);
+  margin: 2px 16px 4px;
+  padding: 6px 6px 6px 12px;
+  border: 1px solid rgba(138, 180, 255, 0.35);
+  border-radius: 18px;
+  color: #eef2ff;
+  background: rgba(16, 23, 38, 0.92);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+  font-size: 0.82rem;
+}
+
+.office-floor-night-shift-invite-text {
+  min-width: 0;
+}
+
+.office-floor-night-shift-invite button {
+  flex: none;
+  padding: 4px 10px;
+  border: 0;
+  border-radius: 999px;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.office-floor-night-shift-invite-join {
+  color: #0b1222;
+  background: #8ab4ff;
+}
+
+.office-floor-night-shift-invite-dismiss {
+  color: #eef2ff;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* Floor: the wall board -------------------------------------------------- */
+
+.office-floor-night-shift-art {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.office-floor-night-shift-hit {
+  position: absolute;
+  /* Above the roam surface (1), below every prop and person (depth ≥ 20):
+     it hangs on the wall, so anything standing in front of it keeps its click. */
+  z-index: 2;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.office-floor-night-shift-hit:focus-visible {
+  /* The clip-path would cut an outline off; the board draws its own ring. */
+  outline: none;
+}

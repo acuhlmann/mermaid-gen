@@ -1172,6 +1172,27 @@ and {who} talked something through at your desk" : "the team crowded around your
   but it is the shape to watch whenever a builder appends context _before_ a store caps a quote: the
   cap belongs to the field and the suffix belongs to the caller, and neither knows about the other.
 
+- **The Night Shift board reads the fleet's ledgers, so a ledger's shape is now a product input.**
+  `apps/web/src/utils/nightShiftLedger.js` parses `docs/routines/ledger/*.md` and
+  `docs/automations/ledger/*.md` **at build time** (`vite.config.js` bakes the result as
+  `__ARCHISLOP_NIGHT_SHIFT__`; every merge deploys, so the board is as fresh as the last ledger row
+  that landed). The wall kanban (`officeFloor/FloorNightShiftBoard.jsx`), the morning invite
+  (`FloorNightShiftInvite.jsx`) and the standup window (`features/nightShift/`) all read one
+  derivation, `nightShiftBoard.js`, so the standup can never name a card the board does not show.
+  Three things are load-bearing. **Run rows are told from decision rows by width alone** (2 cells
+  = decision, 3+ = run): the ledgers have blank lines between rows, a run log split by a `###
+trace` section with its own table, and repeated separators, and a parser that tracked "the
+  current table" read office-life as one night and resolve as empty. `nightShiftLedger.test.js`
+  parses the real files as a sensor, so a renamed ledger or a reshaped run log goes red instead of
+  quietly blanking the board. **The board is wall art, not a `FLOOR_PROPS` row** — a prop row is an
+  obstacle, a sight-line blocker and a standable-tile veto, and adding one re-derives every peek
+  mark; its hit button sits at `z-index: 2`, above the roam surface (1) and below every prop and
+  person (depth ≥ 20), and clicks went to the roam surface until it did. **Record, never trigger**:
+  the invite is offered by a render comparing the newest shift to `archislop:night-shift-seen`, and
+  join, skip or reading the wall board all move that marker forward — no timer, no re-offer. Copy is
+  feature-local English (`nightShiftCopy.js`, the `godAltarCopy.js` posture) because office bundles
+  swap wholesale.
+
 ## Full findings
 
 - **Office sound is one posture, not four checkboxes.** Menu bar **Admin** carries 🎧 **Headphones**

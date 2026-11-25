@@ -40,6 +40,7 @@ import { reachTileFor, whereaboutsOf } from '../utils/officeFloorReach.js';
 import { interruptSpeech } from '../utils/officeFloorInterrupt.js';
 import { useFloorDwell } from './officeFloor/useFloorDwell.js';
 import { useFloorAltarCameo } from './officeFloor/useFloorAltarCameo.js';
+import FloorNightShiftInvite from './officeFloor/FloorNightShiftInvite.jsx';
 import { useFloorInterruptMemory } from './officeFloor/useFloorInterruptMemory.js';
 import { useFloorPeekMemory } from './officeFloor/useFloorPeekMemory.js';
 import { useFloorShopTalk } from './officeFloor/useFloorShopTalk.js';
@@ -774,6 +775,8 @@ function OfficeFloorView({ bridge, viewPhase }) {
         captionsTitle={directory.transcriptTitle}
         onToggleCaptions={() => setOfficeCaptions(!officeSnap.captions)}
       />
+
+      <FloorNightShiftInvite suppressed={officeSnap.focusTime || physicalMeeting} />
 
       <div className="office-floor-viewport" ref={viewportRef}>
         <FloorStage

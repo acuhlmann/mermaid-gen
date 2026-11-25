@@ -210,6 +210,21 @@ export function wallPoint(axis, t, h) {
 export const FLOOR_WALL_CLOCK = Object.freeze({ axis: 'nw', t: 3.4, h: 96, r: 26 });
 
 /**
+ * Where the Night Shift kanban hangs (`features/nightShift/`): further along
+ * the same windowless north-west wall as the clock, toward the kitchen. `t0`…
+ * `t1` are tiles along the wall and `h0`…`h1` stage pixels up from the floor
+ * line, so the board is a quad in the wall's own plane — and, being on the
+ * wall, it is no furniture: it adds no obstacle, mark or sight-line blocker.
+ */
+export const FLOOR_NIGHT_SHIFT_BOARD = Object.freeze({
+  axis: 'nw',
+  t0: 4.8,
+  t1: 6.9,
+  h0: 54,
+  h1: 122
+});
+
+/**
  * Painter's-algorithm depth for a tile: things closer to the viewer (larger
  * x + y) paint on top. Scaled by 10 so a seat's own parts (chair / person /
  * desk) can interleave within one tile without colliding with the next.
