@@ -42,6 +42,7 @@ export const ISOMETRIC_FLOOR_BLAST_TESTS = [
   'apps/web/test/officeFloorActivity.test.jsx',
   'apps/web/test/officeFloorArrival.test.jsx',
   'apps/web/test/officeFloorBoard.test.js',
+  'apps/web/test/officeFloorBuilding.test.jsx',
   'apps/web/test/officeFloorCamera.test.jsx',
   'apps/web/test/officeFloorCoffeeWalk.test.js',
   'apps/web/test/officeFloorCommute.test.js',
@@ -318,7 +319,7 @@ export const BLAST_RADIUS_RULES = [
   },
   {
     match:
-      /apps\/web\/src\/(components\/(OfficeFloor|officeFloor|OfficeLayer|personaFaces)|utils\/officeFloor|utils\/officeDeskWork|utils\/officeSceneCast|hooks\/useStageScale\.js|state\/officeViewModeStore)/,
+      /apps\/web\/src\/(components\/(OfficeFloor|officeFloor|OfficeLayer|personaFaces)|features\/building|utils\/officeFloor|utils\/officeDeskWork|utils\/officeSceneCast|hooks\/useStageScale\.js|state\/officeViewModeStore)/,
     tests: ISOMETRIC_FLOOR_BLAST_TESTS
   },
   {
