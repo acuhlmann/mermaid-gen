@@ -30,9 +30,9 @@
         "reason": "2026-10-24: 392→447 — 331fc711 (deliverable format-pick/cache conversion) added peer-slot conversion and restore paths when switching content types so prior-format results survive instead of forcing regeneration; measured 447 LOC. Prior 2026-09-12 raise (362→392) cleared #547 complexity suppressions."
       },
       "apps/server/src/mcp/mcpServer.js": {
-        "budget": 496,
+        "budget": 309,
         "initial": 1406,
-        "reason": "2026-11-18: 733→496 — improve item-7 split: session navigation/dashboard MCP App tools to registerMcpSessionNavigationTools.js (register* pattern)."
+        "reason": "2026-11-25: 496→309 — improve item-7 split: session resources, join_session, collaboration guide prompt to registerMcpSessionResources.js, registerJoinSession.js, registerMcpCollaborationGuidePrompt.js."
       },
       "apps/server/src/agents/mermaidLangChainAgent.js": {
         "budget": 1156,
@@ -70,9 +70,9 @@
         "reason": "2026-11-17: 237→241 — four upstream complexity/unused-var warnings on main since 2026-11-15 (bench/agent scripts); not introduced by this TS-leaves diff."
       },
       "apps/web": {
-        "budget": 835,
+        "budget": 855,
         "initial": 851,
-        "reason": "2026-11-15: 827→835 — upstream merges on main since 2026-11-12 (#925/#919/#931 office-life); not introduced by this test-hardening diff."
+        "reason": "2026-11-25: 835→855 — upstream office-life merges on main since 2026-11-24 (#953/#955/#958 pair-huddle / visit-trace); not introduced by this mcpServer coupling split."
       }
     },
     "strictIslandFiles": {
