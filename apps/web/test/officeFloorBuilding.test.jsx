@@ -177,4 +177,17 @@ describe('summoned upstairs', () => {
     );
     expect(getBuildingSnapshot().floor).toBe('office');
   });
+
+  it('lets a call go while the set piece is still on, rather than riding you away from it', () => {
+    renderFloor({
+      coffee: {
+        id: 'c1',
+        accepted: true,
+        lines: [{ speakerId: 'intern', text: 'Is the machine meant to make that noise?' }]
+      }
+    });
+    fireEvent.click(screen.getByTestId('office-floor-elevator-call'));
+    expect(getBuildingSnapshot()).toMatchObject({ floor: 'office', call: null, doorsOpen: false });
+    expect(screen.getByTestId('office-floor-elevator').dataset.open).not.toBe('true');
+  });
 });

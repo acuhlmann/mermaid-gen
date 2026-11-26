@@ -716,6 +716,10 @@ function OfficeFloorView({ bridge, viewPhase }) {
     (battle?.accepted && scenePacing?.battleLineSpoken)
   );
 
+  // The open plan stays mounted while you are downstairs, so its walk-bys keep
+  // walking; they just do not talk to someone who is not on the floor.
+  const walkerHere = building.whileHere(walker);
+
   const { showSpokenText, sceneHandlersWithVoice } = useFloorSpokenText({
     captions: officeSnap.captions,
     altarOpen,
@@ -723,7 +727,7 @@ function OfficeFloorView({ bridge, viewPhase }) {
     talkColleagueId: talkingColleagueId,
     talkLine: activity.talkLine,
     peekColleagueId,
-    walkBy: walker,
+    walkBy: walkerHere,
     wandererSaid,
     dwellSaid: dwell.said,
     altarCameo: altar.cameo,
@@ -769,7 +773,7 @@ function OfficeFloorView({ bridge, viewPhase }) {
     peek,
     prop,
     presence,
-    walkBy: walker,
+    walkBy: walkerHere,
     walkerDeparting: departing,
     join: joinOffer,
     errand: errandOffer

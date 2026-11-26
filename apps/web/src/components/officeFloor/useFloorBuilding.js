@@ -13,10 +13,11 @@
  *    roam's verb, so the walk to the doors is the same walk as any other and
  *    clicking somewhere else on the way cancels it, exactly as it would cancel
  *    a walk to the printer.
- * 2. **Upstairs wins.** A glass-room meeting, a huddle at your desk, or a set
- *    piece you accepted all need you on this floor, so any of them returns you
- *    here with no ride. That reacts to something you agreed to; it never starts
- *    anything (ADR-0010 consequence #4).
+ * 2. **Upstairs wins, for as long as it lasts.** A glass-room meeting, a
+ *    huddle at your desk, or a set piece you accepted all need you on this
+ *    floor, so any of them returns you here with no ride, and a call made while
+ *    one is still on is let go rather than answered. That reacts to something
+ *    you agreed to; it never starts anything (ADR-0010 consequence #4).
  * 3. **Nothing outlives the floor.** Sitting down unmounts the floor, and the
  *    building resets with it — standing up again puts you at your desk.
  */
@@ -63,11 +64,11 @@ const ON_FLOOR_KEYBOARD = Object.freeze({});
  * Walk to the doors when the call was made up here, open them when you get
  * there, and let the car go if you walk off.
  */
-function useAnswerCall(building, presence, walkTo, onFloorCue) {
+function useAnswerCall(building, presence, walkTo, onFloorCue, summoned) {
   const answered = useRef(0);
   /** The walk that is taking you to the doors, once it has started. */
   const walkKey = useRef(null);
-  const call = building.floor === HOME_FLOOR ? building.call : null;
+  const call = building.floor === HOME_FLOOR && !summoned ? building.call : null;
 
   useEffect(() => {
     if (!call || answered.current === call.key) return;
@@ -128,9 +129,11 @@ function useRide(ride, onFloorCue) {
  *   showCard: boolean,
  *   goHome: () => void,
  *   topBarCopy: (copy: Record<string, any>) => Record<string, any>,
+ *   whileHere: <T>(value: T) => T | null,
  *   keyboard: { origin?: null }
  * }} `goHome` is the open plan's, with a ride back up first when you are
- *   downstairs; `keyboard` overrides `useFloorKeyboard`'s inputs off this floor.
+ *   downstairs; `keyboard` overrides `useFloorKeyboard`'s inputs off this floor;
+ *   `whileHere` passes a value through only while you are on the open plan.
  */
 export function useFloorBuilding({ presence, walkTo, goHome, summonedBy, onFloorCue }) {
   const building = useSyncExternalStore(
@@ -140,13 +143,16 @@ export function useFloorBuilding({ presence, walkTo, goHome, summonedBy, onFloor
   );
   const onOpenPlan = building.floor === HOME_FLOOR;
 
-  useAnswerCall(building, presence, walkTo, onFloorCue);
+  const summoned = isSummoned(summonedBy);
+  useAnswerCall(building, presence, walkTo, onFloorCue, summoned);
   useRide(building.ride, onFloorCue);
 
-  const summoned = isSummoned(summonedBy);
+  // Keyed on the snapshot as well as the summons, so a call pressed while a
+  // huddle is still on is let go at once rather than ridden: the first reset
+  // alone would leave `summoned` true and this effect asleep. Idle, it no-ops.
   useEffect(() => {
     if (summoned) returnToHomeFloor();
-  }, [summoned]);
+  }, [summoned, building]);
 
   useEffect(() => () => returnToHomeFloor(), []);
 
@@ -162,6 +168,7 @@ export function useFloorBuilding({ presence, walkTo, goHome, summonedBy, onFloor
     goHome: goHomeFromAnywhere,
     topBarCopy: (/** @type {Record<string, any>} */ copy) =>
       onOpenPlan ? copy : { ...copy, ...BUILDING_COPY.basementTopBar },
+    whileHere: (value) => (onOpenPlan ? value : null),
     keyboard: onOpenPlan ? ON_FLOOR_KEYBOARD : OFF_FLOOR_KEYBOARD
   };
 }
