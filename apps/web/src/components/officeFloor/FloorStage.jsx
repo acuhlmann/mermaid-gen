@@ -5,6 +5,7 @@
  * is purely "put the office on the stage".
  */
 
+import FloorElevator from './FloorElevator.jsx';
 import FloorNightShiftBoard from './FloorNightShiftBoard.jsx';
 import FloorProps from './FloorProps.jsx';
 import FloorRoam from './FloorRoam.jsx';
@@ -140,6 +141,8 @@ export function FloorStage({
   dayPhase,
   children
 }) {
+  // The wall art (board, elevator) is pressable exactly when the props are.
+  const wallArtLive = interactive && Boolean(onUseProp);
   return (
     <div className="office-floor-stage" style={{ width: STAGE_W * scale, height: STAGE_H * scale }}>
       <div
@@ -167,7 +170,11 @@ export function FloorStage({
             the roam surface, which would otherwise take its click. Pressable
             exactly when the props are (§ 6: not from a glass-room chair, not
             during the arrival ceremony). */}
-        <FloorNightShiftBoard interactive={interactive && Boolean(onUseProp)} />
+        <FloorNightShiftBoard interactive={wallArtLive} />
+
+        {/* The elevator doors in reception (`features/building/`): wall art
+            like the board, pressable on the same terms. */}
+        <FloorElevator interactive={wallArtLive} />
 
         <FloorProps
           copy={copy}

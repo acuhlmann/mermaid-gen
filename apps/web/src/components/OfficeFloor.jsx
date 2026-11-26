@@ -33,6 +33,9 @@ import { useFloorAway } from './officeFloor/useFloorAway.js';
 import { useFloorAutoPan } from './officeFloor/useFloorAutoPan.js';
 import { useFloorCoffeeWalk } from './officeFloor/useFloorCoffeeWalk.js';
 import { useFloorKeyboard } from './officeFloor/useFloorKeyboard.js';
+import { useFloorBuilding } from './officeFloor/useFloorBuilding.js';
+import { FloorElevatorRide } from './officeFloor/FloorElevator.jsx';
+import MachineRoom from './officeFloor/MachineRoom.jsx';
 import { useFloorWalker } from './officeFloor/useFloorWalker.js';
 import { MEETING_USER_SPEAKER } from '../hooks/useMeetingPlayback.js';
 import { useStageScale } from '../hooks/useStageScale.js';
@@ -323,7 +326,27 @@ function OfficeFloorView({ bridge, viewPhase }) {
    */
   const dayPhase = useOfficeDayPhase();
 
-  useFloorKeyboard({ presence, origin, goHome, walkTo: activity.walkTo });
+  /*
+   * The building around this floor (`features/building/`): the elevator in
+   * reception and the Machine Room below. Upstairs keeps running while you are
+   * down there — the open plan's stage stays mounted, just not shown — and
+   * anything you agreed to up here brings you back.
+   */
+  const building = useFloorBuilding({
+    presence,
+    walkTo: activity.walkTo,
+    goHome,
+    summonedBy: { physicalMeeting, huddle, coffee, battle },
+    onFloorCue
+  });
+
+  useFloorKeyboard({
+    presence,
+    origin,
+    goHome: building.goHome,
+    walkTo: activity.walkTo,
+    ...building.keyboard
+  });
   /* While the camera is framing a moment it owns the pan; auto-pan remains
      the phone-overflow fallback for the camera-free walks. */
   useFloorAutoPan(viewportRef, autoPanPresenceFor(focus, presence), scale);
@@ -693,6 +716,10 @@ function OfficeFloorView({ bridge, viewPhase }) {
     (battle?.accepted && scenePacing?.battleLineSpoken)
   );
 
+  // The open plan stays mounted while you are downstairs, so its walk-bys keep
+  // walking; they just do not talk to someone who is not on the floor.
+  const walkerHere = building.whileHere(walker);
+
   const { showSpokenText, sceneHandlersWithVoice } = useFloorSpokenText({
     captions: officeSnap.captions,
     altarOpen,
@@ -700,7 +727,7 @@ function OfficeFloorView({ bridge, viewPhase }) {
     talkColleagueId: talkingColleagueId,
     talkLine: activity.talkLine,
     peekColleagueId,
-    walkBy: walker,
+    walkBy: walkerHere,
     wandererSaid,
     dwellSaid: dwell.said,
     altarCameo: altar.cameo,
@@ -746,7 +773,7 @@ function OfficeFloorView({ bridge, viewPhase }) {
     peek,
     prop,
     presence,
-    walkBy: walker,
+    walkBy: walkerHere,
     walkerDeparting: departing,
     join: joinOffer,
     errand: errandOffer
@@ -766,9 +793,9 @@ function OfficeFloorView({ bridge, viewPhase }) {
       {/* The peek and talk cards each carry their own way back, so the bar's
           copy of it would be a second button with the same label. */}
       <FloorTopBar
-        copy={copy}
+        copy={building.topBarCopy(copy)}
         standing={activity.standingFree}
-        onGoHome={goHome}
+        onGoHome={building.goHome}
         captions={officeSnap.captions}
         captionsLabel={directory.transcriptLabel}
         captionsOnLabel={directory.transcriptOnLabel}
@@ -778,7 +805,7 @@ function OfficeFloorView({ bridge, viewPhase }) {
 
       <FloorNightShiftInvite suppressed={officeSnap.focusTime || physicalMeeting} />
 
-      <div className="office-floor-viewport" ref={viewportRef}>
+      <div className="office-floor-viewport" ref={viewportRef} data-building-floor={building.floor}>
         <FloorStage
           scale={scale}
           copy={copy}
@@ -872,9 +899,16 @@ function OfficeFloorView({ bridge, viewPhase }) {
             showSpokenText={showSpokenText}
           />
         </FloorStage>
+        {building.onOpenPlan ? null : (
+          <MachineRoom scale={scale} interactive={!physicalMeeting} onFloorCue={onFloorCue} />
+        )}
+        <FloorElevatorRide />
       </div>
 
       <FloorCardSlot
+        // The building's card outranks every open-plan card: the elevator, or
+        // the Machine Room, is where you are (`features/building/`).
+        elevator={building.showCard}
         copy={copy}
         meeting={meeting}
         meetingHandlers={meetingHandlers}

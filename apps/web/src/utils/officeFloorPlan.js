@@ -225,6 +225,22 @@ export const FLOOR_NIGHT_SHIFT_BOARD = Object.freeze({
 });
 
 /**
+ * The elevator (`features/building/`): a pair of doors in the north-west wall,
+ * in reception, which is where a building puts its lifts. `t0`…`t1` are tiles
+ * along the wall and `h` is the door height in stage pixels. It ends a tenth
+ * of a tile short of the wall clock's face (t 3.4, r 26 px ≈ 0.42 tile), so
+ * the two never touch. Wall art like the clock and the board — no obstacle,
+ * no mark, no sight-line blocker.
+ */
+export const FLOOR_ELEVATOR = Object.freeze({ axis: 'nw', t0: 1.65, t1: 2.85, h: 94 });
+
+/**
+ * Where you stand to wait for the elevator: the nearest standable tile in
+ * front of the doors. The basement's plan reuses it — it is the same shaft.
+ */
+export const ELEVATOR_TILE = Object.freeze({ x: 1, y: 2 });
+
+/**
  * Painter's-algorithm depth for a tile: things closer to the viewer (larger
  * x + y) paint on top. Scaled by 10 so a seat's own parts (chair / person /
  * desk) can interleave within one tile without colliding with the next.

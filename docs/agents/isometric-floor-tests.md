@@ -51,6 +51,7 @@ Do not copy `standUp(); render(<OfficeFloor />)` into new suites — extend the 
 | `officeFloor.test.jsx`               | Substrate, person cards, walk-bys, mode toggle                                           |
 | `officeFloorArrival.test.jsx`        | First-run ceremony on the floor                                                          |
 | `officeFloorBoard.test.js`           | `boardFrom` diagram sampling for monitor, whiteboard, and meeting-table surfaces         |
+| `officeFloorBuilding.test.jsx`       | The elevator and floor B1 (Machine Room): call, ride, racks, readout, summon, reset      |
 | `officeFloorCamera.test.jsx`         | Follow-cam scroll: rAF-driven centre-on, reduced-motion snap, meeting/scene framing      |
 | `officeFloorCoffeeWalk.test.js`      | Coffee-break accept walks you to the machine; blocked during a physical meeting          |
 | `officeFloorAccess.test.jsx`         | Live region, `floorAnnouncement`, reduced motion                                         |

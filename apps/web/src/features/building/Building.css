@@ -1,0 +1,328 @@
+/* The building around the office floor (`features/building/`): the elevator in
+   reception, its ride, and floor B1, the Machine Room. */
+
+/* ── the elevator ─────────────────────────────────────────────────────────── */
+
+.office-floor-elevator-art {
+  position: absolute;
+  left: 0;
+  top: 0;
+  pointer-events: none;
+}
+
+.office-floor-elevator-leaf {
+  transition: transform 480ms cubic-bezier(0.45, 0, 0.25, 1);
+}
+
+.office-floor-elevator-car {
+  transition: fill 300ms ease;
+}
+
+.office-floor-elevator-hit {
+  position: absolute;
+  /* Same layer as the Night Shift board: above the roam surface (1), below
+     every prop and person (depth ≥ 20), because it is in the wall. */
+  z-index: 2;
+  padding: 0;
+  border: 0;
+  border-radius: 3px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.office-floor-elevator-hit:disabled {
+  cursor: default;
+}
+
+.office-floor-elevator-hit:focus-visible {
+  /* The clip-path would cut an outline off; the doors draw their own ring. */
+  outline: none;
+}
+
+.office-floor-elevator-panel {
+  list-style: none;
+  margin: 0.6rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.office-floor-elevator-button {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  width: 100%;
+  padding: 0.35rem 0.5rem;
+  border: 1px solid var(--control-border);
+  border-radius: 12px;
+  background: var(--control-bg);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.office-floor-elevator-button:hover:not(:disabled),
+.office-floor-elevator-button:focus-visible {
+  border-color: var(--accent);
+}
+
+.office-floor-elevator-button:disabled {
+  cursor: default;
+}
+
+.office-floor-elevator-button-key {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  border: 2px solid #9aa4b2;
+  background: #1f2937;
+  color: #fbbf24;
+  font-weight: 800;
+  font-size: 0.8rem;
+}
+
+.office-floor-elevator-button.is-go .office-floor-elevator-button-key {
+  border-color: #fbbf24;
+  box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.18);
+}
+
+.office-floor-elevator-button.is-current .office-floor-elevator-button-key {
+  background: #fbbf24;
+  color: #1f2937;
+}
+
+.office-floor-elevator-button.is-locked .office-floor-elevator-button-key,
+.office-floor-elevator-button.is-fitOut .office-floor-elevator-button-key {
+  color: #6b7280;
+  border-style: dashed;
+}
+
+.office-floor-elevator-button-name {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  font-size: 0.82rem;
+}
+
+.office-floor-elevator-button-name span {
+  font-size: 0.7rem;
+  color: var(--muted);
+}
+
+.office-floor-elevator-button.is-locked .office-floor-elevator-button-name strong::after {
+  content: ' 🔒';
+}
+
+/* The ride: dim as the doors close, hold on the indicator, lift on arrival.
+   Positioned against `.office-floor` (the viewport is static), and before the
+   card in DOM order so the card saying where you are going stays readable. */
+.office-floor-elevator-ride {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: #0b0f17;
+  pointer-events: none;
+  opacity: 0;
+  animation: office-elevator-dim 520ms ease-in forwards;
+}
+
+.office-floor-elevator-ride.is-moving {
+  opacity: 1;
+  animation: none;
+}
+
+.office-floor-elevator-ride.is-opening {
+  animation: office-elevator-lift 520ms ease-out forwards;
+}
+
+@keyframes office-elevator-dim {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes office-elevator-lift {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+.office-floor-elevator-ride-panel {
+  display: grid;
+  justify-items: center;
+  gap: 0.2rem;
+  padding: 1rem 1.6rem;
+  border-radius: 14px;
+  border: 2px solid #4b5563;
+  background: #111827;
+  color: #fbbf24;
+  font-variant-numeric: tabular-nums;
+}
+
+.office-floor-elevator-ride-arrow {
+  font-size: 1.1rem;
+  animation: office-elevator-arrow 700ms ease-in-out infinite alternate;
+}
+
+.office-floor-elevator-ride-floor {
+  font-size: 2.4rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.office-floor-elevator-ride-name {
+  font-size: 0.78rem;
+  color: #e5e7eb;
+  letter-spacing: 0.04em;
+}
+
+@keyframes office-elevator-arrow {
+  from {
+    opacity: 0.35;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* ── floor B1: the Machine Room ───────────────────────────────────────────── */
+
+/* The open plan's stage stays mounted while you are downstairs — upstairs
+   carries on without you — but only one floor is ever on screen. */
+.office-floor-viewport[data-building-floor='basement']
+  > .office-floor-stage:not(.machine-room-stage) {
+  display: none;
+}
+
+/* No windows down here: the room is lit by the racks, whatever the hour is
+   upstairs. */
+.machine-room-stage {
+  background: radial-gradient(ellipse at 50% 45%, #1b2230 0%, #0e131c 70%);
+  border-radius: 18px;
+}
+
+.machine-room-led {
+  animation: machine-room-blink 1.3s steps(2, jump-none) infinite;
+}
+
+.machine-room-rack-art.is-checked .machine-room-led {
+  animation-duration: 2.6s;
+}
+
+.machine-room-rack-art.is-noShow .machine-room-led,
+.machine-room-rack-art.is-onLeave .machine-room-led {
+  animation: none;
+}
+
+.machine-room-rack-art.is-onLeave {
+  opacity: 0.8;
+}
+
+.machine-room-beacon {
+  filter: drop-shadow(0 0 4px #4ade80);
+  animation: machine-room-blink 0.9s ease-in-out infinite alternate;
+}
+
+@keyframes machine-room-blink {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0.35;
+  }
+}
+
+.machine-room-readout {
+  text-align: left;
+  font-size: 0.78rem;
+}
+
+.machine-room-readout-head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1.3rem;
+}
+
+.machine-room-readout-head div {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  font-size: 0.86rem;
+}
+
+.machine-room-readout-head span + div span,
+.machine-room-readout-head div span {
+  font-size: 0.7rem;
+  color: var(--muted);
+}
+
+.machine-room-readout-status {
+  margin: 0.45rem 0 0.25rem;
+  font-weight: 700;
+  font-size: 0.74rem;
+}
+
+.machine-room-readout-status.is-shipped {
+  color: #15803d;
+}
+
+.machine-room-readout-status.is-checked {
+  color: #a16207;
+}
+
+.machine-room-readout-status.is-noShow {
+  color: #b91c1c;
+}
+
+.machine-room-readout-status.is-onLeave {
+  color: #6d28d9;
+}
+
+.machine-room-readout-lines {
+  margin: 0 0 0.45rem;
+  padding-left: 1rem;
+  line-height: 1.35;
+}
+
+p.machine-room-readout-lines {
+  padding-left: 0;
+}
+
+.machine-room-readout-prs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0 0 0.45rem;
+}
+
+.machine-room-readout-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .office-floor-elevator-leaf,
+  .office-floor-elevator-car {
+    transition: none;
+  }
+
+  .office-floor-elevator-ride,
+  .office-floor-elevator-ride.is-opening,
+  .office-floor-elevator-ride-arrow,
+  .machine-room-led,
+  .machine-room-beacon {
+    animation: none;
+  }
+}
