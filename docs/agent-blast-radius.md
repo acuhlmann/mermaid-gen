@@ -177,6 +177,8 @@ Run: `npm run verify:mermaid-pins`, then `npm run test -w packages/shared && npm
 
 `test:affected` pulls `castTiers.test.js` and `officeComponents.test.jsx` when `officeCast.js` or office locale bundles change — basename mirror alone misses roster helpers. Changing `officeScript.ts` venue/attendee constants → shared tests + `officeWireContract.test.js` + `officePersonas.test.js` + `officeRoute.test.js`. Adding a value to `OFFICE_MOMENT_SITUATIONS` is a four-place contract (enum, `isSpokenMomentSituation`, rule block, reminder) — see [`docs/office-continuity.md`](office-continuity.md) for `runWalk`.
 
+**Provoked canned banks.** The dwell / talk / walk-by / email reply banks live in [`apps/web/src/utils/office*Fallbacks.js`](../apps/web/src/utils/) siblings, not in `officeCast.js`. [`apps/web/test/officeCannedBanks.test.js`](../apps/web/test/officeCannedBanks.test.js) is their register/casting sensor; `test:affected` now pulls it when any fallbacks module changes (see `BLAST_RADIUS_RULES` in `scripts/test-affected-lib.mjs`). Until 2026-11-26 there was no rule and no basename mirror — `check:affected` could go green on a bank edit without running the only suite that asserts every `colleagueId` resolves and every slot token is known.
+
 ## Desk work order (SlopNextPrompt)
 
 | Layer       | Location                                                                                                          |
