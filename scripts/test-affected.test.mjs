@@ -311,6 +311,26 @@ test('the negative case: an unrelated file does not pull the eslint-guidance sen
   assert.ok(!plan.tests.includes('scripts/verify-eslint-guidance-sync.test.mjs'));
 });
 
+test('the office canned-bank sensor is selected by every provoked fallbacks module', () => {
+  for (const file of [
+    'apps/web/src/utils/officeWalkbyFallbacks.js',
+    'apps/web/src/utils/officeDwellFallbacks.js',
+    'apps/web/src/utils/officeImReplyFallbacks.js',
+    'apps/web/src/utils/officeEmailReplyFallbacks.js'
+  ]) {
+    const plan = resolveAffectedTests([file], { root: ROOT });
+    assert.ok(
+      plan.tests.includes('apps/web/test/officeCannedBanks.test.js'),
+      `${file} must select the register/casting sensor for provoked canned banks`
+    );
+  }
+});
+
+test('the negative case: an unrelated file does not pull the office canned-bank sensor', () => {
+  const plan = resolveAffectedTests(['apps/web/src/utils/officeMomentDelivery.js'], { root: ROOT });
+  assert.ok(!plan.tests.includes('apps/web/test/officeCannedBanks.test.js'));
+});
+
 test('the strict-tsconfig-paths sensor is selected by both strict island tsconfigs', () => {
   for (const file of ['apps/web/tsconfig.strict.json', 'apps/server/tsconfig.strict.json']) {
     const plan = resolveAffectedTests([file], { root: ROOT });

@@ -288,6 +288,13 @@ export const BLAST_RADIUS_RULES = [
     ]
   },
   {
+    // Provoked canned banks live in sibling `office*Fallbacks.js` modules (not `officeCast.js`), and
+    // `officeCannedBanks.test.js` is the register/casting sensor for all of them — no basename mirror
+    // exists because there is no `officeCannedBanks.js` production module.
+    match: /apps\/web\/src\/utils\/office\w+Fallbacks\.js/,
+    tests: ['apps/web/test/officeCannedBanks.test.js']
+  },
+  {
     match:
       /apps\/web\/src\/components\/(SlopNextPrompt|MeetingOverlay|CallMeetingPicker|StakeholdersMascot|OfficeMessenger|VoiceMicButton)|apps\/web\/src\/hooks\/useFieldVoiceInput/,
     tests: [
