@@ -14,6 +14,9 @@ import { createMcpRateLimiter } from '../src/mcp/mcpRateLimit.js';
 import { createMcpHandler } from '../src/mcp/mcpServer.js';
 import { registerMcpCollaborationInsightTools } from '../src/mcp/tools/registerMcpCollaborationInsightTools.js';
 import { registerMcpSessionNavigationTools } from '../src/mcp/tools/registerMcpSessionNavigationTools.js';
+import { registerMcpSessionResources } from '../src/mcp/tools/registerMcpSessionResources.js';
+import { registerJoinSession } from '../src/mcp/tools/registerJoinSession.js';
+import { registerMcpCollaborationGuidePrompt } from '../src/mcp/tools/registerMcpCollaborationGuidePrompt.js';
 import { createCopilotRouter } from '../src/routes/copilot.js';
 import { MCP_APP_URIS } from '../src/mcp/mcpAppUris.js';
 
@@ -23,6 +26,18 @@ test('registerMcpCollaborationInsightTools exports a registrar', () => {
 
 test('registerMcpSessionNavigationTools exports a registrar', () => {
   assert.equal(typeof registerMcpSessionNavigationTools, 'function');
+});
+
+test('registerMcpSessionResources exports a registrar', () => {
+  assert.equal(typeof registerMcpSessionResources, 'function');
+});
+
+test('registerJoinSession exports a registrar', () => {
+  assert.equal(typeof registerJoinSession, 'function');
+});
+
+test('registerMcpCollaborationGuidePrompt exports a registrar', () => {
+  assert.equal(typeof registerMcpCollaborationGuidePrompt, 'function');
 });
 
 function setupServer() {
@@ -114,6 +129,7 @@ test('MCP: end-to-end handshake → presence → propose → accept → state ad
   for (const required of [
     'get_mcp_binding',
     'get_session_bootstrap',
+    'join_session',
     'open_session_pairing',
     'register_agent',
     'get_handshake_status',
@@ -170,6 +186,25 @@ test('MCP: end-to-end handshake → presence → propose → accept → state ad
   for (const uri of MCP_APP_URIS) {
     assert.ok(resourceUris.has(uri), `expected MCP App resource ${uri}`);
   }
+  const templates = await client.listResourceTemplates();
+  const templateUris = templates.resourceTemplates.map((r) => r.uriTemplate).join('\n');
+  for (const fragment of [
+    'archislop://session/{sessionId}',
+    'archislop://session/{sessionId}/presence',
+    'archislop://session/{sessionId}/bootstrap'
+  ]) {
+    assert.ok(
+      templateUris.includes(fragment),
+      `expected MCP resource template ${fragment} to be registered`
+    );
+  }
+
+  const prompts = await client.listPrompts();
+  const promptNames = new Set(prompts.prompts.map((p) => p.name));
+  assert.ok(
+    promptNames.has('archislop_collaboration_guide'),
+    'collaboration guide prompt should be registered'
+  );
 
   const handshakeRead = await client.readResource({ uri: 'ui://archislop/handshake.html' });
   const html = handshakeRead.contents?.[0]?.text ?? '';

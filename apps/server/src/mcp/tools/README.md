@@ -5,14 +5,17 @@ new tools here instead of growing the hub file.
 
 ## Extracted so far
 
-| Module                           | Tools                                                                                          |
-| -------------------------------- | ---------------------------------------------------------------------------------------------- |
-| `registerGetMcpBinding.js`       | `get_mcp_binding`                                                                              |
-| `registerGetSessionBootstrap.js` | `get_session_bootstrap`                                                                        |
-| `registerOpenSessionPairing.js`  | `open_session_pairing`                                                                         |
-| `registerAgentHandshakeTools.js` | `register_agent`, `get_handshake_status`, `subscribe_session_events`, `wait_for_session_event` |
-| `registerDiagramSessionTools.js` | `get_session_state`, `open_diagram_canvas`, `propose_diagram_edit`                             |
-| `registerHumanOnlyAppTools.js`   | `resolve_handshake`, `resolve_proposal`, `request_proposal_changes`, `request_critique_fix`    |
+| Module                                   | Tools                                                                                          |
+| ---------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `registerGetMcpBinding.js`               | `get_mcp_binding`                                                                              |
+| `registerGetSessionBootstrap.js`         | `get_session_bootstrap`                                                                        |
+| `registerOpenSessionPairing.js`          | `open_session_pairing`                                                                         |
+| `registerAgentHandshakeTools.js`         | `register_agent`, `get_handshake_status`, `subscribe_session_events`, `wait_for_session_event` |
+| `registerDiagramSessionTools.js`         | `get_session_state`, `open_diagram_canvas`, `propose_diagram_edit`                             |
+| `registerHumanOnlyAppTools.js`           | `resolve_handshake`, `resolve_proposal`, `request_proposal_changes`, `request_critique_fix`    |
+| `registerMcpSessionResources.js`         | MCP resources: `session`, `slot`, `presence`, `bootstrap`                                      |
+| `registerJoinSession.js`                 | `join_session`                                                                                 |
+| `registerMcpCollaborationGuidePrompt.js` | MCP prompt `archislop_collaboration_guide`                                                     |
 
 Shared binding JSON lives in `apps/server/src/mcp/mcpBindingSnapshot.js`.
 
@@ -74,11 +77,12 @@ const toolCtx = {
   recordPairingFailure,
   finalizeApprovedAgent,
   requireBoundSession,
-  requireSessionEntry,
-  executeJoinSession
+  requireSessionEntry
 };
+registerMcpSessionResources(server, resourceCtx);
 registerGetMcpBinding(server, toolCtx);
 registerGetSessionBootstrap(server, toolCtx);
+registerJoinSession(server, toolCtx);
 // …other registers in deterministic order
 ```
 

@@ -1,17 +1,11 @@
 import { randomUUID } from 'node:crypto';
-import { z } from 'zod';
-import { McpServer, ResourceTemplate } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
-import { registerAppTool } from '@modelcontextprotocol/ext-apps/server';
 
-import { isConcreteContentType } from '@archislop/shared';
 import { sanitizeSessionId } from '../state/sessionServices.js';
 import { resolvePublicBaseUrl } from '../utils/publicBaseUrl.js';
 import { verifyInviteToken } from '../utils/inviteToken.js';
-import { buildWebCanvasUrl } from './diagramDiffSummary.js';
-import { buildSessionBootstrap } from './mcpSessionBootstrap.js';
-import { jsonResult, pairingFailureMessage, safeError } from './mcpHelpers.js';
-import { buildMcpBindingSnapshot } from './mcpBindingSnapshot.js';
+import { safeError } from './mcpHelpers.js';
 import { registerGetMcpBinding } from './tools/registerGetMcpBinding.js';
 import { registerGetSessionBootstrap } from './tools/registerGetSessionBootstrap.js';
 import { registerOpenSessionPairing } from './tools/registerOpenSessionPairing.js';
@@ -20,7 +14,10 @@ import { registerAgentHandshakeTools } from './tools/registerAgentHandshakeTools
 import { registerDiagramSessionTools } from './tools/registerDiagramSessionTools.js';
 import { registerMcpCollaborationInsightTools } from './tools/registerMcpCollaborationInsightTools.js';
 import { registerMcpSessionNavigationTools } from './tools/registerMcpSessionNavigationTools.js';
-import { MCP_APP_URI_SESSION_PAIRING, registerMcpApps, UI_META } from './registerMcpApps.js';
+import { registerMcpSessionResources } from './tools/registerMcpSessionResources.js';
+import { registerJoinSession } from './tools/registerJoinSession.js';
+import { registerMcpCollaborationGuidePrompt } from './tools/registerMcpCollaborationGuidePrompt.js';
+import { registerMcpApps } from './registerMcpApps.js';
 
 import { createMcpSessionRegistry } from './mcpSessionRegistry.js';
 
@@ -70,100 +67,6 @@ function buildMcpServer({
   );
 
   registerMcpApps(server, { getPublicBaseUrl: publicBaseUrl });
-
-  // -------------------- Resources --------------------
-
-  server.registerResource(
-    'session',
-    new ResourceTemplate('archislop://session/{sessionId}', { list: undefined }),
-    { description: 'Full ArchiSlop session state (both mermaid and infographic slots).' },
-    async (uri, { sessionId }) => {
-      assertResourceSessionAccess(sessionId);
-      const services = sessionRegistry.getSessionServices(sessionId);
-      return {
-        contents: [
-          {
-            uri: uri.href,
-            mimeType: 'application/json',
-            text: JSON.stringify(services.stateStore.getSessionState(), null, 2)
-          }
-        ]
-      };
-    }
-  );
-
-  server.registerResource(
-    'slot',
-    new ResourceTemplate('archislop://session/{sessionId}/{contentType}', { list: undefined }),
-    {
-      description:
-        'Diagram state for a specific slot (mermaid, infographic, metaphor3d, chart, anything, or forms).'
-    },
-    async (uri, { sessionId, contentType }) => {
-      assertResourceSessionAccess(sessionId);
-      if (!isConcreteContentType(contentType)) {
-        throw new Error(`Unknown contentType: ${contentType}`);
-      }
-      const services = sessionRegistry.getSessionServices(sessionId);
-      return {
-        contents: [
-          {
-            uri: uri.href,
-            mimeType: 'application/json',
-            text: JSON.stringify(services.stateStore.getSlot(contentType), null, 2)
-          }
-        ]
-      };
-    }
-  );
-
-  server.registerResource(
-    'presence',
-    new ResourceTemplate('archislop://session/{sessionId}/presence', { list: undefined }),
-    { description: 'External agents currently connected to the session.' },
-    async (uri, { sessionId }) => {
-      assertResourceSessionAccess(sessionId);
-      const services = sessionRegistry.getSessionServices(sessionId);
-      return {
-        contents: [
-          {
-            uri: uri.href,
-            mimeType: 'application/json',
-            text: JSON.stringify(services.presenceStore.list(), null, 2)
-          }
-        ]
-      };
-    }
-  );
-
-  server.registerResource(
-    'bootstrap',
-    new ResourceTemplate('archislop://session/{sessionId}/bootstrap', { list: undefined }),
-    {
-      description:
-        'One-shot session bootstrap for external agents: binding, revisions, handshake status, checklist.'
-    },
-    async (uri, { sessionId }) => {
-      assertResourceSessionAccess(sessionId);
-      const services = sessionRegistry.getSessionServices(sessionId);
-      const entry = currentEntry();
-      const payload = buildSessionBootstrap({
-        entry,
-        services,
-        pairingCodeStore,
-        publicBaseUrl: publicBaseUrl()
-      });
-      return {
-        contents: [
-          {
-            uri: uri.href,
-            mimeType: 'application/json',
-            text: JSON.stringify(payload, null, 2)
-          }
-        ]
-      };
-    }
-  );
 
   // -------------------- Tools --------------------
 
@@ -215,42 +118,14 @@ function buildMcpServer({
     return { entry, services: sessionRegistry.getSessionServices(entry.appSessionId) };
   }
 
-  async function executeJoinSession({ pairingCode }) {
-    const entry = currentEntry();
-    if (!entry) {
-      return safeError('No MCP transport session. Connect to /mcp first, then call join_session.');
-    }
-    if (!pairingCode) {
-      return jsonResult({
-        status: 'needs_pairing_code',
-        ...buildMcpBindingSnapshot(entry, pairingCodeStore),
-        message:
-          'Enter the pairing code in the session pairing MCP App, or pass pairingCode in tool arguments.'
-      });
-    }
-
-    let appSessionId = null;
-    const resolved = await Promise.resolve(
-      pairingCodeStore.resolveDetailed(pairingCode, { consumeUse: false })
-    );
-    if (!resolved.ok) {
-      recordPairingFailure(entry);
-      return safeError(pairingFailureMessage(resolved, pairingCode));
-    }
-    appSessionId = resolved.sessionId;
-
-    mcpRegistry.setAppSession(entry.mcpSessionId, appSessionId);
-    const code = pairingCodeStore.getOrCreateCode(appSessionId);
-    return jsonResult({
-      status: 'joined',
-      bound: true,
-      sessionId: appSessionId,
-      pairingCode: code,
-      webCanvasUrl: buildWebCanvasUrl(appSessionId),
-      agentRegistered: false,
-      message: 'Room bound. Call register_agent next to request access.'
-    });
-  }
+  const resourceCtx = {
+    sessionRegistry,
+    pairingCodeStore,
+    publicBaseUrl,
+    currentEntry,
+    assertResourceSessionAccess
+  };
+  registerMcpSessionResources(server, resourceCtx);
 
   const toolCtx = {
     mcpRegistry,
@@ -266,27 +141,12 @@ function buildMcpServer({
     recordPairingFailure,
     finalizeApprovedAgent,
     requireBoundSession,
-    requireSessionEntry,
-    executeJoinSession
+    requireSessionEntry
   };
   registerGetMcpBinding(server, toolCtx);
   registerGetSessionBootstrap(server, toolCtx);
 
-  registerAppTool(
-    server,
-    'join_session',
-    {
-      title: 'Join ArchiSlop room',
-      description:
-        'Bind this MCP connection to an ArchiSlop session using the pairing code from Invite agent (stable /mcp URL). Opens the pairing MCP App when pairingCode is omitted. Pass pairingCode to join headlessly.',
-      inputSchema: {
-        pairingCode: z.string().min(4).max(16).optional()
-      },
-      ...UI_META(MCP_APP_URI_SESSION_PAIRING)
-    },
-    executeJoinSession
-  );
-
+  registerJoinSession(server, toolCtx);
   registerOpenSessionPairing(server, toolCtx);
   registerAgentHandshakeTools(server, toolCtx);
   registerDiagramSessionTools(server, toolCtx);
@@ -296,54 +156,7 @@ function buildMcpServer({
 
   registerMcpCollaborationInsightTools(server, toolCtx);
 
-  // -------------------- Prompts --------------------
-
-  server.registerPrompt(
-    'archislop_collaboration_guide',
-    {
-      title: 'How to collaborate in an ArchiSlop session',
-      description:
-        'A short system-prompt-style brief teaching the model how to be a useful guest in a live ArchiSlop diagram session.'
-    },
-    () => ({
-      messages: [
-        {
-          role: 'user',
-          content: {
-            type: 'text',
-            text: [
-              'You are connected to a live ArchiSlop diagram session as an external agent.',
-              '',
-              'MCP Apps (SEP-1865): several tools render interactive UIs in MCP hosts (Cursor, Claude Desktop, VS Code):',
-              '- `open_welcome` / `get_session_bootstrap` → onboarding checklist and revision ids',
-              '- `open_session_pairing` / `join_session` → paste pairing code from Invite agent (stable /mcp URL)',
-              '- `register_agent` → handshake approval card',
-              '- `open_session_events` → live collaboration feed (SSE + long-poll fallback)',
-              '- `open_diagram_canvas` / `open_focus_picker` → canvas preview + node focus',
-              '- `propose_diagram_edit` / `open_proposal_review` → side-by-side proposal review (accept/reject in the host)',
-              '- `open_session_dashboard` → war room (presence + handshakes + pending proposals)',
-              '- `open_my_proposals` → your proposal inbox (wait for resolution)',
-              '- `open_insights_feed` / `open_compose_insight` / `get_insights` → Thinking-pane comments',
-              '- `open_critique_review` / `drop_insight` (critique) → actionable checklist with fix request',
-              '',
-              'Conventions:',
-              '- On a stable /mcp URL, call `open_session_pairing` or `join_session({ pairingCode })` before anything else.',
-              '- Call `get_session_bootstrap` after binding for a one-shot checklist and revision ids.',
-              '- Call `register_agent` once the room is bound (default: non-blocking). Poll `get_handshake_status` or use `subscribe_session_events`.',
-              '- After approval, call `open_diagram_canvas` once to align visually, then `get_session_state` before proposing.',
-              '- Use `open_session_events` or `subscribe_session_events` instead of polling proposals when possible.',
-              '- Edits go through `propose_diagram_edit` — NEVER auto-applied.',
-              '- Always include a one-sentence `reason` so the human understands WHY.',
-              '- Use `set_focus` before proposing changes to a specific node.',
-              '- Use `drop_insight` (variant critique) then `open_critique_review` for structured review.',
-              '- Use `react` sparingly.',
-              '- Be a good guest: small, well-motivated, frequent contributions beat one giant rewrite.'
-            ].join('\n')
-          }
-        }
-      ]
-    })
-  );
+  registerMcpCollaborationGuidePrompt(server);
 
   return server;
 }
