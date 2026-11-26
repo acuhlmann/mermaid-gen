@@ -196,10 +196,15 @@ export function nightShiftStandupBeats(manifest, { now = Date.now() } = {}) {
       .filter(Boolean)
       .map(asSentence)
       .join(' ');
+    // Only PRs from runs that shipped are spoken as "merged": a quiet run's
+    // ledger-only PR still links from the board card, but it is not work.
+    const shippedPrs = [
+      ...new Set(card.tonight.filter((entry) => entry.shipped).flatMap((entry) => entry.prs))
+    ];
     const text =
       card.column === 'shipped'
-        ? NIGHT_SHIFT_COPY.crewShipped({ summary, prs: listPrs(card.prs) })
-        : NIGHT_SHIFT_COPY.crewChecked({ summary });
+        ? NIGHT_SHIFT_COPY.crewShipped({ when, summary, prs: listPrs(shippedPrs) })
+        : NIGHT_SHIFT_COPY.crewChecked({ when, summary });
     beats.push({
       key: `crew-${card.id}`,
       speaker: card.id,
@@ -207,7 +212,7 @@ export function nightShiftStandupBeats(manifest, { now = Date.now() } = {}) {
       name: card.name,
       dept: card.dept,
       text,
-      prs: card.column === 'shipped' ? card.prs : []
+      prs: card.column === 'shipped' ? shippedPrs : []
     });
   }
 

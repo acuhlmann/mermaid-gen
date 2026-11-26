@@ -19,7 +19,14 @@ const SEEN_KEY = 'archislop:night-shift-seen';
 let view = null;
 /** @type {string | null} */
 let seenShiftDate = readSeen();
-let snapshot = { view, seenShiftDate };
+/**
+ * When the window last went from closed to open. The window reads its "last
+ * night" against this, so one open session keeps one clock and the next
+ * opening — tomorrow, say — reads a fresh one.
+ * @type {number | null}
+ */
+let openedAt = null;
+let snapshot = { view, seenShiftDate, openedAt };
 const listeners = new Set();
 
 function readSeen() {
@@ -40,11 +47,11 @@ function writeSeen(value) {
 }
 
 function notify() {
-  snapshot = { view, seenShiftDate };
+  snapshot = { view, seenShiftDate, openedAt };
   for (const fn of listeners) fn();
 }
 
-/** @returns {{ view: null | 'standup' | 'board', seenShiftDate: string | null }} */
+/** @returns {{ view: null | 'standup' | 'board', seenShiftDate: string | null, openedAt: number | null }} */
 export function getNightShiftSnapshot() {
   return snapshot;
 }
@@ -70,6 +77,7 @@ export function markNightShiftSeen(shiftDate) {
 
 /** @param {string | null | undefined} shiftDate */
 export function openNightShiftStandup(shiftDate) {
+  if (view === null) openedAt = Date.now();
   view = 'standup';
   markNightShiftSeen(shiftDate);
   notify();
@@ -77,6 +85,7 @@ export function openNightShiftStandup(shiftDate) {
 
 /** @param {string | null | undefined} shiftDate */
 export function openNightShiftBoard(shiftDate) {
+  if (view === null) openedAt = Date.now();
   view = 'board';
   markNightShiftSeen(shiftDate);
   notify();
@@ -90,6 +99,7 @@ export function closeNightShift() {
 
 export function resetNightShiftForTests() {
   view = null;
+  openedAt = null;
   seenShiftDate = readSeen();
   notify();
 }

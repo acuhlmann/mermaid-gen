@@ -70,6 +70,31 @@ describe('the standup', () => {
     expect(beats.find((beat) => beat.key === 'on-leave')?.text).toContain('Canvas Graph Edit is');
   });
 
+  it('speaks only shipped runs as merged, and names the shift the way the host does', () => {
+    const mixed = {
+      shiftDate: '2026-11-20',
+      crew: [
+        {
+          id: 'improve',
+          parked: false,
+          lastSeen: '2026-11-20',
+          tonight: [
+            { date: '2026-11-20', summary: 'Real work.', prs: [959], shipped: true },
+            { date: '2026-11-20', summary: 'None — ledger row.', prs: [960], shipped: false }
+          ],
+          earlier: []
+        }
+      ]
+    };
+    const beat = nightShiftStandupBeats(mixed, { now: NOW }).find((b) => b.key === 'crew-improve');
+    expect(beat?.prs).toEqual([959]);
+    expect(beat?.text).toContain('Merged #959.');
+    expect(beat?.text).not.toContain('#960');
+    expect(beat?.text.startsWith('On 20 Nov:')).toBe(true);
+    // The board card still links both.
+    expect(nightShiftCards(mixed)[0]?.prs).toEqual([959, 960]);
+  });
+
   it('is an empty room, not an error, when nobody clocked in', () => {
     const empty = {
       shiftDate: '2026-11-24',
