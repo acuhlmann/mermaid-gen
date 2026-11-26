@@ -1146,22 +1146,22 @@ and {who} talked something through at your desk" : "the team crowded around your
   **12.00** lines a speaker before and after while the desk conversation reaches **100%** of them
   (0% before); under the cap it is **7.32 → 8.32**, exactly additive. The line costs the budget
   nothing it was not already dropping from the front.
-- **A pair huddle is the one office verb with no canned bank, and a refused script takes its own
-  feedback back.** `POST /api/office/huddle` answers **503 with no backend and nothing deals from a
-  bank** — unlike every other provoked channel (dwell, talk reply, walk-by, IM reply, email reply),
-  which all have one. Worse than silence: `applyHuddleResponse` (`useHuddlePlayback.js`) calls
-  `endOfficeHuddle` on an empty script, and `handleStartHuddle` seats the ring **before** the call
-  precisely so the chair arriving is the feedback that the click landed — so a refusal clears the
-  chair inside **46 ms** and `[data-testid="office-huddle"]` never paints at all. Measured on the
-  visit's canned arm: `/api/office/huddle 502`, no overlay in 20 s, `rememberPairHuddle` unreachable,
-  neither mark written. So with no key the Pair chip reads as a **dead button** rather than
-  degrading in fiction, which is the one place this office breaks its own `degrade in-fiction` rule
-  — and it is invisible to any test, because the teardown is correct code doing exactly what it
-  says. Two consequences for anyone working here: never read "pressing Pair did nothing" as an
-  unwired control without checking the huddle call's status, and never add a bank to this surface
-  without deciding what a scripted opening line for _one named person_ is worth (an improvised
-  two-colleague scene is `FloorScene`'s job, and that argument does not transfer to a conversation
-  aimed at you).
+- **"Nobody had anything to say" and "nobody was ever asked" are two endings, and a huddle gives
+  them the same one.** `POST /api/office/huddle` answers 503 with no backend and **nothing deals
+  from a bank** — the only provoked channel without one (dwell, talk reply, walk-by, IM reply and
+  email reply all have a module). Worse than silence: `applyHuddleResponse`
+  (`hooks/useHuddlePlayback.js`) calls `endOfficeHuddle` on the empty script, while
+  `handleStartHuddle` seats the ring **before** the call so the chair arriving is the click's
+  feedback — so a refusal clears the chair inside **46 ms**, `[data-testid="office-huddle"]` never
+  paints, and with no key the Pair chip reads as a **dead button** rather than degrading in fiction.
+  **Diagnosed, implemented and measured on 2026-11-26 and not landed**: the fix is one
+  `payload == null` test plus a sixth provoked bank, and the two files it needs are outside the
+  `office-life` automation's `allowedPaths`, so it is filed for `resolve` instead (#966). The reasoning,
+  the before/after numbers and the four design facts are in **§ The sixth provoked bank** below —
+  read it before touching this path, because the distinction it turns on is easy to collapse again.
+  One consequence that outlives the fix: never read "pressing Pair did nothing" as an unwired
+  control without checking the huddle call's status.
+
 - **`pairReplyAbout`'s topic context is appended before the beat cap, so working memory can quote an
   unclosed parenthetical.** `officePairPointing.js` turns your reply into `${text} (about your point:
 "${point.slice(0, 160)}")` whenever the partner made two or more points, and
@@ -3480,3 +3480,73 @@ touches (steps 2, 3, 7, 8, 9 and 10 leave rows on `dinesh`, `intern`, `gilfoyle`
 `facilities`), so a mark on the wrong person cannot hide inside a row that was already there — and he
 is on the desk's own Pair roster, so the state the step drives is one a user reaches by pressing what
 the product draws.
+
+### The sixth provoked bank: two endings a huddle shares, and why the fix is not in `main`
+
+The visit's eleventh step found it on its first night (2026-11-24) and could not fix it in the same
+run: a huddle is the **one office verb with no canned bank**, and on a backendless build pressing
+Pair looks like pressing a control nobody wired. On 2026-11-26 the fix was written, held to a
+three-direction red/green and driven through eight real browser runs — and then **withdrawn**,
+because `routine:guard --postflight` refused `hooks/useHuddlePlayback.js` and its suite: neither is
+in the `office-life` automation's `allowedPaths`, budgets belong to `improve`, and a run that edits
+its own front-matter has failed rather than succeeded. It is filed as a `ready-for-agent` defect for
+`resolve`, whose paths do reach the hook, with the implementation in the issue body — **#966**.
+
+So read everything below as a **specification with its numbers already taken**, not as a
+description of shipped code. The part worth keeping either way is the distinction, not the copy.
+
+**`fetchHuddleScript` has always returned `null` for two unlike things, and `applyHuddleResponse`
+gave them one ending.** A **landed** `{ script: { beats: [] } }` is the model having been asked and
+having written nothing — the ring dissolving is honest, "everyone wandered off", the same doctrine
+as a cancelled meeting. A **`null` payload** is the ask never landing at all: 503 with no backend,
+a 5xx, or the 20 s `HUDDLE_FETCH_TIMEOUT_MS` budget expiring. Nobody was asked, nobody declined, and
+the chair was already up — `handleStartHuddle` seats the ring _before_ the call precisely so the
+arrival is the feedback that the click registered. Taking it back inside **46 ms** is what made the
+chip read dead. So the fix is one `payload == null` test, and the pre-existing case that pins the
+other ending is kept **green and untouched** in `useHuddlePlayback.test.jsx`: if a later slice makes
+an empty landed script deal from the bank too, the office will be putting canned words in a mouth
+the model chose to keep shut.
+
+**Measured on the visit's canned arm, three runs on `main` and three with the fix in the tree, each
+arm internally identical.** `pair.beatWritten` and `pair.roomKnows` **false → true**; `turnsByRole` `{}` →
+`{partner: 1}`; `huddle.phase` absent → `listening`; `pair.logLinesAdded` 0 → **1**;
+`afterwards.workingMemory` **5 → 6** rows (`jared` first) and `afterwards.logDigest` **9 → 10**;
+`/api/office/huddle` **1 → 2** calls (the second is the reply turn, reachable only because the chair
+stayed) and `/api/office/speak` **9 → 10**. `speech` does **not** move — count 20, the same seven
+channels, `bySource` bank 20, `throughStep7` 12 — because a huddle line is drawn in
+`.office-huddle-line`, which the harness does not harvest. The generated arm is byte-identical to
+the merged baseline on every counted axis, which is the point: the live path is untouched and the
+bank is unreachable while a backend answers.
+
+**Four design facts that are load-bearing.**
+
+1. **The bank is reached only from the opening.** A mid-scene re-script passes `mergeFromIndex` and
+   no `canned`, and still leaves a live ring alone on failure. Overwriting a line the user is in the
+   middle of hearing with canned copy is the one way this bank could make the room worse than
+   silence, and `useHuddlePlayback.test.jsx` pins it.
+2. **The inputs are passed, not the lines** (`canned: { attendees, label }`), so the happy path
+   consults the bank for nothing. `label` is `ctx.visibleLabels[0]`, read where the canvas was read.
+3. **There is no draw.** One line per `colleagueId` means no RNG to pin and no seen-template store —
+   which the shop-talk slice declined as "the slice's first piece of state" for the same reason. The
+   uncast house line is spent **once per ring**: two strangers reciting it to each other is worse
+   than one of them staying quiet, and a ring with nothing left to say dissolves as it always did.
+4. **Its cast is the one the other five banks never reach** — `CAST_TIERS.team` plus `barker`, the
+   ids a Pair chip rides on (`DeskBottomActionsSlot.jsx`), and `CAST_TIERS.team` again for a mob,
+   whose script shape (one remark per teammate, no beat grammar, no follow-up) the bank matches
+   exactly. `officeCannedBanks.test.js` should carry it as its sixth bank, so a `colleagueId` typo
+   is caught as a line delivered by nobody — and note that **no diff currently selects that
+   sensor**: `scripts/test-affected-lib.mjs` has no map entry for `utils/office*Fallbacks.js` and
+   there is no `officeCannedBanks.js` for the basename mirror to match, so an edit to any of the
+   five existing banks runs `check:affected` green without it.
+
+**English-only, like the four provoked banks before it**, and for the recorded reason: only the
+walk-by and ambient banks are mirrored into `i18n/locales/office.*`, so a zh-CN user pressing Pair
+on a backendless build would get an English opening where they currently get a dead button. That is
+the known i18n gap moving one surface wider, not a new one — and it is why the readable words are in
+a bank rather than in `OFFICE_CHROME_COPY`, whose keys do not fall back.
+
+**The argument that does not transfer.** `officeFloorShopTalk.js`' closed case — a model asked to
+improvise two colleagues talking about nothing writes a _scene_, and scenes are `FloorScene`'s job —
+is about **overheard** chatter. A conversation aimed at you is the opposite case, and
+`docs/office-parody.md` § 11 is explicit that a provoked line should be generated; these lines are
+only ever dealt when nobody was asked, which is the same contract the other five banks have.
