@@ -145,6 +145,46 @@ describe('the window as a modal', () => {
     expect(screen.getByRole('dialog').contains(document.activeElement)).toBe(true);
   });
 
+  it('keeps Escape from the floor behind it', () => {
+    // The floor's own listener (`useFloorKeyboard`) is registered first and
+    // skips a prevented event; stand-in for it here.
+    const floorSawEscape = vi.fn();
+    const onFloorKey = (event) => {
+      if (event.key === 'Escape' && !event.defaultPrevented) floorSawEscape();
+    };
+    window.addEventListener('keydown', onFloorKey);
+    renderFloorBits();
+    fireEvent.click(screen.getByTestId('night-shift-invite-join'));
+    fireEvent.keyDown(screen.getByTestId('night-shift-next'), { key: 'Escape' });
+    window.removeEventListener('keydown', onFloorKey);
+    expect(screen.queryByTestId('night-shift-window')).toBeNull();
+    expect(floorSawEscape).not.toHaveBeenCalled();
+  });
+
+  it('hands focus to the wall board when the invite that opened it is gone', () => {
+    renderFloorBits();
+    const join = screen.getByTestId('night-shift-invite-join');
+    join.focus();
+    fireEvent.click(join);
+    fireEvent.keyDown(window, { key: 'Escape' });
+    expect(document.activeElement).toBe(screen.getByTestId('office-floor-night-shift-open'));
+  });
+
+  it('does not Tab into links a closed "Earlier" fold is hiding', () => {
+    const [officeLife, ...rest] = NIGHT_FIXTURE.crew;
+    const last = rest[rest.length - 1];
+    setNightShiftManifestForTests({
+      ...NIGHT_FIXTURE,
+      crew: [...rest.slice(0, -1), { ...last, earlier: officeLife.earlier }, officeLife]
+    });
+    renderFloorBits();
+    fireEvent.click(screen.getByTestId('office-floor-night-shift-open'));
+    const close = screen.getByTestId('night-shift-close');
+    close.focus();
+    fireEvent.keyDown(close, { key: 'Tab', shiftKey: true });
+    expect(document.activeElement?.tagName).toBe('SUMMARY');
+  });
+
   it('reads a fresh clock each time it opens, and holds it while open', () => {
     renderFloorBits();
     fireEvent.click(screen.getByTestId('night-shift-invite-join'));

@@ -31,7 +31,22 @@ import './NightShift.css';
 
 const ARROW_KEYS = new Set(['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight']);
 
+/** The wall board's button (`FloorNightShiftBoard`); absent when the floor is scenery. */
+const BOARD_OPENER = '[data-testid="office-floor-night-shift-open"]';
+
 const FOCUSABLE = 'a[href], button:not(:disabled), summary, [tabindex]:not([tabindex="-1"])';
+
+/**
+ * Tab skips what a closed `<details>` hides — a card's "Earlier" PR links — but
+ * still lands on its `<summary>`, which is how you open it.
+ *
+ * @param {Element} el
+ */
+function isTabbable(el) {
+  const details = el.parentElement?.closest('details');
+  if (!details || details.open) return true;
+  return el.tagName === 'SUMMARY' && el.parentElement === details;
+}
 
 /**
  * Cycle Tab / Shift+Tab within the dialog (the `GodAltarModal` pattern).
@@ -41,7 +56,7 @@ const FOCUSABLE = 'a[href], button:not(:disabled), summary, [tabindex]:not([tabi
  */
 function trapTab(event, dialog) {
   if (!dialog) return;
-  const items = [...dialog.querySelectorAll(FOCUSABLE)];
+  const items = [...dialog.querySelectorAll(FOCUSABLE)].filter(isTabbable);
   if (items.length === 0) {
     event.preventDefault();
     dialog.focus({ preventScroll: true });
@@ -260,17 +275,26 @@ export function NightShiftWindow({ view, onClose, now: nowProp }) {
       document.activeElement instanceof HTMLElement ? document.activeElement : null;
     const onKeyDown = (event) => {
       if (event.key === 'Escape') {
+        // Capture phase, so this runs before the floor's own window listener
+        // (`useFloorKeyboard`, registered earlier), which skips a prevented
+        // event — otherwise Escape would close the window *and* stand you up.
         event.preventDefault();
+        event.stopPropagation();
         onCloseRef.current?.();
         return;
       }
       // aria-modal promises the background is unreachable; keep Tab inside.
       if (event.key === 'Tab') trapTab(event, dialogRef.current);
     };
-    window.addEventListener('keydown', onKeyDown);
+    window.addEventListener('keydown', onKeyDown, true);
     return () => {
-      window.removeEventListener('keydown', onKeyDown);
-      if (previousFocus?.isConnected) previousFocus.focus({ preventScroll: true });
+      window.removeEventListener('keydown', onKeyDown, true);
+      // Join unmounts the invite in the same commit that opens the window, so
+      // by the time this effect captured focus it had already fallen to
+      // <body>. Hand it to the wall board instead — the standup's record.
+      const opener = previousFocus === document.body ? null : previousFocus;
+      const returnTo = opener?.isConnected ? opener : document.querySelector(BOARD_OPENER);
+      if (returnTo instanceof HTMLElement) returnTo.focus({ preventScroll: true });
     };
   }, [open]);
 

@@ -206,7 +206,8 @@ export function parseLedgerRuns(markdown, crew) {
       1,
       header.findIndex((name) => plainText(name).toLowerCase() === crew.summaryColumn.toLowerCase())
     );
-    const prIndex = header.findIndex((name) => /^pr$/i.test(plainText(name)));
+    // Most run logs call it `PR`; deps calls it `Merged` (only merges land there).
+    const prIndex = header.findIndex((name) => /^(?:prs?|merged)$/i.test(plainText(name)));
     const summary = summarize(cells[summaryIndex] ?? '');
     const prs = prNumbersIn(prIndex >= 0 ? (cells[prIndex] ?? '') : '');
     entries.push({
