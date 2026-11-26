@@ -1,8 +1,10 @@
 import path from 'node:path';
+import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+import { NIGHT_SHIFT_CREW, buildNightShiftManifest } from './src/utils/nightShiftLedger.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const require = createRequire(import.meta.url);
@@ -13,6 +15,25 @@ function normalizeBase(value) {
   return s.endsWith('/') ? s : `${s}/`;
 }
 
+/**
+ * The Night Shift board's data (`src/features/nightShift/`): what the scheduled
+ * fleet did, parsed from its ledgers once, at build time, and baked into the
+ * bundle as `__ARCHISLOP_NIGHT_SHIFT__`. A missing ledger is an empty record —
+ * a checkout without `docs/` still builds, and the board says so in-fiction.
+ */
+function readNightShiftManifest() {
+  const repoRoot = path.resolve(__dirname, '../..');
+  const ledgers = {};
+  for (const crew of NIGHT_SHIFT_CREW) {
+    try {
+      ledgers[crew.id] = readFileSync(path.join(repoRoot, crew.ledger), 'utf8');
+    } catch {
+      ledgers[crew.id] = null;
+    }
+  }
+  return buildNightShiftManifest(ledgers);
+}
+
 // https://vite.dev/config/
 // Set VITE_BASE_PATH for subdirectory deploys (e.g. /hackathon/ behind a load balancer).
 const devApiPort = process.env.PORT?.trim() || '4000';
@@ -20,6 +41,9 @@ const devApiPort = process.env.PORT?.trim() || '4000';
 export default defineConfig({
   base: normalizeBase(process.env.VITE_BASE_PATH),
   plugins: [react()],
+  define: {
+    __ARCHISLOP_NIGHT_SHIFT__: JSON.stringify(readNightShiftManifest())
+  },
   server: {
     allowedHosts: ['.monkeycode-ai.live'],
     // Same-origin /api in dev so Visitor Badge cookies work when VISITOR_BADGE_SECRETS is set.

@@ -1430,6 +1430,15 @@ consumer). Reserved for later MCP-app parity: `office_moment` / `meeting_started
     (ADR-0010).
 11. **The Consultant's invoice** — while the Consultant is in any meeting, the Damage Report ticks
     visibly per minute.
+12. ~~**The Night Shift standup**~~ — ✅ **shipped**. The scheduled fleet (the NFR routines and
+    feature automations) is cast as the night crew. A kanban on the north-west wall shows, from
+    across the room, who shipped, who clocked in with nothing to merge, who did not clock in, and
+    who is on leave; pressing it opens the board card with each crew member's summary and PR
+    links. A one-time invite each morning offers the standup itself, hosted by Pam, where the crew
+    report in "yesterday, today, blockers" form. Everything is read from the fleet's own ledgers
+    at build time, so the office reports what the product did to itself overnight without asking
+    GitHub, a model or the server. Gotchas: `docs/agents/domains/office.md` ("The Night Shift
+    board reads the fleet's ledgers").
 
 ## 11. Agency & reactivity doctrine (adopted 2026-07-25)
 
