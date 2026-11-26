@@ -1704,9 +1704,9 @@ async function walkTheVisit(page) {
       );
       return (
         `${PAIR_FIXTURE.colleagueId}'s chair went up and was cleared before a frame: ` +
-        `/api/office/huddle ${statuses.join(', ')} and \`applyHuddleResponse\` ends a huddle ` +
-        'with no script — a huddle is the one office surface with no canned bank, so this is ' +
-        "the canned arm's only unreachable subject"
+        `/api/office/huddle ${statuses.join(', ')} — \`applyHuddleResponse\` should have dealt ` +
+        '`officeHuddleFallbacks.js` when the ask never landed; if the ring still cleared, ' +
+        'the canned bank path did not run'
       );
     }
     /*
@@ -2608,7 +2608,8 @@ function buildTrace({ args, startedAt, t0, steps, before, after, collected }) {
             'strip, the chair sent away through `office-huddle-end`; `beatWritten` is ' +
             "`officeHuddleMemory.js`'s mark on the partner and `roomKnows` is the office log's " +
             'own line. A huddle is never harvested into `speech` (`.office-huddle-line` is not a ' +
-            'harvest selector), and it has no canned bank: on the canned arm nobody speaks'
+            'harvest selector); on a refused opening it deals `officeHuddleFallbacks.js` like ' +
+            'the other provoked banks (speech still does not harvest `.office-huddle-line`)'
         },
     read: {
       cards: collected.read ?? [],

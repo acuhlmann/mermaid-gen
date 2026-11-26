@@ -100,6 +100,17 @@ describe('useHuddlePlayback', () => {
     expect(body.diagramSource).toContain('Auth');
   });
 
+  /*
+   * The two endings this hook has to keep apart. A *landed* empty script is the
+   * model declining to write anything, and the ring dissolving is the honest
+   * reading of it. A *refused* ask is nobody having been asked at all, and the
+   * chair is already up by then — so dealing the bank's opening is what stops
+   * the Pair chip reading as a dead button on a backendless build.
+   *
+   * The first case below is the control and is deliberately unchanged: if a
+   * future slice makes it deal from the bank too, the office will be putting
+   * canned words in a mouth the model chose to keep shut.
+   */
   it('dissolves the ring when nobody had anything to say', async () => {
     stubFetch({ script: { beats: [] } });
     const { result } = renderHook(() => useHuddlePlayback(params()));
@@ -111,13 +122,58 @@ describe('useHuddlePlayback', () => {
     expect(result.current.huddle).toBeNull();
   });
 
-  it('dissolves the ring when the request fails', async () => {
+  it('keeps the ring and deals the office its own opening when the ask never landed', async () => {
     stubFetch({}, { ok: false });
     const { result } = renderHook(() => useHuddlePlayback(params()));
     await act(async () => {
       await result.current.startHuddle(TEAM);
     });
-    expect(result.current.huddle).toBeNull();
+    // The chair stays, which is the whole point: `handleStartHuddle` seats the
+    // ring before the call so the arrival is the click's feedback, and taking
+    // it back inside 46 ms was the one surface here that did not degrade in
+    // fiction.
+    expect(result.current.huddle).not.toBeNull();
+    expect(result.current.huddle.phase).toBe('speaking');
+    // One line per seat, in seating order — the shape of the server's own mob
+    // script, so nothing downstream can tell this came from a bank.
+    expect(result.current.huddle.beats.map((beat) => beat.speakerId)).toEqual(TEAM);
+    for (const beat of result.current.huddle.beats) {
+      expect(beat.text.length).toBeGreaterThan(0);
+      // `{label}` resolved: a literal brace reaching the user is the failure
+      // `officeCannedBanks.test.js` pins across every bank.
+      expect(beat.text).not.toContain('{');
+      // A Do-it proposes a change to the user's diagram, and a canned line has
+      // no standing to propose one (ADR-0010).
+      expect(beat.actionPrompt).toBeUndefined();
+    }
+  });
+
+  it('writes a refused pair opening into the transcript, so the room remembers the chair', async () => {
+    stubFetch({}, { ok: false });
+    const { result } = renderHook(() => useHuddlePlayback(params()));
+    await act(async () => {
+      await result.current.startHuddle(['gilfoyle'], { mode: 'pair' });
+    });
+    expect(result.current.huddle.mode).toBe('pair');
+    expect(result.current.huddle.beats).toHaveLength(1);
+    // `recordPartnerTurns` folds it in like any landed line, which is what
+    // makes `rememberPairHuddle` reachable with no backend: a conversation the
+    // room had, rather than one it refused.
+    expect(result.current.huddle.turns).toEqual([
+      { role: 'partner', text: result.current.huddle.beats[0].text }
+    ]);
+  });
+
+  it('spends the uncast house line once, so a refused ring never says it twice', async () => {
+    stubFetch({}, { ok: false });
+    const { result } = renderHook(() => useHuddlePlayback(params()));
+    await act(async () => {
+      // Two strangers would both be dealt the one uncast house line, and the
+      // room saying the same sentence twice to itself is worse than silence —
+      // so the bank spends it once and this ring has nothing left to say.
+      await result.current.startHuddle(['nobody-1', 'nobody-2', 'nobody-3']);
+    });
+    expect(result.current.huddle.beats.map((beat) => beat.speakerId)).toEqual(['nobody-1']);
   });
 
   it('does not let a late response re-seat a huddle that was hard-stopped', async () => {
@@ -342,6 +398,50 @@ describe('useHuddlePlayback', () => {
 
     expect(result.current.huddle.beats[0].text).toBe(SCRIPT.beats[0].text);
     expect(result.current.huddle.beats[1].text).toBe('Auth finally showed up.');
+  });
+
+  it('never deals the bank over a live huddle when the re-script is refused', async () => {
+    // The refused-ask fallback belongs to the *opening* only. A mid-scene
+    // refresh already left a live ring alone on failure, and overwriting lines
+    // the user is in the middle of hearing with canned copy would be the one
+    // way this bank could make the room worse than silence.
+    const fetchMock = vi.fn(async (_url, init) => {
+      const body = JSON.parse(init.body);
+      if (body.priorBeats?.length) return { ok: false, json: async () => ({}) };
+      return { ok: true, json: async () => ({ script: SCRIPT }) };
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    let diagramSource = '';
+    const { result } = renderHook(() =>
+      useHuddlePlayback(
+        params({
+          getDiagramSource: () => diagramSource,
+          getDiagramWatchKey: () => huddleDiagramFingerprint('mermaid', diagramSource)
+        })
+      )
+    );
+    await act(async () => {
+      await result.current.startHuddle(TEAM);
+    });
+    const huddleId = result.current.huddle.id;
+    await act(async () => {
+      setOfficeHuddleActiveLineIndex(huddleId, 1);
+    });
+
+    diagramSource = 'flowchart TD\n  Auth[Auth]';
+    await waitFor(
+      () => {
+        expect(
+          fetchMock.mock.calls.some(([, init]) => JSON.parse(init.body).priorBeats?.length === 1)
+        ).toBe(true);
+      },
+      { timeout: 3000 }
+    );
+
+    expect(result.current.huddle.beats.map((beat) => beat.text)).toEqual(
+      SCRIPT.beats.map((beat) => beat.text)
+    );
   });
 
   describe('pairing as a conversation', () => {
