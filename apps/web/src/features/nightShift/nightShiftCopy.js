@@ -36,6 +36,11 @@ export function crewCopy(id) {
   return NIGHT_SHIFT_CREW_COPY[id] ?? { emoji: '🌙', name: id, dept: 'Nights' };
 }
 
+/** @param {string} text */
+function sentenceCase(text) {
+  return text ? `${text[0].toUpperCase()}${text.slice(1)}` : text;
+}
+
 export const NIGHT_SHIFT_COPY = Object.freeze({
   wallLabel: 'Night shift',
   boardAria: 'Night Shift kanban board — what the night crew did',
@@ -77,10 +82,12 @@ export const NIGHT_SHIFT_COPY = Object.freeze({
     `Good morning!! Night-shift standup, time-boxed to ninety seconds. ${present} of ${total} of the night crew clocked in ${when}, and ${shipped} of them shipped something. Yesterday, today, blockers — go!`,
   hostIntroEmpty: ({ when }) =>
     `Good morning!! Night-shift standup… and the room is empty. Nobody clocked in ${when}. I'll just story-point the silence.`,
-  crewShipped: ({ summary, prs }) =>
-    `Last night: ${summary} Merged ${prs}. Today: asleep. Blockers: none, I'm a cron job.`,
-  crewChecked: ({ summary }) =>
-    `Last night: ${summary} Nothing merged — a clean run counts too. Blockers: none.`,
+  // `when` is the host's own phrase ("last night" / "on 20 Nov"), so the crew
+  // and the host never disagree about which shift this is.
+  crewShipped: ({ when, summary, prs }) =>
+    `${sentenceCase(when)}: ${summary} Merged ${prs}. Today: asleep. Blockers: none, I'm a cron job.`,
+  crewChecked: ({ when, summary }) =>
+    `${sentenceCase(when)}: ${summary} Nothing merged — a clean run counts too. Blockers: none.`,
   hostNoShows: ({ names }) =>
     `${names} didn't clock in. Their last ledger entries are on the board. I'm putting it in the retro as a "learning".`,
   hostOnLeave: ({ names, count }) =>

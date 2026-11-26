@@ -29,6 +29,37 @@ import {
 } from './nightShiftStore.js';
 import './NightShift.css';
 
+const ARROW_KEYS = new Set(['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight']);
+
+const FOCUSABLE = 'a[href], button:not(:disabled), summary, [tabindex]:not([tabindex="-1"])';
+
+/**
+ * Cycle Tab / Shift+Tab within the dialog (the `GodAltarModal` pattern).
+ *
+ * @param {KeyboardEvent} event
+ * @param {HTMLElement | null} dialog
+ */
+function trapTab(event, dialog) {
+  if (!dialog) return;
+  const items = [...dialog.querySelectorAll(FOCUSABLE)];
+  if (items.length === 0) {
+    event.preventDefault();
+    dialog.focus({ preventScroll: true });
+    return;
+  }
+  const first = items[0];
+  const last = items[items.length - 1];
+  const active = document.activeElement;
+  const inside = dialog.contains(active);
+  if (event.shiftKey && (active === first || active === dialog || !inside)) {
+    event.preventDefault();
+    last.focus({ preventScroll: true });
+  } else if (!event.shiftKey && (active === last || !inside)) {
+    event.preventDefault();
+    first.focus({ preventScroll: true });
+  }
+}
+
 /** @param {{ prs?: number[] }} props */
 function PrLinks({ prs = [] }) {
   if (prs.length === 0) return null;
@@ -209,29 +240,32 @@ function StandupFace({ manifest, now }) {
  * @param {{ view: null | 'standup' | 'board', onClose: () => void, now?: number }} props
  */
 export function NightShiftWindow({ view, onClose, now: nowProp }) {
-  // Read once per mount: "last night" only has to be right to the day, and a
-  // clock read during render is the impurity react-hooks/purity flags.
-  const [now] = useState(() => nowProp ?? Date.now());
+  // The host passes the store's `openedAt`, captured on each closed → open
+  // transition, so a reopened window reads a fresh clock. The lazy fallback is
+  // for a bare mount (tests); reading the clock during render is the impurity
+  // react-hooks/purity flags.
+  const [mountedAt] = useState(() => Date.now());
+  const now = nowProp ?? mountedAt;
   const dialogRef = useRef(null);
   const onCloseRef = useRef(onClose);
   useEffect(() => {
     onCloseRef.current = onClose;
   });
   const manifest = getNightShiftManifest();
-  // Keyed on open/closed only: re-focusing the dialog on every face swap would
-  // pull focus off the button that was just pressed.
   const open = Boolean(view);
 
   useEffect(() => {
     if (!open) return undefined;
     const previousFocus =
       document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    dialogRef.current?.focus?.({ preventScroll: true });
     const onKeyDown = (event) => {
       if (event.key === 'Escape') {
         event.preventDefault();
         onCloseRef.current?.();
+        return;
       }
+      // aria-modal promises the background is unreachable; keep Tab inside.
+      if (event.key === 'Tab') trapTab(event, dialogRef.current);
     };
     window.addEventListener('keydown', onKeyDown);
     return () => {
@@ -239,6 +273,12 @@ export function NightShiftWindow({ view, onClose, now: nowProp }) {
       if (previousFocus?.isConnected) previousFocus.focus({ preventScroll: true });
     };
   }, [open]);
+
+  // On opening, and on every face swap: "See the board" / "Skip to the board"
+  // unmount the button that was pressed, which would drop focus to <body>.
+  useEffect(() => {
+    if (view) dialogRef.current?.focus?.({ preventScroll: true });
+  }, [view]);
 
   if (!view) return null;
   const title = view === 'standup' ? COPY.standupTitle : COPY.boardTitle;
@@ -250,6 +290,12 @@ export function NightShiftWindow({ view, onClose, now: nowProp }) {
       data-view={view}
       onClick={(event) => {
         if (event.target === event.currentTarget) onClose();
+      }}
+      // The floor walks you with the arrow keys from a window listener
+      // (`useFloorKeyboard`). Stop them here so reading the board does not
+      // walk you around the room behind it; Escape still reaches the window.
+      onKeyDown={(event) => {
+        if (ARROW_KEYS.has(event.key)) event.stopPropagation();
       }}
     >
       <div
@@ -294,10 +340,10 @@ export function NightShiftWindow({ view, onClose, now: nowProp }) {
 
 /** Subscribes to `nightShiftStore` so the floor's wall board and invite can open it. */
 export default function NightShiftHost() {
-  const { view } = useSyncExternalStore(
+  const { view, openedAt } = useSyncExternalStore(
     subscribeNightShift,
     getNightShiftSnapshot,
     getNightShiftSnapshot
   );
-  return <NightShiftWindow view={view} onClose={closeNightShift} />;
+  return <NightShiftWindow view={view} onClose={closeNightShift} now={openedAt ?? undefined} />;
 }

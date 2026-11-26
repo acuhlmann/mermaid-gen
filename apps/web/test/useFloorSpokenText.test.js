@@ -1,11 +1,19 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { renderHook, waitFor } from '@testing-library/react';
+import { cleanup, renderHook, waitFor } from '@testing-library/react';
 import { useFloorSpokenText } from '../src/components/officeFloor/useFloorSpokenText.js';
 import * as officeNarration from '../src/utils/officeNarration.js';
 import * as godAltarAudio from '../src/features/god/godAltarAudio.js';
 
+/*
+ * Unmount every hook this file rendered. Vitest globals are off here, so
+ * Testing Library's auto-cleanup never registers: without this, the
+ * `liftedSceneSpeech` cases leave the narration-busy `setInterval` running
+ * after jsdom is torn down, and its next tick throws `window is not defined`
+ * as an unhandled error that fails the whole web suite (seen on PR #961).
+ */
 afterEach(() => {
+  cleanup();
   vi.restoreAllMocks();
 });
 

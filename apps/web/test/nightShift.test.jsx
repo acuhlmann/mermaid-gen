@@ -8,6 +8,7 @@ import { setNightShiftManifestForTests } from '../src/features/nightShift/nightS
 import {
   closeNightShift,
   getNightShiftSnapshot,
+  openNightShiftBoard,
   resetNightShiftForTests
 } from '../src/features/nightShift/nightShiftStore.js';
 import {
@@ -111,6 +112,49 @@ describe('the standup', () => {
     fireEvent.click(screen.getByTestId('night-shift-invite-join'));
     fireEvent.keyDown(window, { key: 'Escape' });
     expect(screen.queryByTestId('night-shift-window')).toBeNull();
+  });
+});
+
+describe('the window as a modal', () => {
+  it('keeps the arrow keys from walking the floor behind it', () => {
+    renderFloorBits();
+    fireEvent.click(screen.getByTestId('night-shift-invite-join'));
+    const onWindowKey = vi.fn();
+    window.addEventListener('keydown', onWindowKey);
+    fireEvent.keyDown(screen.getByTestId('night-shift-next'), { key: 'ArrowLeft' });
+    window.removeEventListener('keydown', onWindowKey);
+    expect(onWindowKey).not.toHaveBeenCalled();
+  });
+
+  it('keeps Tab inside the dialog', () => {
+    renderFloorBits();
+    fireEvent.click(screen.getByTestId('night-shift-invite-join'));
+    const close = screen.getByTestId('night-shift-close');
+    const next = screen.getByTestId('night-shift-next');
+    next.focus();
+    fireEvent.keyDown(next, { key: 'Tab' });
+    expect(document.activeElement).toBe(close);
+    fireEvent.keyDown(close, { key: 'Tab', shiftKey: true });
+    expect(document.activeElement).toBe(next);
+  });
+
+  it('moves focus into the board when the standup hands over', () => {
+    renderFloorBits();
+    fireEvent.click(screen.getByTestId('night-shift-invite-join'));
+    fireEvent.click(screen.getByText('Skip to the board'));
+    expect(screen.getByRole('dialog').contains(document.activeElement)).toBe(true);
+  });
+
+  it('reads a fresh clock each time it opens, and holds it while open', () => {
+    renderFloorBits();
+    fireEvent.click(screen.getByTestId('night-shift-invite-join'));
+    const firstOpen = getNightShiftSnapshot().openedAt;
+    act(() => openNightShiftBoard('2026-11-24'));
+    expect(getNightShiftSnapshot().openedAt).toBe(firstOpen);
+    act(() => closeNightShift());
+    vi.setSystemTime(new Date('2026-11-28T09:00:00Z'));
+    act(() => openNightShiftBoard('2026-11-24'));
+    expect(screen.getByText('What the night crew did on 24 Nov')).toBeTruthy();
   });
 });
 
