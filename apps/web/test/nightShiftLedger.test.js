@@ -109,6 +109,18 @@ describe('parseLedgerRuns', () => {
     expect(runs.find((run) => run.date === '2026-11-23')?.shipped).toBe(false);
   });
 
+  it('reads a Merged column where a ledger has no PR column (deps)', () => {
+    const deps = [
+      '| Date | Queue | Merged | Notes |',
+      '| --- | --- | --- | --- |',
+      '| 2026-09-02 | 1 open Dependabot PR (#494). | #494 | Merged same-day. |',
+      '| 2026-09-03 | 0 open Dependabot PRs. | none | Quiet. |'
+    ].join('\n');
+    const [quiet, merged] = parseLedgerRuns(deps, { summaryColumn: 'Queue' });
+    expect(merged).toMatchObject({ date: '2026-09-02', prs: [494], shipped: true });
+    expect(quiet).toMatchObject({ date: '2026-09-03', prs: [], shipped: false });
+  });
+
   it('returns nothing for a ledger with no run log', () => {
     expect(parseLedgerRuns('| Date | Decision |\n| --- | --- |\n| 2026-01-01 | x |', CREW)).toEqual(
       []
