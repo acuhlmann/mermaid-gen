@@ -3,6 +3,7 @@ import { OFFICE_DIAGRAM_SOURCE_MAX_CHARS } from '@archislop/shared';
 import { API_BASE_URL, SESSION_HEADER } from '../state/diagramSession.js';
 import { getAdvisorVisibleLabels } from '../utils/advisorVisibleLabels.js';
 import { officeDialogueLocale } from '../utils/officeCast.js';
+import { huddleFallbackBeats } from '../utils/officeHuddleFallbacks.js';
 import { officeWireModelProfile } from '../utils/officeMomentDelivery.js';
 import { getOfficeLogDigest } from '../state/officeLogStore.js';
 import {
@@ -249,17 +250,42 @@ function reportUsage(onUsage, payload) {
   });
 }
 
-/** Hand the ring its lines, or dissolve it when nobody had anything to say. */
+/**
+ * Hand the ring its lines, or dissolve it when nobody had anything to say.
+ *
+ * **"Nobody had anything to say" and "nobody was ever asked" are two different
+ * endings, and collapsing them made the Pair chip a dead button.** An empty
+ * `beats` array is a *landed* script: the model was asked and wrote nothing, so
+ * everyone wanders off, same doctrine as a cancelled meeting. A `null` payload
+ * is `fetchHuddleScript` reporting that the ask itself never landed — 503 with
+ * no backend configured, a 5xx, or the 20 s budget running out — and the chair
+ * was already up, because `handleStartHuddle` seats the ring before the call so
+ * the arrival is the feedback that the click registered. Taking it back inside
+ * 46 ms is the one place this office stopped degrading in fiction, so a refused
+ * ask now deals the room's own opening from `officeHuddleFallbacks.js` instead.
+ *
+ * `canned` is the inputs rather than the lines, so the bank is only consulted on
+ * the path that needs it: the happy path computes nothing. A refresh
+ * (`mergeFromIndex != null`) passes none and is untouched — it already left a
+ * live huddle alone on failure, and re-scripting a conversation the user is
+ * already in with canned copy would overwrite a real line with a flat one.
+ */
 function applyHuddleResponse(
   huddleId,
   payload,
   onUsage,
-  { mergeFromIndex = null, fingerprint = '' } = {}
+  { mergeFromIndex = null, fingerprint = '', canned = null } = {}
 ) {
   reportUsage(onUsage, payload);
   const beats = payload?.script?.beats;
   if (!Array.isArray(beats) || beats.length === 0) {
-    if (mergeFromIndex == null) endOfficeHuddle(huddleId);
+    if (mergeFromIndex != null) return;
+    const dealt = payload == null && canned ? huddleFallbackBeats(canned) : [];
+    if (dealt.length > 0) {
+      setOfficeHuddleBeats(huddleId, dealt, { diagramFingerprint: fingerprint });
+      return;
+    }
+    endOfficeHuddle(huddleId);
     return;
   }
   if (mergeFromIndex != null) {
@@ -415,7 +441,17 @@ export function useHuddlePlayback(params) {
     if (abortRef.current === controller) abortRef.current = null;
     if (generation !== generationRef.current) return;
 
-    applyHuddleResponse(huddleId, payload, paramsRef.current.onUsage, { fingerprint });
+    applyHuddleResponse(huddleId, payload, paramsRef.current.onUsage, {
+      fingerprint,
+      /*
+       * What the bank needs if the ask never landed, read here because this is
+       * where the canvas was read: `ctx.visibleLabels[0]` rather than a random
+       * pick, so the fallback has no RNG in it at all. `mode` is not passed —
+       * the bank deals one line per seat, and `attendees` already says how many
+       * seats there are.
+       */
+      canned: { attendees: seats, label: ctx.visibleLabels?.[0] ?? '' }
+    });
     diagramFingerprintRef.current = fingerprint;
     recordPartnerTurns(mode, getOfficeSnapshot().huddle?.beats);
   }, []);

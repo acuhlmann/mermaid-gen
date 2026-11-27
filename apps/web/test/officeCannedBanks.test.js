@@ -12,6 +12,7 @@ import {
 } from '../src/utils/officeImReplyFallbacks.js';
 import { OFFICE_DWELL_FALLBACKS } from '../src/utils/officeDwellFallbacks.js';
 import { OFFICE_EMAIL_REPLY_TEMPLATES } from '../src/utils/officeEmailReplyFallbacks.js';
+import { OFFICE_HUDDLE_FALLBACKS } from '../src/utils/officeHuddleFallbacks.js';
 
 /**
  * The provoked canned banks — the lines dealt when the user said something and
@@ -45,6 +46,11 @@ const BANKS = [
   ['OFFICE_TALK_REPLY_FALLBACKS', OFFICE_TALK_REPLY_FALLBACKS],
   ['OFFICE_DWELL_FALLBACKS', OFFICE_DWELL_FALLBACKS],
   ['OFFICE_EMAIL_REPLY_TEMPLATES', OFFICE_EMAIL_REPLY_TEMPLATES],
+  // The sixth provoked bank, and the last surface to get one: a huddle used to
+  // take its own chair back when the script was refused. Its cast is the one
+  // the others never reach — `CAST_TIERS.team` plus `barker` — so a `colleagueId`
+  // typo here is a line delivered by nobody.
+  ['OFFICE_HUDDLE_FALLBACKS', OFFICE_HUDDLE_FALLBACKS],
   // Ambient, not provoked, but the same register and the same filler, and it is
   // the bank that repeats most often on a cold backend — so it carries the same
   // weight in the voice the room sounds like.
