@@ -1583,7 +1583,7 @@ describe('walking into somebody else s errand, on a real floor', () => {
     // Read as somebody who was in neither half of it — the collision is public.
     const digest = getOfficeLogDigest({ audience: 'gilfoyle' });
     expect(digest).toHaveLength(1);
-    expect(digest[0]).toContain(`you took the spot ${CHAD} was using`);
+    expect(digest[0]).toContain(`the user took the spot ${CHAD} was using`);
   });
 
   /*

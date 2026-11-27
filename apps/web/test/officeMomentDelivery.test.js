@@ -185,7 +185,7 @@ describe('deliverLlmMoment carries a pitch to every surface', () => {
 
     await deliverLlmMoment('im', CTX, { memory: memory(), colleagueId: 'intern' });
     const body = JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body ?? '{}'));
-    expect(body.officeRelationship[0]).toContain('you and intern have crossed paths 2 times');
+    expect(body.officeRelationship[0]).toContain('you and the user have crossed paths 2 times');
     // Greybeard's walk-by is his history, not the intern's.
     expect(String(body.officeRelationship)).not.toContain('greybeard');
     // And the shared digest still carries everybody else's public business —
@@ -223,7 +223,7 @@ describe('deliverLlmMoment carries a pitch to every surface', () => {
     // The person who was in it still is. Scope, not a narrower log.
     await deliverLlmMoment('im', CTX, { memory: memory(), colleagueId: 'gilfoyle' });
     const party = JSON.parse(String(fetchMock.mock.calls[1]?.[1]?.body ?? '{}'));
-    expect(String(party.officeLog)).toContain('you and gilfoyle traded messages');
+    expect(String(party.officeLog)).toContain('the user and gilfoyle traded messages');
     _resetOfficeLogForTests();
   });
 
