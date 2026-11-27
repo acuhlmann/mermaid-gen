@@ -36,8 +36,8 @@ describe('officeLogStore', () => {
     recordOfficeLogEntry('run', { now: at(9, 0), detail: 'mermaid' });
     recordOfficeLogEntry('walkby', { now: at(9, 5), colleagueId: 'gilfoyle' });
     expect(getOfficeLogDigest()).toEqual([
-      '09:00 you shipped a mermaid diagram',
-      '09:05 gilfoyle stopped by your desk'
+      '09:00 the user shipped a mermaid diagram',
+      "09:05 gilfoyle stopped by the user's desk"
     ]);
   });
 
@@ -72,8 +72,8 @@ describe('officeLogStore', () => {
     recordOfficeLogEntry('prop', { now: at(11, 0), detail: 'printer' });
     recordOfficeLogEntry('prop', { now: at(11, 0) + 6_000, detail: 'whiteboard' });
     expect(getOfficeLogDigest()).toEqual([
-      '11:00 you printed something off at the printer',
-      '11:00 you stopped and read the whiteboard'
+      '11:00 the user printed something off at the printer',
+      '11:00 the user stopped and read the whiteboard'
     ]);
   });
 
@@ -118,11 +118,11 @@ describe('officeLogStore', () => {
     vi.setSystemTime(today);
     expect(store.getOfficeLogDigest()).toEqual([]);
     store.recordOfficeLogEntry('run', { now: today, detail: 'mermaid' });
-    expect(store.getOfficeLogDigest()).toEqual(['00:05 you shipped a mermaid diagram']);
+    expect(store.getOfficeLogDigest()).toEqual(['00:05 the user shipped a mermaid diagram']);
 
     vi.resetModules();
     const reloaded = await freshStore();
-    expect(reloaded.getOfficeLogDigest()).toEqual(['00:05 you shipped a mermaid diagram']);
+    expect(reloaded.getOfficeLogDigest()).toEqual(['00:05 the user shipped a mermaid diagram']);
     vi.useRealTimers();
   });
 
@@ -138,10 +138,10 @@ describe('officeLogStore', () => {
 
     const gilfoyle = getOfficeRelationshipWith('gilfoyle');
     expect(gilfoyle[0]).toContain('crossed paths 2 times');
-    expect(gilfoyle.at(-1)).toBe("you took gilfoyle's suggestion earlier");
+    expect(gilfoyle.at(-1)).toBe('the user took your suggestion earlier');
     // Jared's single walk-by is his own history, not Gilfoyle's.
     expect(getOfficeRelationshipWith('jared')).toEqual([
-      'you and jared have crossed paths once today, at 09:30'
+      'you and the user have crossed paths once today, at 09:30'
     ]);
     // Somebody the user has not dealt with gets nothing, so the server drops
     // the block rather than announcing an absence.
@@ -160,7 +160,7 @@ describe('officeLogStore', () => {
     expect(getOfficeLogDigest()).toHaveLength(2);
     expect(getOfficeLogDigest({ audience: ['gilfoyle'] })).toHaveLength(2);
     expect(getOfficeLogDigest({ audience: ['jared'] })).toEqual([
-      '09:00 jared stopped by your desk'
+      "09:00 jared stopped by the user's desk"
     ]);
   });
 });

@@ -188,7 +188,7 @@ describe('what the room keeps', () => {
     expect(entries).toHaveLength(1);
     expect(entries[0]).toMatchObject({ kind: 'huddle', colleagueId: PARTNER });
     expect(getOfficeLogDigest()[0]).toContain(
-      `you and ${PARTNER} talked something through at your desk`
+      `the user and ${PARTNER} talked something through at their desk`
     );
   });
 
@@ -324,7 +324,7 @@ describe('the button behind it', () => {
     // calls — a unit that passes while `OfficeLayer` tears the chair down
     // silently looks exactly like a slice that works.
     expect(getOfficeLogDigest()[0]).toContain(
-      `you and ${PARTNER} talked something through at your desk`
+      `the user and ${PARTNER} talked something through at their desk`
     );
   });
 });
