@@ -27,6 +27,33 @@
  * subjects *are* included, which is the honest line rather than a lax one: in
  * the fiction a subject line is what the office gossips about, and a direct
  * message is not.
+ *
+ * **Both projections name the user out loud; neither says "you" about them.**
+ * Nothing here is UI copy, so there is no reader for whom "you" means the user:
+ * every line lands in a prompt whose frame addresses the **colleague** as "you"
+ * (`buildOfficeLogBlock` sits under a system prompt opening "You are writing
+ * ONE office moment"). Until 2026-11-27 all fifteen digest sentences and every
+ * relationship line were written from the user's side, three to five lines under
+ * a frame saying the opposite — the identical defect
+ * `officeWorkingMemoryStore.js` measured on its own bullets on 2026-11-10 and
+ * fixed by naming the party rather than flipping the pronoun.
+ *
+ * Measured here the same way (replicate the route, hold the diagram fixed, vary
+ * only the phrasing, keep a control arm, judge meaning rather than wording):
+ * **12 of 40 attributions came back with the two people swapped, against 0 of
+ * 40 once the user was named**, and the control arm with neither block invented
+ * none of the five facts in either direction. The reversals concentrated exactly
+ * where a sentence carries two human parties — `interrupt` **6 of 8**, `walkby`
+ * **4 of 8** — and "the user" never once leaked into a spoken line (0 of 8 in
+ * all three arms), which is the cost this phrasing looked like it might carry
+ * and does not.
+ *
+ * **The two projections then take opposite rules about the cast id, and that is
+ * not an inconsistency.** The digest is shared, has no single addressee, and
+ * names everybody (`gilfoyle`, not "you"). The relationship block is handed to
+ * one speaker, so *they* are the "you" and naming them as well said they had
+ * crossed paths with themselves. Both are asserted, in
+ * `officeLogDigest.test.js`.
  */
 
 /**
@@ -94,8 +121,8 @@ export const OFFICE_LOG_PRIVATE_KINDS = Object.freeze(new Set(['chat']));
  * model's memory, not its material.
  */
 const PROP_SENTENCES = {
-  printer: 'you printed something off at the printer',
-  whiteboard: 'you stopped and read the whiteboard'
+  printer: 'the user printed something off at the printer',
+  whiteboard: 'the user stopped and read the whiteboard'
 };
 
 /**
@@ -157,6 +184,11 @@ function clamp(value, max = DETAIL_MAX_CHARS) {
  * character recipe learned about example lines (docs/recipes/
  * replicate-tv-character.md §2: a vivid example comes back word-for-word).
  *
+ * **The user is `the user`, never `you`** — see the module header for the
+ * measurement. A sixteenth kind written in the obvious register is how this
+ * re-breaks, which is why the assertion sweeps `OFFICE_LOG_KINDS` rather than
+ * naming a sentence.
+ *
  * @param {{kind?: string, colleagueId?: string, detail?: string}} entry
  * @returns {string}
  */
@@ -165,26 +197,26 @@ function sentenceOf(entry) {
   const detail = clamp(entry?.detail);
   switch (entry?.kind) {
     case 'run':
-      return detail ? `you shipped a ${detail} diagram` : 'you shipped a diagram';
+      return detail ? `the user shipped a ${detail} diagram` : 'the user shipped a diagram';
     case 'pitch':
       return who
-        ? `you took ${who}'s suggestion${detail ? ` (${detail})` : ''}`
-        : `you took a suggestion${detail ? ` (${detail})` : ''}`;
+        ? `the user took ${who}'s suggestion${detail ? ` (${detail})` : ''}`
+        : `the user took a suggestion${detail ? ` (${detail})` : ''}`;
     case 'walkby':
-      return who ? `${who} stopped by your desk` : '';
+      return who ? `${who} stopped by the user's desk` : '';
     case 'email':
-      return who ? `${who} emailed you${detail ? `: "${detail}"` : ''}` : '';
+      return who ? `${who} emailed the user${detail ? `: "${detail}"` : ''}` : '';
     // Deliberately bodiless — see the DM privacy note in the module header.
     case 'chat':
-      return who ? `you and ${who} traded messages` : '';
+      return who ? `the user and ${who} traded messages` : '';
     case 'coffee':
-      return 'you took a coffee break';
+      return 'the user took a coffee break';
     case 'battle':
       return detail
         ? `a cubicle argument was settled, ${detail} won`
         : 'a cubicle argument was settled';
     case 'meeting':
-      return detail === 'left' ? 'you left a meeting early' : 'you sat through a meeting';
+      return detail === 'left' ? 'the user left a meeting early' : 'the user sat through a meeting';
     /*
      * Two sentences, because the room supports two huddles and it only ever had
      * a line for one. A mob is `CAST_TIERS.team` dragged over, and "the team
@@ -204,8 +236,8 @@ function sentenceOf(entry) {
      */
     case 'huddle':
       return who
-        ? `you and ${who} talked something through at your desk`
-        : 'the team crowded around your screen';
+        ? `the user and ${who} talked something through at their desk`
+        : "the team crowded around the user's screen";
     /*
      * Slice 26. `detail` is who *sent* you, which is the half that makes this
      * office business rather than a private chat: the whole floor knows Linda
@@ -214,20 +246,20 @@ function sentenceOf(entry) {
      */
     case 'errand':
       return who
-        ? `you went and had a word with ${who}${detail ? `, at ${detail}'s asking` : ''}`
+        ? `the user went and had a word with ${who}${detail ? `, at ${detail}'s asking` : ''}`
         : '';
     // §10.1 / §10.2. Both are things the whole office would plausibly know
     // about by lunchtime — which is exactly the test for what belongs here.
     case 'training':
       return detail
-        ? `you finally completed compliance module ${detail}`
-        : 'you finally completed a compliance module';
+        ? `the user finally completed compliance module ${detail}`
+        : 'the user finally completed a compliance module';
     case 'security':
       return detail === 'reported'
-        ? 'you reported a phishing email'
-        : 'you clicked a simulated phishing email';
+        ? 'the user reported a phishing email'
+        : 'the user clicked a simulated phishing email';
     case 'levelUp':
-      return detail ? `you were promoted to ${detail}` : 'you were promoted';
+      return detail ? `the user was promoted to ${detail}` : 'the user was promoted';
     /*
      * Slice 9's props, finally leaving something behind. Bodiless like `chat`
      * in spirit — the line says you were at the thing, never what the page
@@ -259,8 +291,8 @@ function sentenceOf(entry) {
     case 'interrupt':
       if (!who) return '';
       return detail === 'gaveUp'
-        ? `you got in ${who}'s way and they went back to their desk empty-handed`
-        : `you took the spot ${who} was using`;
+        ? `the user got in ${who}'s way and they went back to their desk empty-handed`
+        : `the user took the spot ${who} was using`;
     default:
       return '';
   }
@@ -328,12 +360,19 @@ function sentenceOf(entry) {
  * traded messages with you" loses track of who the subject is by the second
  * item — and the one thing this block must not do is leave the model guessing
  * which of you did what.
+ *
+ * Written from the **speaker's** side, which is the opposite of the digest's
+ * rule and for the same reason: this block is handed to one named colleague
+ * under "You and this user, today (yours alone)", so the reader is the "you"
+ * and the other party has to be named. The noun phrases therefore carry the
+ * user rather than a bare "them" — "2 emails you sent the user" rather than
+ * "2 emails from them", where "them" would resolve to the reader.
  */
 const RELATIONSHIP_KINDS = {
-  email: { one: 'email from them', many: 'emails from them' },
-  chat: { one: 'chat', many: 'chats' },
-  walkby: { one: 'desk visit', many: 'desk visits' },
-  pitch: { one: 'suggestion of theirs you took', many: 'suggestions of theirs you took' }
+  email: { one: 'email you sent the user', many: 'emails you sent the user' },
+  chat: { one: 'chat with the user', many: 'chats with the user' },
+  walkby: { one: "visit to the user's desk", many: "visits to the user's desk" },
+  pitch: { one: 'suggestion of yours the user took', many: 'suggestions of yours the user took' }
 };
 
 /** At most this many lines — a moment prompt is already long. */
@@ -381,8 +420,8 @@ export function buildOfficeRelationship(entries, colleagueId) {
 
   const lines = [
     total === 1
-      ? `you and ${who} have crossed paths once today${lastAt === null ? '' : `, at ${clockOf(lastAt)}`}`
-      : `you and ${who} have crossed paths ${total} times today${lastAt === null ? '' : `, most recently at ${clockOf(lastAt)}`}`
+      ? `you and the user have crossed paths once today${lastAt === null ? '' : `, at ${clockOf(lastAt)}`}`
+      : `you and the user have crossed paths ${total} times today${lastAt === null ? '' : `, most recently at ${clockOf(lastAt)}`}`
   ];
 
   // The texture, only when there is more than one thing to distinguish —
@@ -398,8 +437,8 @@ export function buildOfficeRelationship(entries, colleagueId) {
   if (counts.pitch) {
     lines.push(
       counts.pitch === 1
-        ? `you took ${who}'s suggestion earlier`
-        : `you have taken ${counts.pitch} of ${who}'s suggestions`
+        ? 'the user took your suggestion earlier'
+        : `the user has taken ${counts.pitch} of your suggestions`
     );
   }
 

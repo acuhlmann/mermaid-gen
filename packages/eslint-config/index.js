@@ -222,6 +222,15 @@ export function baseConfig({ env = 'node', tighten = false, workspaceDir = '.' }
       rules: {
         'no-fallthrough': 'error'
       }
+    },
+    // ADR-0007: promoted 2026-11-27 (improve, lint severity promotion). Quiet-period
+    // evidence: `git log --since="2 weeks ago" -S'no-redeclare' -- '**/*.{js,jsx,ts,tsx}'`
+    // returned empty; eslint JSON across web/shared/server reported zero no-redeclare warnings.
+    {
+      files: ['**/*.{js,jsx,mjs,cjs,ts,tsx}'],
+      rules: {
+        'no-redeclare': 'error'
+      }
     }
   ];
 }

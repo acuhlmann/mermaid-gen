@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   OFFICE_LOG_DIGEST_MAX_CHARS,
   OFFICE_LOG_DIGEST_MAX_LINES,
+  OFFICE_LOG_KINDS,
   OFFICE_LOG_LINE_MAX_CHARS,
   OFFICE_RELATIONSHIP_MAX_LINES,
   buildOfficeLogDigest,
@@ -23,8 +24,8 @@ describe('buildOfficeLogDigest', () => {
       { at: at(9, 14), kind: 'walkby', colleagueId: 'gilfoyle' }
     ]);
     expect(digest).toEqual([
-      '09:02 you shipped a mermaid diagram',
-      '09:14 gilfoyle stopped by your desk'
+      '09:02 the user shipped a mermaid diagram',
+      "09:14 gilfoyle stopped by the user's desk"
     ]);
   });
 
@@ -40,7 +41,7 @@ describe('buildOfficeLogDigest', () => {
       { at: at(9, 1), kind: 'walkby' },
       { at: at(9, 2), kind: 'coffee' }
     ]);
-    expect(digest).toEqual(['09:02 you took a coffee break']);
+    expect(digest).toEqual(['09:02 the user took a coffee break']);
   });
 
   /**
@@ -52,7 +53,7 @@ describe('buildOfficeLogDigest', () => {
     const digest = buildOfficeLogDigest([
       { at: at(11, 5), kind: 'chat', colleagueId: 'jared', detail: secret }
     ]);
-    expect(digest).toEqual(['11:05 you and jared traded messages']);
+    expect(digest).toEqual(['11:05 the user and jared traded messages']);
     expect(digest.join('\n')).not.toContain(secret);
   });
 
@@ -68,20 +69,20 @@ describe('buildOfficeLogDigest', () => {
       { at: at(11, 5), kind: 'chat', colleagueId: 'jared' }
     ];
     const bystander = buildOfficeLogDigest(entries, { audience: ['gary'] });
-    expect(bystander).toEqual(['09:00 greybeard stopped by your desk']);
+    expect(bystander).toEqual(["09:00 greybeard stopped by the user's desk"]);
 
     // And the person who was in it still has it — they are the one character
     // who may say "about those messages".
     const jared = buildOfficeLogDigest(entries, { audience: ['jared'] });
     expect(jared).toHaveLength(2);
-    expect(jared.at(-1)).toContain('you and jared traded messages');
+    expect(jared.at(-1)).toContain('the user and jared traded messages');
   });
 
   it('is the unscoped digest when nobody has been named', () => {
     // The default every ensemble sender still uses. A narrower default would
     // silently change three prompts no case here covers.
     const digest = buildOfficeLogDigest([{ at: at(11, 5), kind: 'chat', colleagueId: 'jared' }]);
-    expect(digest).toEqual(['11:05 you and jared traded messages']);
+    expect(digest).toEqual(['11:05 the user and jared traded messages']);
     expect(
       buildOfficeLogDigest([{ at: at(11, 5), kind: 'chat', colleagueId: 'jared' }], {})
     ).toEqual(digest);
@@ -152,8 +153,8 @@ describe('buildOfficeLogDigest', () => {
       { at: at(15, 0), kind: 'meeting', detail: 'left' }
     ]);
     expect(digest[0]).toBe('13:00 a cubicle argument was settled, gilfoyle won');
-    expect(digest[1]).toBe('14:00 you sat through a meeting');
-    expect(digest[2]).toBe('15:00 you left a meeting early');
+    expect(digest[1]).toBe('14:00 the user sat through a meeting');
+    expect(digest[2]).toBe('15:00 the user left a meeting early');
   });
 
   /**
@@ -167,9 +168,9 @@ describe('buildOfficeLogDigest', () => {
       { at: at(10, 30), kind: 'interrupt', colleagueId: 'chad', detail: 'gotIt' }
     ]);
     expect(digest[0]).toBe(
-      "10:00 you got in intern's way and they went back to their desk empty-handed"
+      "10:00 the user got in intern's way and they went back to their desk empty-handed"
     );
-    expect(digest[1]).toBe('10:30 you took the spot chad was using');
+    expect(digest[1]).toBe('10:30 the user took the spot chad was using');
   });
 
   /**
@@ -211,8 +212,8 @@ describe('buildOfficeLogDigest', () => {
       { at: at(11, 0), kind: 'huddle', colleagueId: 'gilfoyle' },
       { at: at(16, 0), kind: 'huddle' }
     ]);
-    expect(digest[0]).toBe('11:00 you and gilfoyle talked something through at your desk');
-    expect(digest[1]).toBe('16:00 the team crowded around your screen');
+    expect(digest[0]).toBe('11:00 the user and gilfoyle talked something through at their desk');
+    expect(digest[1]).toBe("16:00 the team crowded around the user's screen");
     expect(digest[0]).not.toContain('the team');
   });
 
@@ -227,7 +228,7 @@ describe('buildOfficeLogDigest', () => {
       { at: at(11, 0), kind: 'huddle', colleagueId: 'gilfoyle', detail: 'the retry loop' }
     ]);
     expect(digest).toHaveLength(1);
-    expect(digest[0]).toBe('11:00 you and gilfoyle talked something through at your desk');
+    expect(digest[0]).toBe('11:00 the user and gilfoyle talked something through at their desk');
   });
 
   /**
@@ -264,6 +265,67 @@ describe('buildOfficeLogDigest', () => {
     expect(digest.join('\n')).not.toContain('type0 ');
   });
 
+  /**
+   * The POV convention, swept over the whole vocabulary rather than asserted on
+   * the sentence somebody happened to be editing.
+   *
+   * Every line here lands in a prompt whose frame addresses the **colleague**
+   * as "you" (`buildOfficeLogBlock`, under a system prompt that opens "You are
+   * writing ONE office moment"). A digest line that says "you" therefore names
+   * the reader, not the user — which is how the same defect on the
+   * working-memory block had the model reporting 23 of 24 facts with the two
+   * people swapped until the parties were named out loud
+   * (`officeWorkingMemoryStore.js`, measured 2026-11-10; re-measured on these
+   * two projections 2026-11-27 at 12 of 40 attributions reversed → 0 of 40).
+   *
+   * Swept over `OFFICE_LOG_KINDS` because the way this re-breaks is a
+   * **sixteenth kind** written in the obvious register, not a reworded
+   * fifteenth — and with the companion non-empty assertion the domain file
+   * demands of a derived-set sweep, since a sweep over sentences that all came
+   * back `''` would be green while examining nothing.
+   */
+  it('never addresses the user as "you", for any kind the log can record', () => {
+    const PROBE_DETAILS = {
+      run: 'mermaid',
+      pitch: 'a retry box',
+      email: 'does billing read the ledger?',
+      chat: 'the reorg',
+      battle: 'gilfoyle',
+      meeting: 'left',
+      errand: 'linda',
+      training: '7',
+      security: 'reported',
+      levelUp: 'Senior Diagram Associate',
+      prop: 'printer',
+      interrupt: 'gotIt'
+    };
+    // One call per kind rather than one log of fifteen: the digest keeps only
+    // the newest `MAX_LINES`, so a single batch would silently drop three.
+    const digest = OFFICE_LOG_KINDS.flatMap((kind) =>
+      buildOfficeLogDigest([
+        {
+          at: at(9, 0),
+          kind,
+          colleagueId: 'gilfoyle',
+          ...(PROBE_DETAILS[kind] ? { detail: PROBE_DETAILS[kind] } : {})
+        }
+      ])
+    );
+
+    // Companion non-empty assertion: every kind in the vocabulary renders.
+    expect(digest).toHaveLength(OFFICE_LOG_KINDS.length);
+
+    for (const line of digest) {
+      expect(line).not.toMatch(/\byou\b|\byour\b|\byours\b/i);
+    }
+    // And the party is named rather than merely un-addressed: the only line
+    // that may omit the user is the one about nobody in particular.
+    for (const line of digest) {
+      if (/cubicle argument/.test(line)) continue;
+      expect(line).toContain('the user');
+    }
+  });
+
   it('stays inside the caps the office route enforces', () => {
     const entries = Array.from({ length: 40 }, (_, i) => ({
       at: at(9, i),
@@ -295,10 +357,10 @@ describe('buildOfficeRelationship', () => {
       'gilfoyle'
     );
     expect(lines[0]).toBe(
-      'you and gilfoyle have crossed paths 2 times today, most recently at 09:40'
+      'you and the user have crossed paths 2 times today, most recently at 09:40'
     );
     // Noun phrases with counts: who did what stays unambiguous across items.
-    expect(lines[1]).toBe('that was: 1 email from them, 1 chat');
+    expect(lines[1]).toBe('that was: 1 email you sent the user, 1 chat with the user');
   });
 
   it('is empty for somebody with no history, so the block is dropped', () => {
@@ -321,7 +383,7 @@ describe('buildOfficeRelationship', () => {
       [{ at: at(11, 30), kind: 'walkby', colleagueId: 'gilfoyle' }],
       'gilfoyle'
     );
-    expect(lines).toEqual(['you and gilfoyle have crossed paths once today, at 11:30']);
+    expect(lines).toEqual(['you and the user have crossed paths once today, at 11:30']);
   });
 
   it('gives a taken suggestion its own line, because it changed the work', () => {
@@ -332,7 +394,7 @@ describe('buildOfficeRelationship', () => {
       ],
       'gilfoyle'
     );
-    expect(lines.at(-1)).toBe("you took gilfoyle's suggestion earlier");
+    expect(lines.at(-1)).toBe('the user took your suggestion earlier');
 
     const twice = buildOfficeRelationship(
       [
@@ -341,7 +403,35 @@ describe('buildOfficeRelationship', () => {
       ],
       'gilfoyle'
     );
-    expect(twice.at(-1)).toBe("you have taken 2 of gilfoyle's suggestions");
+    expect(twice.at(-1)).toBe('the user has taken 2 of your suggestions');
+  });
+
+  /**
+   * The other half of the POV convention, and the sharper half: this block is
+   * handed to one named speaker under the heading "You and this user, today
+   * (yours alone)", so **the colleague is the "you"**. Naming them in the line
+   * as well told them they had crossed paths with themselves — "you and
+   * gilfoyle have crossed paths 3 times today", read by gilfoyle — which is why
+   * the cast id is the thing that must be absent here and the thing that must
+   * be *present* in the shared digest. Same facts, two audiences, opposite
+   * rules; stating both as assertions is what stops a later reader "fixing" one
+   * into the other.
+   */
+  it('never names the colleague it is handed to, because they are the "you"', () => {
+    const lines = buildOfficeRelationship(
+      [
+        { at: at(9, 2), kind: 'email', colleagueId: 'gilfoyle' },
+        { at: at(9, 40), kind: 'chat', colleagueId: 'gilfoyle' },
+        { at: at(10, 0), kind: 'walkby', colleagueId: 'gilfoyle' },
+        { at: at(10, 30), kind: 'pitch', colleagueId: 'gilfoyle' }
+      ],
+      'gilfoyle'
+    );
+    expect(lines.length).toBeGreaterThan(0);
+    for (const line of lines) {
+      expect(line).not.toContain('gilfoyle');
+      expect(line).toContain('the user');
+    }
   });
 
   it('leaves a cubicle battle out, because its colleague is the winner not the correspondent', () => {

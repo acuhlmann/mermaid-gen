@@ -978,6 +978,19 @@ today'` (`officeBoardRecall.js`), `'you said:'` / `'they said:'` for the quotes 
   in the user's voice fails without anybody having to think of it. The quote prefixes read
   **inverted against the field names on purpose** — `yours`/`theirs` is about whose words a beat
   holds, the prefix is about who is being addressed, so `theirs: 'you said:'` is correct.
+  **The other two projections were finished 2026-11-27 — and the clause above about
+  `buildOfficeRelationship` is retracted.** All fifteen `sentenceOf` sentences and every
+  relationship line in `officeLogDigest.js` were still written from the user's side, so #916 fixed
+  one of three client projections on an office request and the note above read the second one's
+  defect as a mitigation. Naming the colleague by id is not "something to disambiguate against" when
+  the colleague is the reader: `'you and gilfoyle have crossed paths 3 times today'`, handed to
+  gilfoyle, says they crossed paths with themselves. Re-measured on the same method at **12 of 40
+  attributions reversed → 0 of 40**, control arm 0 of 40 and leakage 0 of 8, with the reversals
+  landing exactly where a sentence carries two human parties (`interrupt` **6 of 8**, `walkby`
+  **4 of 8**). **The two projections take opposite rules about the cast id and that is not a
+  drift**: the digest is shared and has no addressee, so it names everybody; the relationship block
+  is handed to one speaker, so it names nobody but the user. Both are swept in
+  `officeLogDigest.test.js`. Full section below.
 - **A surface the ambient director owns cannot be waited for during a visit — a step has to push
   it.** `useOfficeAmbience`'s `shouldHoldFire()` returns on `floorActive`, so for the whole length
   of a floor visit the ambient layer (kind, cadence, caps **and** the speaker draw) never fires.
@@ -2720,6 +2733,62 @@ control at 0 of 24 on everything**. So the reversal was the block's, not the mod
   prefix and were corrected in the same follow-up — the argument they carry (email is not speech) is
   unchanged and still right; only the citation moved. **A comment that quotes a string is a claim
   about that string**, and this domain has now paid for that twice.
+
+### The log's two projections were the other half of that convention, and one of them talked to itself
+
+**Landed 2026-11-27.** #916 fixed `buildOfficeWorkingMemoryBlock`'s bullets and left the other two
+client projections on an office request exactly as they were: all fifteen `sentenceOf` sentences and
+every `buildOfficeRelationship` line in `apps/web/src/utils/officeLogDigest.js` still said `you`
+about the user, under the same frames that address the colleague as `you`. The digest is prompt
+context and never UI copy (its own header says so, and all five callers pass it as a request field),
+so there was never a reader for whom `you` meant the user — the convention simply had not been
+carried across the module.
+
+**Measured the same way, and the headline is the same shape.** Replicate the route rather than
+paraphrase it (`buildMomentSystemPrompt` / `buildMomentUserPrompt` / `createOfficeChatModel` at the
+route's own 0.9), one fixed five-node funnel, vary only the phrasing of `officeLog` +
+`officeRelationship`, keep a control arm with neither block, and judge **meaning** with a second
+call at 0.1 — never a phrase regex (§ 14's retraction). Five facts with an unambiguous owner,
+8 samples an arm, a recall probe ("remind me what we have already been through today"):
+
+| arm                  | correct | reversed | absent | `the user` in a spoken line |
+| -------------------- | ------- | -------- | ------ | --------------------------- |
+| shipped (user's POV) | 18      | **12**   | 10     | 0 of 8                      |
+| named                | 25      | **0**    | 15     | 0 of 8                      |
+| control (no blocks)  | 0       | 0        | **40** | 0 of 8                      |
+
+**Three readings, and the third is a limit on the other two.**
+
+- **The control arm is what makes the other rows mean anything**, exactly as on 2026-11-10: with
+  neither block the model reached for none of the five facts in either direction, so the 12 is the
+  blocks being read backwards and not the model being loose.
+- **The reversals sit where a sentence carries two human parties**, which is the useful detail for
+  whoever writes the sixteenth kind: `interrupt` **6 of 8** ("you took the spot intern was using" —
+  the colleague read itself as the one who got moved), `walkby` **4 of 8**, `run` 1 of 8 (one party,
+  little to swap). A one-party sentence is nearly safe and a two-party one is nearly always wrong.
+- **The relationship half is carried by argument, not by this measurement, and saying otherwise
+  would overclaim.** Both arms varied the two fields together, so the 12 → 0 belongs to the pair;
+  per fact, the relationship block contributed **1 reversal of 8** on the pitch line and **nothing
+  at all** on the count line, which came back `absent` **7 of 8 in both arms** — a line the model
+  almost never reaches for. What justifies changing it is that it is self-referential on its face
+  ("you and gilfoyle…", read by gilfoyle) and that leaving one projection in the other convention is
+  how the first one got re-broken.
+
+**The two opposite rules, stated as rules because a later reader will try to unify them.** The
+shared digest has no single addressee — it rides to a whole room on three of its five callers — so
+it **names every party**, cast ids included, which is the module's own long-standing decision. The
+relationship block is built per speaker under _"You and this user, today (yours alone)"_, so the
+reader **is** the `you` and the block **must not name them**: `buildOfficeRelationship(entries,
+'gilfoyle')` containing `gilfoyle` is the bug. Both directions are asserted in
+`officeLogDigest.test.js` — a sweep over `OFFICE_LOG_KINDS` (one call per kind, because the digest
+keeps only the newest 12 and a single batch of fifteen silently drops three) with the companion
+non-empty assertion, and an id-absence case on the relationship side.
+
+**And the noun phrases needed more than a pronoun swap.** `RELATIONSHIP_KINDS` read
+`'email from them'` / `'suggestion of theirs you took'`; flipping the possessive alone would have
+left `them` resolving to the reader. They name the user outright now ("2 emails you sent the user"),
+which keeps the module's own rule — noun phrases with an explicit count, never verb phrases — while
+making the party unambiguous in a list.
 
 ### The visit grew a ninth step, and the director it stands in for is off by design
 
